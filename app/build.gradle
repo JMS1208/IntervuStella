@@ -1,0 +1,124 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
+    id 'dagger.hilt.android.plugin'
+}
+
+android {
+    namespace 'com.capstone.Capstone2Project'
+    compileSdk 33
+
+    defaultConfig {
+        applicationId "com.capstone.Capstone2Project"
+        minSdk 24
+        targetSdk 33
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary true
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    buildFeatures {
+        compose true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion compose_ui_version
+    }
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+    }
+}
+
+dependencies {
+
+    implementation 'androidx.core:core-ktx:1.7.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.3.1'
+    implementation "androidx.activity:activity-compose:$compose_ui_version"
+    implementation "androidx.compose.ui:ui:$compose_ui_version"
+    implementation "androidx.compose.ui:ui-tooling-preview:$compose_ui_version"
+    implementation 'androidx.compose.material:material:1.2.0'
+    implementation "androidx.compose.compiler:compiler:$compose_compiler_version"
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation "androidx.compose.ui:ui-test-junit4:$compose_ui_version"
+    debugImplementation "androidx.compose.ui:ui-tooling:$compose_ui_version"
+    debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_ui_version"
+    implementation "androidx.compose.ui:ui-tooling:$compose_ui_version"
+
+
+    //PendingIntent Warning
+    implementation 'androidx.work:work-runtime-ktx:2.7.1'
+
+    //Blur
+    implementation "com.github.skydoves:cloudy:0.1.1"
+
+    //Accompanist-Permissions
+    implementation "com.google.accompanist:accompanist-permissions:0.28.0"
+
+    //ViewPager
+    implementation "com.google.accompanist:accompanist-pager:0.28.0"
+    implementation "com.google.accompanist:accompanist-pager-indicators:0.28.0"
+
+    // DataStore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation("androidx.datastore:datastore:1.0.0")
+    implementation "androidx.datastore:datastore-core:1.0.0"
+
+    //Lifecycle
+    implementation "androidx.lifecycle:lifecycle-runtime-compose:2.6.0-alpha01"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.5.1"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1"
+
+    //Hilt
+    implementation("com.google.dagger:hilt-android:2.42")
+    implementation("androidx.hilt:hilt-common:1.0.0")
+    kapt("com.google.dagger:hilt-compiler:2.42")
+    implementation "androidx.hilt:hilt-work:1.0.0"
+    kapt "androidx.hilt:hilt-compiler:1.0.0"
+    implementation "androidx.hilt:hilt-navigation-compose:1.0.0"
+
+    //Retrofit
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-moshi:2.9.0")
+    implementation 'com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:0.8.0'
+
+    //Moshi
+    implementation("com.squareup.moshi:moshi:1.13.0")
+    kapt("com.squareup.moshi:moshi-kotlin-codegen:1.13.0")
+
+    //Okhttp
+    implementation("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
+
+    //Emoji
+    implementation "androidx.emoji2:emoji2:$emoji2_version"
+    implementation "androidx.emoji2:emoji2-views:$emoji2_version"
+    implementation "androidx.emoji2:emoji2-views-helper:$emoji2_version"
+
+    //AppCompat
+    implementation("androidx.appcompat:appcompat:$appcompat_version")
+    implementation("androidx.appcompat:appcompat-resources:$appcompat_version")
+
+    //Lottie
+    implementation "com.airbnb.android:lottie-compose:$lottie_version"
+}
