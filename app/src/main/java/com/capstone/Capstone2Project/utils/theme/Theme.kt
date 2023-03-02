@@ -5,6 +5,11 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
+import com.capstone.Capstone2Project.utils.etc.CustomFont
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 private val DarkColorPalette = darkColors(
     primary = Purple200,
@@ -37,6 +42,19 @@ fun Capstone2ProjectTheme(
     } else {
         LightColorPalette
     }
+
+    val systemUiController = rememberSystemUiController()
+
+
+    DisposableEffect(systemUiController) {
+        systemUiController.setSystemBarsColor(
+            color = Color.Transparent,
+            darkIcons = true
+        )
+
+        onDispose { }
+    }
+
 
     MaterialTheme(
         colors = colors,

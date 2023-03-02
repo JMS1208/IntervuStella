@@ -51,7 +51,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.ExperimentalLifecycleComposeApi
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -78,7 +77,6 @@ fun LoginUIPreview() {
     )
 }
 
-@OptIn(ExperimentalLifecycleComposeApi::class)
 @Composable
 fun LoginScreen(
     navController: NavController,
@@ -152,28 +150,34 @@ fun SignUpComment(
             textAlign = TextAlign.End
         )
     ) {
-        Text(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    navController.navigate(ROUTE_SIGNUP) {
-                        popUpTo(ROUTE_LOGIN) {
-                            inclusive = true
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            Text(
+                modifier = Modifier
+                    .clickable {
+                        navController.navigate(ROUTE_SIGNUP) {
+                            popUpTo(ROUTE_LOGIN) {
+                                inclusive = true
+                            }
                         }
+                    },
+                text = buildAnnotatedString{
+                    append("계정이 없으신가요? ")
+                    withStyle(
+                        style = SpanStyle(
+                            color = Color.Black,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    ) {
+                        append("회원가입")
                     }
-                },
-            text = buildAnnotatedString{
-                append("계정이 없으신가요? ")
-                withStyle(
-                    style = SpanStyle(
-                        color = Color.Black,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                ) {
-                    append("회원가입")
                 }
-            }
-        )
+            )
+        }
+
+
     }
 }
 
@@ -298,7 +302,8 @@ fun InfoTextFieldWithTitle(
     useVisualTransformation: Boolean = false,
     label: @Composable (()->Unit)? = null,
     title: String,
-    emoji: @Composable (()->Unit)? = null
+    emoji: @Composable (()->Unit)? = null,
+    isCorrect: Boolean = false
 ) {
 
     val spacing = LocalSpacing.current
@@ -329,6 +334,15 @@ fun InfoTextFieldWithTitle(
                     textAlign = TextAlign.Start,
                     fontWeight = FontWeight.Medium
                 )
+                AnimatedVisibility(isCorrect) {
+                    if(isCorrect) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = bright_blue
+                        )
+                    }
+                }
             }
             InfoTextField(
                 onValueChange = onValueChange,

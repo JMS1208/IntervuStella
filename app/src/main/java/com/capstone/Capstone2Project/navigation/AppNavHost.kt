@@ -2,15 +2,21 @@ package com.capstone.Capstone2Project.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
+import androidx.navigation.navArgument
+import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.ui.screen.auth.LoginScreen
 import com.capstone.Capstone2Project.ui.screen.auth.SignUpScreen
+import com.capstone.Capstone2Project.ui.screen.interview.InterviewScreen
+import com.capstone.Capstone2Project.ui.screen.home.HomeScreen
+import com.capstone.Capstone2Project.ui.screen.interesting.topic.TopicScreen
+import com.capstone.Capstone2Project.ui.screen.mypage.MyPageScreen
+import com.capstone.Capstone2Project.ui.screen.script.ScriptWritingFinishScreen
+import com.capstone.Capstone2Project.ui.screen.script.ScriptWritingScreen
 
 @Composable
 fun AppNavHost(
@@ -32,7 +38,58 @@ fun AppNavHost(
         }
 
         composable(ROUTE_HOME) {
+            HomeScreen(navController)
+        }
 
+        composable(ROUTE_TOPIC) {
+            TopicScreen(navController)
+        }
+
+        composable(
+            "$ROUTE_CAMERA/{script}"
+        ) { navBackStackEntry ->
+            val scriptJson = navBackStackEntry.arguments?.getString("script")
+
+            scriptJson?.let {
+                val script = Script.jsonStringToScript(it)
+                InterviewScreen(navController, script)
+            }
+        }
+
+
+        composable("$ROUTE_SCRIPT_WRITING?script={script}",
+            arguments = listOf(
+                navArgument("script") {
+                    defaultValue = null
+                    type = NavType.StringType
+                    nullable = true
+                }
+            )) { navBackStackEntry ->
+
+            val scriptJson = navBackStackEntry.arguments?.getString("script")
+
+            val script = if (scriptJson == null) null else Script.jsonStringToScript(scriptJson)
+
+            ScriptWritingScreen(navController = navController, _script = script)
+
+
+        }
+
+        composable("$ROUTE_SCRIPT_WRITING_FINISH/{script}") { navBackStackEntry ->
+
+            val scriptJson = navBackStackEntry.arguments?.getString("script")
+
+            scriptJson?.let {
+                val script = Script.jsonStringToScript(it)
+
+                if (script != null) {
+                    ScriptWritingFinishScreen(script = script, navController = navController)
+                }
+            }
+        }
+
+        composable(ROUTE_MY_PAGE) {
+            MyPageScreen(navController = navController)
         }
     }
 }

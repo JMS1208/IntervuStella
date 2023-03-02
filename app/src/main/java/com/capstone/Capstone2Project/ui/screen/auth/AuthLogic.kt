@@ -9,3 +9,8 @@ class AuthLogic {
         }
     }
 }
+
+fun String.isValidEmail(): Boolean {
+    val pattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+".toRegex()
+    return this.matches(pattern)
+}

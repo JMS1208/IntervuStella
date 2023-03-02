@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Capstone2Project</string>
+    <string name="something_went_wrong">오류 발생</string>
 </resources>

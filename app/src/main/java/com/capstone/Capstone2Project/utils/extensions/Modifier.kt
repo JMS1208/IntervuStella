@@ -1,5 +1,6 @@
 package com.capstone.Capstone2Project.utils.extensions
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -7,22 +8,113 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import com.capstone.Capstone2Project.utils.composable.PocketBookShape
+import kotlin.math.*
 
-fun Modifier.shimmerEffect(): Modifier = composed {
+@Preview(showBackground = true)
+@Composable
+private fun Preview() {
+    ShimmerTest()
+}
+
+@Composable
+fun ShimmerTest() {
+
+    Column(
+    ) {
+
+        Box(
+            modifier = Modifier
+                .background(
+                    color = Color.Black
+                )
+                .fillMaxWidth()
+                .height(50.dp)
+                .shimmerEffect(2000)
+        ) {}
+        Box(
+            modifier = Modifier
+                .background(
+                    color = Color.Blue
+                )
+                .fillMaxWidth()
+                .height(50.dp)
+                .shimmerEffect(2000)
+        ) {}
+    }
+}
+
+
+
+fun Modifier.gradientBackground(colors: List<Color>, angle: Float) = this.then(
+    Modifier.drawBehind {
+        val angleRad = angle / 180f * PI
+        val x = cos(angleRad).toFloat() //Fractional x
+        val y = sin(angleRad).toFloat() //Fractional y
+
+        val radius = sqrt(size.width.pow(2) + size.height.pow(2)) / 2f
+        val offset = center + Offset(x * radius, y * radius)
+
+        val exactOffset = Offset(
+            x = min(offset.x.coerceAtLeast(0f), size.width),
+            y = size.height - min(offset.y.coerceAtLeast(0f), size.height)
+        )
+
+        drawRect(
+            brush = Brush.linearGradient(
+                colors = colors,
+                start = Offset(size.width, size.height) - exactOffset,
+                end = exactOffset
+            ),
+            size = size
+        )
+    }
+)
+
+fun Modifier.clickableWithoutRipple(
+    onClickListener: () -> Unit
+): Modifier = composed {
+    val interactionSource = MutableInteractionSource()
+
+    clickable(
+        interactionSource = interactionSource,
+        indication = null
+    ) {
+        onClickListener()
+    }
+}
+
+
+fun Modifier.shimmerEffect(
+    durationMillis: Int = 1000
+): Modifier = composed {
     var size by remember {
         mutableStateOf(IntSize.Zero)
     }
@@ -34,7 +126,7 @@ fun Modifier.shimmerEffect(): Modifier = composed {
         targetValue = 2 * size.width.toFloat(),
         animationSpec = infiniteRepeatable(
             animation = tween(
-                durationMillis = 1000
+                durationMillis = durationMillis
             )
         )
     )
@@ -42,10 +134,11 @@ fun Modifier.shimmerEffect(): Modifier = composed {
     background(
         brush = Brush.linearGradient(
             colors = listOf(
-                Color(0xFFF1F1F1),
-                Color(0xC3FFFFFF),
-                //Color(0xC3FF0000),
-                Color(0xFFF1F1F1)
+                Color.Transparent,
+                Color.Transparent,
+                Color(0x37FFFFFF),
+                Color.Transparent,
+                Color.Transparent
             ),
             start = Offset(startOffsetX, 0f),
             end = Offset(startOffsetX + size.width.toFloat(), size.height.toFloat())
