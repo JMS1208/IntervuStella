@@ -49,7 +49,6 @@ import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.navigation.ROUTE_CAMERA
 import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.navigation.ROUTE_SCRIPT_WRITING
-import com.capstone.Capstone2Project.ui.screen.interview.InterviewViewModel
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.composable.HighlightText
 import com.capstone.Capstone2Project.utils.etc.AlertUtils
@@ -127,15 +126,14 @@ private fun SelectScriptContent(
     navController: NavController, scripts: List<Script>
 ) {
 
-    val interviewViewModel: InterviewViewModel = hiltViewModel()
 
     val context = LocalContext.current
 
-    val composition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/spaceship.json"))
-
-    val progress by animateLottieCompositionAsState(
-        composition, iterations = LottieConstants.IterateForever
-    )
+//    val composition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/spaceship.json"))
+//
+//    val progress by animateLottieCompositionAsState(
+//        composition, iterations = LottieConstants.IterateForever
+//    )
 
     val spacing = LocalSpacing.current
 
@@ -151,9 +149,9 @@ private fun SelectScriptContent(
         Box(
             modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter
         ) {
-            LottieAnimation(
-                composition = composition, progress = { progress }, modifier = Modifier.size(180.dp)
-            )
+//            LottieAnimation(
+//                composition = composition, progress = { progress }, modifier = Modifier.size(180.dp)
+//            )
             ExplainsContent(
                 modifier = Modifier
             )
@@ -206,7 +204,9 @@ private fun SelectScriptContent(
                         newValue = script.toJsonString()
                     )
                 ) {
+                    launchSingleTop = true
                     popUpTo(ROUTE_HOME) {
+                        inclusive = true
 
                     }
                 }
@@ -252,17 +252,22 @@ private fun BottomButtons(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(
-                            5.dp,
-                            shape = RoundedCornerShape(30.dp)
-                        )
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    mustard_yellow,
-                                    orange_yellow
-                                )
-                            ),
+//                        .shadow(
+//                            5.dp,
+//                            shape = RoundedCornerShape(30.dp)
+//                        )
+//                        .background(
+//                            brush = Brush.linearGradient(
+//                                colors = listOf(
+//                                    mustard_yellow,
+//                                    orange_yellow
+//                                )
+//                            ),
+//                            shape = RoundedCornerShape(30.dp)
+//                        )
+                        .border(
+                            width = 1.dp,
+                            color = White ,
                             shape = RoundedCornerShape(30.dp)
                         )
                         .clickable {

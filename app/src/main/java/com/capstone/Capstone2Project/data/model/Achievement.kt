@@ -5,7 +5,8 @@ import java.util.*
 
 data class Achievement(
     val date: Long,
-    val text: String
+    val text: String,
+    val type: Int
 ) {
     fun timeToString(): String {
         val date = Date(date)

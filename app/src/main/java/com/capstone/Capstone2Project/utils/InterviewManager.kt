@@ -39,16 +39,27 @@ class InterviewManager private constructor(private val builder: Builder) :
     }
 
     fun updatePreview(
-        previewView: PreviewView
+        previewView: PreviewView,
+        showPreview: Boolean
     ) {
-        showPreview(previewView)
+        if(showPreview) {
+            showPreview(previewView)
+        } else {
+            notShowPreview()
+        }
+
     }
 
     fun showPreview(
         cameraPreview: PreviewView = getCameraPreview()
     ): PreviewView {
+
         startCamera(cameraPreview)
         return cameraPreview
+    }
+
+    private fun notShowPreview() {
+        startWithOutCamera()
     }
 
     private fun getCameraPreview(): PreviewView = PreviewView(getContext()).apply {
@@ -61,6 +72,52 @@ class InterviewManager private constructor(private val builder: Builder) :
     }
 
 
+    fun shutDownCamera() {
+
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(getContext())
+
+        val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
+
+        cameraProvider.unbindAll()
+    }
+    private fun startWithOutCamera() {
+        val cameraExecutor = cameraExecutor ?: return
+
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(getContext())
+
+        cameraProviderFuture.addListener({
+            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
+
+
+            val imageAnalysis = ImageAnalysis.Builder()
+                .build()
+                .also {
+                    it.setAnalyzer(
+                        cameraExecutor,
+                        getImageAnalyzer()
+                    )
+                }
+
+            val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+
+            try {
+
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(
+                    getLifeCycleOwner(),
+                    cameraSelector,
+                    //preview,
+                    imageAnalysis
+                )
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Log.e(TAG, "Use case binding failed", e)
+            }
+
+
+        }, ContextCompat.getMainExecutor(getContext()))
+    }
     private fun startCamera(previewView: PreviewView) {
 
         val cameraExecutor = cameraExecutor ?: return
@@ -92,7 +149,10 @@ class InterviewManager private constructor(private val builder: Builder) :
 
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(
-                    getLifeCycleOwner(), cameraSelector, preview, imageAnalysis
+                    getLifeCycleOwner(),
+                    cameraSelector,
+                    preview,
+                    imageAnalysis
                 )
 
             } catch (e: Exception) {
@@ -103,6 +163,8 @@ class InterviewManager private constructor(private val builder: Builder) :
 
         }, ContextCompat.getMainExecutor(getContext()))
 
+
+
     }
 
 
@@ -112,9 +174,22 @@ class InterviewManager private constructor(private val builder: Builder) :
             Lifecycle.Event.ON_CREATE -> {
                 cameraExecutor = Executors.newSingleThreadExecutor()
             }
-            Lifecycle.Event.ON_DESTROY -> {
-                cameraExecutor?.shutdown()
-            }
+//            Lifecycle.Event.ON_START-> {
+//                if (cameraExecutor == null) {
+//                    cameraExecutor = Executors.newSingleThreadExecutor()
+//                }
+//            }
+//
+//            Lifecycle.Event.ON_STOP-> {
+//                Log.e(TAG, "onStateChanged: 테스트!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", )
+////                cameraExecutor?.shutdown()
+////                cameraExecutor = null
+//            }
+//            Lifecycle.Event.ON_DESTROY -> {
+//
+//                cameraExecutor?.shutdown()
+//                cameraExecutor = null
+//            }
             else -> Unit
         }
     }

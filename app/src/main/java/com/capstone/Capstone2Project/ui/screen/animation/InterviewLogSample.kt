@@ -32,36 +32,45 @@ import androidx.constraintlayout.compose.Dimension
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.capstone.Capstone2Project.R
 import com.capstone.Capstone2Project.data.model.InterviewLogLine
+import com.capstone.Capstone2Project.data.model.LogLine
+import com.capstone.Capstone2Project.data.model.QuestionItem
 import com.capstone.Capstone2Project.utils.etc.CustomFont
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
+import com.capstone.Capstone2Project.utils.extensions.generateRandomText
 import com.capstone.Capstone2Project.utils.theme.LocalSpacing
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import java.util.*
 import kotlin.random.Random
 
-/*
+
 @Preview(showBackground = true)
 @Composable
 private fun Preview() {
 
-//    val f: Flow<InterviewLogLine> = remember {
-//        flow {
-//            while (true) {
-//                emit(
-//                    InterviewLogLine(
-//                        progress = Random.nextInt(0, 100),
-//                        message = generateRandomText(),
-//                        question = "질문 예시",
-//                        date = System.currentTimeMillis(),
-//                        type = InterviewLogLine.Type.Error
-//                    )
-//                )
-//                delay(5000)
-//
-//            }
-//        }
-//    }
+    val f: Flow<InterviewLogLine> = remember {
+        flow {
+            while (true) {
+                emit(
+                    InterviewLogLine(
+                        progress = Random.nextInt(0, 100),
+                        date = System.currentTimeMillis(),
+                        questionItem = QuestionItem(
+                            uuid = UUID.randomUUID().toString(),
+                            question = "질문 예시"
+                        ),
+                        logLine = LogLine(
+                            type = LogLine.Type.Face,
+                            message = generateRandomText()
+                        )
+                    )
+                )
+                delay(3000)
+
+            }
+        }
+    }
 
     val flowValue = f.collectAsStateWithLifecycle(null)
 
@@ -81,59 +90,36 @@ private fun Preview() {
         newInterviewLogLine = flowValue.value
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.scene),
-            contentDescription = null,
-            contentScale = ContentScale.Crop
-        )
         Column(
+            verticalArrangement = Arrangement.spacedBy(
+                spacing.small,
+                Alignment.CenterVertically
+            ),
+            horizontalAlignment = Alignment.End,
             modifier = Modifier
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth()
+                .padding(horizontal = spacing.small)
         ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(
-                    spacing.small,
-                    Alignment.CenterVertically
-                ),
-                horizontalAlignment = Alignment.End,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.small)
-            ) {
-                oldInterviewLogLine?.let {
-                    OldLogContent(interviewLogLine = it)
-                }
-                newInterviewLogLine?.let {
-                    NewLogContent(interviewLogLine = it)
-                }
-
+            oldInterviewLogLine?.let {
+                OldLogContent(interviewLogLine = it)
+            }
+            newInterviewLogLine?.let {
+                NewLogContent(interviewLogLine = it)
             }
 
-
-            Button(onClick = {
-                oldInterviewLogLine = newInterviewLogLine
-                newInterviewLogLine =
-                    InterviewLogLine(
-                        progress = Random.nextInt(0, 100),
-                        message = generateRandomText(),
-                        question = "질문 예시",
-                        type = InterviewLogLine.Type.Error
-                    )
-            }) {
-                Text("바꾸기")
-            }
         }
+
     }
 
 
 }
-
- */
 
 
 @Composable
@@ -206,7 +192,7 @@ private fun ItemContent(
                         end.linkTo(parent.end)
                         bottom.linkTo(parent.bottom)
 
-                        width = Dimension.percent(if(isNew) 0.9f else 0.7f)
+                        width = Dimension.percent(if (isNew) 0.9f else 0.8f)
                     }
                     .background(
                         color = Color(0x66000000),
@@ -225,7 +211,7 @@ private fun ItemContent(
                 )
             )
 
-            if(isNew) {
+            if (isNew) {
                 Text(
                     "New",
                     style = TextStyle(
@@ -289,7 +275,7 @@ fun NewLogContent(
     ) { il ->
         ItemContent(
             interviewLogLine = il,
-            fontSize = 18.sp,
+            fontSize = 16.sp,
             isNew = true,
             maxLines = 2
         )

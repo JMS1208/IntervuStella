@@ -17,7 +17,7 @@ import com.capstone.Capstone2Project.R
 import org.w3c.dom.Text
 
 @Composable
-fun EmojiView(unicode: Int) {
+fun EmojiView(unicode: Int, modifier: Modifier = Modifier) {
     AndroidView(
         factory = {context->
             TextView(context).apply  {
@@ -26,7 +26,8 @@ fun EmojiView(unicode: Int) {
                 alpha = 1f
                 setTextColor(ContextCompat.getColor(context, R.color.black))
             }
-        }
+        },
+        modifier = modifier
     )
 }
 

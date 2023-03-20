@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:orientation="vertical">
+
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/background_compose_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:orientation="vertical">
+
+
+
+        <eightbitlab.com.blurview.BlurView
+            android:id="@+id/blur_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@drawable/rounded_corner_background"
+            android:padding="10dp">
+
+            <androidx.compose.ui.platform.ComposeView
+                android:id="@+id/inner_compose_view"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </eightbitlab.com.blurview.BlurView>
+
+        <eightbitlab.com.blurview.BlurView
+            android:id="@+id/bottom_blur_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@drawable/rounded_corner_background"
+            android:layout_marginTop="10dp"
+            android:padding="10dp">
+
+            <androidx.compose.ui.platform.ComposeView
+                android:id="@+id/bottom_inner_compose_view"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </eightbitlab.com.blurview.BlurView>
+
+        <androidx.compose.ui.platform.ComposeView
+            android:id="@+id/bottom_compose_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+</FrameLayout>

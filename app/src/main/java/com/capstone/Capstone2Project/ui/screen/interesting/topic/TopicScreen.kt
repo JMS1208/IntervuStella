@@ -3,6 +3,7 @@ package com.capstone.Capstone2Project.ui.screen.interesting.topic
 import android.annotation.SuppressLint
 import android.system.Os
 import android.system.Os.remove
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -22,6 +23,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.DarkGray
+import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -39,6 +42,7 @@ import com.capstone.Capstone2Project.data.model.Topic
 import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.navigation.ROUTE_TOPIC
+import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.composable.GlassMorphismCard
 import com.capstone.Capstone2Project.utils.composable.GlassMorphismCardBackground
@@ -62,20 +66,25 @@ fun TopicScreenPreview() {
 @Composable
 fun TopicScreen(
     navController: NavController,
-    topicViewModel: TopicViewModel = hiltViewModel(),
+
     //authViewModel: AuthViewModel = hiltViewModel()
 ) {
+    val authViewModel: AuthViewModel = hiltViewModel()
 
-    val defaultTopics = topicViewModel.defaultTopicsFlow.collectAsStateWithLifecycle()
+    val topicViewModel: TopicViewModel = hiltViewModel()
 
+    LaunchedEffect(authViewModel.currentUser) {
+        authViewModel.currentUser?.uid?.let {
+            topicViewModel.fetchUserTopics(it)
+        }
+    }
 
     val context = LocalContext.current
 
+    val userTopics = topicViewModel.userTopicsFlow.collectAsStateWithLifecycle()
 
-
-
-    defaultTopics.value?.let {
-        when (it) {
+    userTopics.value?.let {
+        when(it) {
             is Resource.Error -> {
                 it.error?.message?.let { message ->
                     AlertUtils.showToast(context, message, Toast.LENGTH_LONG)
@@ -88,6 +97,7 @@ fun TopicScreen(
                 InterestingTopicContent(navController = navController, topicList = it.data)
             }
         }
+
     }
 
 
@@ -108,8 +118,13 @@ fun InterestingTopicContent(
     val context = LocalContext.current
 
     var selectedTopics by remember {
-        mutableStateOf(listOf<Topic>())
+        mutableStateOf(topicList)
     }
+
+    val authViewModel: AuthViewModel = hiltViewModel()
+
+    val viewModel: TopicViewModel = hiltViewModel()
+
 
 
     CompositionLocalProvider(
@@ -160,7 +175,7 @@ fun InterestingTopicContent(
                     )
                     .padding(innerPadding)
                     .padding(spacing.medium),
-                verticalArrangement = Arrangement.Center,
+                verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
@@ -173,23 +188,25 @@ fun InterestingTopicContent(
                         .background(
                             color = bg_grey,
                             shape = RoundedCornerShape(10.dp)
-                        ),
-                    topicList
-                ) { topic, isSelected ->
-                    selectedTopics = selectedTopics.toMutableList().apply {
-                        if (isSelected) {
-                            add(topic)
-                            distinct()
-                        } else {
-                            remove(topic)
-                        }
-                    }
-
+                        )
+                        .padding(horizontal = spacing.medium, vertical = spacing.extraMedium)
+                    ,
+                    selectedTopics
+                ) { topic->
+                    viewModel.changeSelectedTopic(topic)
                 }
+
+
+
 
                 TopicFooter(
                     selectedTopics
                 ) {
+
+                    authViewModel.currentUser?.uid?.let {
+                        viewModel.selectUserTopics(it, selectedTopics)
+                    }
+
                     navController.navigate(ROUTE_HOME) {
                         popUpTo(ROUTE_TOPIC) {
                             inclusive = true
@@ -234,6 +251,9 @@ fun TopicFooter(
                 Text("선택한 영역 ${selectedTopics.size} 개")
             }
 
+
+            Spacer(modifier = Modifier.height(spacing.large))
+
             Row(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
@@ -246,12 +266,15 @@ fun TopicFooter(
                 Text(
                     nextText,
                     textAlign = TextAlign.End,
-                    fontSize = 15.sp
+                    fontSize = 16.sp,
+                    color = text_blue,
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null
+                    contentDescription = null,
+                    tint = text_blue
                 )
             }
 
@@ -272,7 +295,9 @@ fun TopicHeader() {
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
             fontFamily = CustomFont.nexonFont,
-            fontSize = 16.sp
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = DarkGray
         )
     ) {
         Row(
@@ -287,7 +312,7 @@ fun TopicHeader() {
             EmojiView(0x1F4CC)
             Spacer(Modifier.width(spacing.small))
             HighlightText(
-                "영역을 선택하고, 관련 질문을 연습해보세요 !"
+                "관심주제를 선택하고, 관련 질문을 연습해보세요 !"
             )
         }
     }
@@ -299,13 +324,14 @@ fun TopicHeader() {
 fun FlowItems(
     modifier: Modifier = Modifier,
     topicList: List<Topic>,
-    onItemClickListener: (Topic, Boolean) -> Unit
+    itemClicked: (Topic) -> Unit
 ) {
 
+    val spacing = LocalSpacing.current
 
     FlowRow(
-        crossAxisSpacing = 5.dp,
-        mainAxisSpacing = 10.dp,
+        crossAxisSpacing = spacing.small,
+        mainAxisSpacing = spacing.small,
         modifier = modifier.fillMaxWidth(),
         mainAxisAlignment = FlowMainAxisAlignment.SpaceAround,
         lastLineMainAxisAlignment = FlowMainAxisAlignment.SpaceEvenly
@@ -313,8 +339,8 @@ fun FlowItems(
         topicList.forEach {
             FlowItemContent(
                 it,
-                onItemClickListener = { topic, isSelected ->
-                    onItemClickListener(topic, isSelected)
+                itemClicked = {
+                    itemClicked(it)
                 }
             )
         }
@@ -326,49 +352,47 @@ fun FlowItems(
 @Composable
 fun FlowItemContent(
     topic: Topic,
-    onItemClickListener: (Topic, Boolean) -> Unit, //클릭했을때 전달받을것도 나중에 바꿔야함 지금은 String으로 줌
-    unselectedColor: Color = dim_sky_blue,
-    selectedColor: Color = seed,
+    itemClicked: () -> Unit, //클릭했을때 전달받을것도 나중에 바꿔야함 지금은 String으로 줌
+    unselectedColor: Color = Color.White,
+    selectedColor: Color = bright_blue,
     cornerRadius: Dp = 15.dp
 ) {
-    var selected by remember {
-        mutableStateOf(false)
-    }
+//    var selected by remember {
+//        mutableStateOf(false)
+//    }
 
     val itemColor = animateColorAsState(
-        targetValue = if (selected) selectedColor else unselectedColor
+        targetValue = if (topic.selected) selectedColor else unselectedColor
     )
+
+    val textColor = remember(topic.selected) {
+        if(topic.selected) White else DarkGray
+    }
+
+    val spacing = LocalSpacing.current
 
     Row(
         modifier = Modifier
-            .padding(10.dp)
             .clickableWithoutRipple {
-                selected = !selected
-                onItemClickListener(topic, selected)
+                //topic.selected = !topic.selected
+                itemClicked()
             }
             .shadow(
-                5.dp,
-                shape = RoundedCornerShape(cornerRadius)
+                1.dp,
+                shape = RoundedCornerShape(50)
             )
             .clip(
-                RoundedCornerShape(cornerRadius)
-            )
-            .border(
-                BorderStroke(
-                    width = 1.dp,
-                    brush = glassBrush
-                ),
-                shape = RoundedCornerShape(cornerRadius)
+                RoundedCornerShape(50)
             )
             .background(
                 color = itemColor.value,
-                shape = RoundedCornerShape(cornerRadius)
+                shape = RoundedCornerShape(50)
             ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
 
-        AnimatedVisibility(visible = selected) {
+        AnimatedVisibility(visible = topic.selected) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
@@ -386,9 +410,9 @@ fun FlowItemContent(
         Text(
             topic.name,
             modifier = Modifier
-                .padding(10.dp),
-            color = Color.White,
-            fontSize = 13.sp,
+                .padding(horizontal = 15.dp, vertical = 8.dp),
+            color = textColor,
+            fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             fontFamily = CustomFont.nexonFont,
             textAlign = TextAlign.Center

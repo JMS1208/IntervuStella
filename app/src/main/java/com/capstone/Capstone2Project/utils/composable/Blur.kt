@@ -154,6 +154,7 @@ fun GlassMorphism(
             blurView?.apply {
                 setBlurRadius(blurRadius)
                 setOverlayColor(overlayColor)
+                //setLayerType(View.LAYER_TYPE_SOFTWARE,null)
             }
         }
     )

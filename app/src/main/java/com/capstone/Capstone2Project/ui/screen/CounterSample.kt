@@ -3,18 +3,38 @@ package com.capstone.Capstone2Project.ui.screen
 import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateIntAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
+import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.Black
+import androidx.compose.ui.graphics.Color.Companion.DarkGray
+import androidx.compose.ui.graphics.Color.Companion.Gray
+import androidx.compose.ui.graphics.Color.Companion.LightGray
+import androidx.compose.ui.graphics.Color.Companion.Red
+import androidx.compose.ui.graphics.Color.Companion.Transparent
+import androidx.compose.ui.graphics.Color.Companion.White
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.capstone.Capstone2Project.utils.composable.AnimatedCounter
+import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
+import com.capstone.Capstone2Project.utils.theme.LocalSpacing
+import com.capstone.Capstone2Project.utils.theme.bg_grey
+import com.capstone.Capstone2Project.utils.theme.bright_blue
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -40,15 +60,28 @@ fun CounterTextSample() {
 
         SideEffect {
             coroutineScope.launch {
-                while(count < 1000) {
+                while (count < 1000) {
                     count++
-                    delay(400)
+                    delay(600)
                 }
             }
         }
 
 
-        AnimatedCounter(count = count)
+        Box(
+            modifier = Modifier.padding(16.dp)
+        ){
+            AnimatedCounter(
+                count = count,
+                style = LocalTextStyle.current.copy(
+                    fontSize = 25.sp,
+                    fontFamily = nexonFont,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkGray
+                )
+            )
+        }
+
 
         Button(onClick = {
             count++
@@ -59,53 +92,4 @@ fun CounterTextSample() {
 
 }
 
-@OptIn(ExperimentalAnimationApi::class)
-@Composable
-fun AnimatedCounter(
-    count: Int,
-    modifier: Modifier = Modifier,
-    style: TextStyle = MaterialTheme.typography.body1
-) {
 
-    val oldCount by rememberUpdatedState(count)
-
-//    SideEffect { //외부값 count가 바뀌면 변경되는
-//        Log.d("TAG", "테스트: $count")
-//        //oldCount = count
-//    }
-
-    Row(
-        modifier = modifier
-    ) {
-        val countString = count.toString()
-        val oldCountString = oldCount.toString()
-
-        for (i in countString.indices) {
-            val oldChar = oldCountString.getOrNull(i)
-            val newChar = countString[i]
-
-            val char = if (oldChar == newChar) {
-                oldCountString[i]
-            } else {
-                countString[i]
-            }
-
-            AnimatedContent(
-                targetState = char,
-                transitionSpec = {
-                    slideInVertically {
-                        it
-                    } with slideOutVertically {
-                        -it
-                    }
-                }
-            ) {
-                Text(
-                    text = it.toString(),
-                    style = style,
-                    softWrap = false,
-                )
-            }
-        }
-    }
-}

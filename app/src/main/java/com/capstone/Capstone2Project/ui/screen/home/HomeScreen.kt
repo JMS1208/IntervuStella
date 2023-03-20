@@ -15,7 +15,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester.Companion.createRefs
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.Color.Companion.DarkGray
@@ -31,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.capstone.Capstone2Project.R
@@ -38,6 +41,8 @@ import com.capstone.Capstone2Project.data.model.Achievement
 import com.capstone.Capstone2Project.data.model.Attendance
 import com.capstone.Capstone2Project.navigation.ROUTE_MY_PAGE
 import com.capstone.Capstone2Project.navigation.ROUTE_SCRIPT_WRITING
+import com.capstone.Capstone2Project.navigation.ROUTE_TOPIC
+import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
 import com.capstone.Capstone2Project.ui.screen.guide.InterviewIntroDialog
 import com.capstone.Capstone2Project.utils.composable.HighlightText
 import com.capstone.Capstone2Project.utils.etc.CustomFont
@@ -52,6 +57,7 @@ import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.core.daysOfWeek
 import com.kizitonwose.calendar.core.firstDayOfWeekFromLocale
+import kotlinx.coroutines.NonDisposableHandle.parent
 import java.text.SimpleDateFormat
 import java.time.DayOfWeek
 import java.time.YearMonth
@@ -114,7 +120,8 @@ fun HomeScreen(
                 )
 
                 MyTopicAndTodayQuiz(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    navController
                 )
 
                 AttendanceCheck(
@@ -124,11 +131,6 @@ fun HomeScreen(
                 MyAchievement(
                     modifier = Modifier.fillMaxWidth()
                 )
-
-//                InterviewButton(
-//                    modifier = Modifier,
-//                    navController
-//                )
 
                 Spacer(modifier = Modifier.height(spacing.large))
             }
@@ -195,11 +197,6 @@ private fun InterviewButton(
                     modifier = Modifier,
                     style = LocalTextStyle.current.copy(
                         color = White,
-                        shadow = Shadow(
-                            DarkGray,
-                            Offset(4f, 4f),
-                            blurRadius = 8f
-                        ),
                         fontSize = 25.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = nexonFont
@@ -285,8 +282,8 @@ private fun MyAchievement(
                     )
                     val achievement = remember {
                         listOf(
-                            Achievement(System.currentTimeMillis(), "회원가입"),
-                            Achievement(System.currentTimeMillis(), "자기소개서 1회 작성 완료 !")
+                            Achievement(System.currentTimeMillis(), "회원가입", type = 1),
+                            Achievement(System.currentTimeMillis(), "자기소개서 1회 작성 완료 !", type = 2)
                         )
                     }
 
@@ -344,7 +341,8 @@ private fun MyAchievement(
 
 @Composable
 private fun MyTopicAndTodayQuiz(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    navController: NavController
 ) {
 
     val spacing = LocalSpacing.current
@@ -370,8 +368,10 @@ private fun MyTopicAndTodayQuiz(
                 )
 
                 Row(
-                    modifier = Modifier.clickableWithoutRipple {
+                    modifier = Modifier.clickable {
+                        navController.navigate(ROUTE_TOPIC) {
 
+                        }
                     },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -455,7 +455,9 @@ private fun MyTopicAndTodayQuiz(
 
                 TodayQuestionCard(
                     question = "프로세스와 스레드의 차이는 무엇인가요",
-                    modifier = Modifier.fillMaxWidth()
+                    questionUUID = UUID.randomUUID().toString(),
+                    modifier = Modifier.fillMaxWidth(),
+                    navController = navController
                 )
 
 
@@ -603,6 +605,11 @@ private fun ScriptAndInfoContent(
 
     val spacing = LocalSpacing.current
 
+    val authViewModel: AuthViewModel = hiltViewModel()
+
+    val userName = remember(authViewModel) {
+        authViewModel.currentUser?.displayName ?: ""
+    }
 
     CompositionLocalProvider(
         LocalTextStyle provides androidx.compose.ui.text.TextStyle(
@@ -696,7 +703,7 @@ private fun ScriptAndInfoContent(
                 verticalArrangement = Arrangement.SpaceAround
             ) {
                 Text(
-                    "김캡스톤",
+                    userName,
                     fontWeight = FontWeight(550),
                     fontSize = 18.sp,
                     textAlign = TextAlign.End,
@@ -780,40 +787,23 @@ private fun LogoAndInfoContent(
             fontFamily = nexonFont
         )
     ) {
-        ConstraintLayout(
-            modifier = modifier.padding(horizontal = spacing.medium)
+        Row(
+            modifier = modifier.padding(horizontal = spacing.medium).padding(top = spacing.small),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            val (textRef, divRef, infoRef) = createRefs()
 
-            Text("LOGO", color = DarkGray,
-                modifier = Modifier.constrainAs(textRef) {
-                    top.linkTo(parent.top, margin = spacing.small)
-                    start.linkTo(parent.start, margin = spacing.small)
-                    this.width = Dimension.wrapContent
-                    this.height = Dimension.wrapContent
-                })
-            Divider(
-                color = DarkGray,
-                modifier = Modifier.constrainAs(divRef) {
-                    start.linkTo(textRef.start)
-                    end.linkTo(textRef.end)
-                    top.linkTo(textRef.bottom, margin = spacing.extraSmall)
-                    bottom.linkTo(parent.bottom)
-                    width = Dimension.fillToConstraints
-                    height = Dimension.wrapContent
-                }
-            )
+            Image(
+                painterResource(id = R.drawable.logo3),
+                contentDescription = null,
+                modifier = Modifier.height(30.dp))
 
             Icon(
                 imageVector = Icons.Outlined.Person,
                 contentDescription = null,
                 tint = Color.Black,
                 modifier = Modifier
-                    .size(25.dp)
-                    .constrainAs(infoRef) {
-                        top.linkTo(parent.top, margin = spacing.small)
-                        end.linkTo(parent.end, margin = spacing.small)
-                    }
+                    .size(30.dp)
                     .clickable {
                         navController.navigate(ROUTE_MY_PAGE) {}
                     }

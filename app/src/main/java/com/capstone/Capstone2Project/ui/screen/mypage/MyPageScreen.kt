@@ -1,18 +1,23 @@
 package com.capstone.Capstone2Project.ui.screen.mypage
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowLeft
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Add
@@ -20,12 +25,14 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.FocusRequester.Companion.createRefs
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.geometry.Offset
@@ -33,6 +40,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.graphics.Color.Companion.DarkGray
+import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.graphics.Color.Companion.LightGray
 import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.compose.ui.graphics.Color.Companion.White
@@ -56,6 +64,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -116,6 +125,18 @@ fun MyPageScreen(
         mutableStateOf(false)
     }
 
+    val showGitLinkDialog = remember {
+        mutableStateOf(false)
+    }
+
+    val userName = remember(authViewModel) {
+        authViewModel.currentUser?.displayName ?: ""
+    }
+
+    val userEmail = remember(authViewModel) {
+        authViewModel.currentUser?.email ?: ""
+    }
+
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
             fontFamily = nexonFont
@@ -169,6 +190,10 @@ fun MyPageScreen(
                         .padding(horizontal = spacing.small)
                         .wrapContentHeight()
                         .shadow(3.dp, shape = RoundedCornerShape(5.dp))
+                        .background(
+                            color = darker_blue,
+                            shape = RoundedCornerShape(5.dp)
+                        )
                         .clip(
                             shape = RoundedCornerShape(5.dp)
                         )
@@ -241,14 +266,14 @@ fun MyPageScreen(
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                "김캡스톤",
+                                userName,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = DarkGray
                             )
                             Spacer(modifier = Modifier.height(spacing.small))
                             Text(
-                                "email@email.com",
+                                userEmail,
                                 color = text_blue,
                                 textDecoration = TextDecoration.Underline,
                                 fontSize = 14.sp
@@ -282,7 +307,7 @@ fun MyPageScreen(
                                 )
                                 Spacer(modifier = Modifier.width(spacing.small))
                                 Text(
-                                    "김캡스톤",
+                                    userName,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = DarkGray
@@ -290,7 +315,7 @@ fun MyPageScreen(
                             }
                             Spacer(modifier = Modifier.height(spacing.small))
                             Text(
-                                "깃허브 레포 이름",
+                                "깃허브 닉네임",
                                 color = text_blue,
                                 textDecoration = TextDecoration.Underline,
                                 fontSize = 14.sp
@@ -320,7 +345,7 @@ fun MyPageScreen(
 
                         IconButton(
                             onClick = {
-                                //TODO(깃허브 연동)
+                                showGitLinkDialog.value = !showGitLinkDialog.value
                             }
                         ) {
                             Row(
@@ -396,8 +421,8 @@ fun MyPageScreen(
                     Spacer(modifier = Modifier.height(spacing.large))
 
                     FlowRow(
-                        crossAxisSpacing = 8.dp,
-                        mainAxisSpacing = 0.dp,
+                        crossAxisSpacing = spacing.extraSmall,
+                        mainAxisSpacing = spacing.extraSmall,
                         modifier = Modifier.fillMaxWidth(),
                         mainAxisAlignment = FlowMainAxisAlignment.SpaceAround,
                         lastLineMainAxisAlignment = FlowMainAxisAlignment.SpaceEvenly
@@ -406,11 +431,13 @@ fun MyPageScreen(
                         keywordsFlow.value?.let {
                             when (it) {
                                 is Resource.Error -> {
-                                    Text("${it.error?.message}", style = LocalTextStyle.current.copy(
-                                        color = White,
-                                        fontWeight = FontWeight(550),
-                                        fontFamily = nexonFont
-                                    ))
+                                    Text(
+                                        "${it.error?.message}", style = LocalTextStyle.current.copy(
+                                            color = White,
+                                            fontWeight = FontWeight(550),
+                                            fontFamily = nexonFont
+                                        )
+                                    )
                                 }
                                 Resource.Loading -> {
                                     CircularProgressIndicator(
@@ -466,6 +493,12 @@ fun MyPageScreen(
                         authViewModel, viewModel
                     ) {
                         showKeywordAddingDialog.value = false
+                    }
+                }
+
+                if (showGitLinkDialog.value) {
+                    GitLinkDialog(authViewModel = authViewModel, viewModel = viewModel) {
+                        showGitLinkDialog.value = false
                     }
                 }
             }
@@ -549,17 +582,15 @@ private fun KeywordAddingDialog(
                         focusManager.clearFocus()
                         keyboardController?.hide()
                     }
-                    .padding(spacing.medium)
+
             ) {
 
 
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(spacing.medium),
-                    verticalArrangement = Arrangement.Bottom
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
                 ) {
-
                     Icon(
                         imageVector = Icons.Default.Close,
                         modifier = Modifier
@@ -572,112 +603,357 @@ private fun KeywordAddingDialog(
                         tint = White
                     )
 
-                    Text(
-                        "브레인스토밍을 위한\n자기소개서 키워드를 입력해주세요.",
-                        modifier = Modifier.fillMaxWidth(),
-                        style = LocalTextStyle.current.copy(
-                            textAlign = TextAlign.Start,
-                            color = White,
-                            shadow = Shadow(
-                                color = DarkGray,
-                                offset = Offset(1f, 1f),
-                                blurRadius = 8f
-                            ),
-                            fontWeight = FontWeight(550)
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(spacing.medium))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+//                            .shadow(
+//                                5.dp,
+//                                shape = RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp)
+//                            )
+//                            .background(
+//                                brush = Brush.verticalGradient(
+//                                    colors = listOf(
+//                                        bright_violet,
+//                                        bright_blue
+//                                    )
+//                                ),
+//                                shape = RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp)
+//                            )
+                            .padding(spacing.medium),
+                        verticalArrangement = Arrangement.Bottom
                     ) {
+                        Spacer(modifier = Modifier.height(spacing.medium))
+
+                        Text(
+                            "브레인스토밍을 위한\n자기소개서 키워드를 입력해주세요.",
+                            modifier = Modifier.fillMaxWidth(),
+                            style = LocalTextStyle.current.copy(
+                                textAlign = TextAlign.Start,
+                                color = White,
+                                shadow = Shadow(
+                                    color = DarkGray,
+                                    offset = Offset(1f, 1f),
+                                    blurRadius = 8f
+                                ),
+                                fontWeight = FontWeight(550)
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(spacing.medium))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
 
 
-                        TextField(
-                            value = keyword.value,
-                            onValueChange = {
-                                keyword.value = it
-                            },
-                            keyboardActions = KeyboardActions(
-                                onDone = {
+                            TextField(
+                                value = keyword.value,
+                                onValueChange = {
+                                    keyword.value = it
+                                },
+                                placeholder = {
+                                    Text(
+                                        "이곳에 입력해주세요",
+                                        style = LocalTextStyle.current.copy(
+                                            color = White,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    )
+                                },
+                                keyboardActions = KeyboardActions(
+                                    onDone = {
+                                        insertKeyword()
+                                    }
+                                ),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
+                                    imeAction = ImeAction.Done
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(bottom = spacing.small)
+                                    .height(50.dp)
+                                    .focusRequester(focusRequester)
+                                    .bringIntoViewRequester(bringIntoViewRequester)
+                                    .onFocusEvent { focusState ->
+                                        if (focusState.isFocused) {
+                                            coroutineScope.launch {
+                                                bringIntoViewRequester.bringIntoView()
+                                            }
+                                        }
+                                    },
+                                colors = TextFieldDefaults.textFieldColors(
+                                    textColor = White,
+                                    disabledTextColor = White,
+                                    backgroundColor = Transparent,
+                                    cursorColor = White,
+                                    focusedIndicatorColor = bright_blue,
+                                    unfocusedIndicatorColor = White
+                                ),
+                            )
+
+                            Spacer(modifier = Modifier.width(spacing.small))
+
+                            IconButton(
+                                onClick = {
                                     insertKeyword()
                                 }
-                            ),
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Text,
-                                imeAction = ImeAction.Done
-                            ),
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(bottom = spacing.small)
-                                .height(50.dp)
-                                .focusRequester(focusRequester)
-                                .bringIntoViewRequester(bringIntoViewRequester)
-                                .onFocusEvent { focusState ->
-                                    if (focusState.isFocused) {
-                                        coroutineScope.launch {
-                                            bringIntoViewRequester.bringIntoView()
-                                        }
-                                    }
-                                },
-                            colors = TextFieldDefaults.textFieldColors(
-                                textColor = White,
-                                disabledTextColor = White,
-                                backgroundColor = Transparent,
-                                cursorColor = White,
-                                focusedIndicatorColor = bright_blue,
-                                unfocusedIndicatorColor = White
-                            ),
-                        )
-
-                        Spacer(modifier = Modifier.width(spacing.small))
-
-                        IconButton(
-                            onClick = {
-                                insertKeyword()
-                            }
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .shadow(
-                                        3.dp,
-                                        shape = RoundedCornerShape(5.dp)
-                                    )
-                                    .background(
-                                        color = White,
-                                        shape = RoundedCornerShape(5.dp)
-                                    )
-                                    .padding(vertical = 5.dp, horizontal = 10.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = bright_blue
-                                )
-
-                                Spacer(modifier = Modifier.width(spacing.small))
-
-                                Text(
-                                    "추가",
-                                    style = LocalTextStyle.current.copy(
-                                        color = bright_blue,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.SemiBold
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .shadow(
+                                            5.dp,
+                                            shape = RoundedCornerShape(5.dp)
+                                        )
+                                        .background(
+                                            color = White,
+                                            shape = RoundedCornerShape(5.dp)
+                                        )
+                                        .padding(vertical = 5.dp, horizontal = 10.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = bright_blue
                                     )
-                                )
-                            }
-                        }
 
-                        LaunchedEffect(Unit) {
-                            focusRequester.requestFocus()
+                                    Spacer(modifier = Modifier.width(spacing.small))
+
+                                    Text(
+                                        "추가",
+                                        style = LocalTextStyle.current.copy(
+                                            color = bright_blue,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    )
+                                }
+                            }
+
+                            LaunchedEffect(Unit) {
+                                focusRequester.requestFocus()
+                            }
                         }
                     }
                 }
+            }
+        }
+    }
 
+
+}
+
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
+@Composable
+private fun GitLinkDialog(
+    authViewModel: AuthViewModel,
+    viewModel: MyPageViewModel,
+    onDismissRequest: () -> Unit
+) {
+
+    val keyword = remember {
+        mutableStateOf("")
+    }
+
+    val focusManager = LocalFocusManager.current
+
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    val spacing = LocalSpacing.current
+
+
+    val bringIntoViewRequester = remember {
+        BringIntoViewRequester()
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    val focusRequester = remember { FocusRequester() }
+
+    val context = LocalContext.current
+
+    fun insertKeyword() {
+        if (keyword.value.isNotBlank()) {
+            authViewModel.currentUser?.uid?.let { hostUUID ->
+                //ViewModel에 추가하기
+
+            } ?: AlertUtils.showToast(context, "유효하지 않은 사용자입니다.")
+
+        } else {
+            AlertUtils.showToast(context, "아무것도 입력하지 않았습니다.")
+        }
+    }
+
+    CompositionLocalProvider(
+        LocalTextStyle provides TextStyle(
+            fontFamily = nexonFont,
+            fontSize = 18.sp
+        )
+    ) {
+        Dialog(
+            onDismissRequest = {},
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnClickOutside = true,
+                dismissOnBackPress = true
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickableWithoutRipple {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                    }
+
+            ) {
+
+
+                Column(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .clickable {
+                                onDismissRequest()
+                            }
+                            .padding(spacing.medium),
+                        contentDescription = "닫기",
+                        tint = White
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(spacing.medium),
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        Spacer(modifier = Modifier.height(spacing.medium))
+
+                        Text(
+                            "깃허브 연동을 위해\nGit-Hub 닉네임을 입력해주세요",
+                            modifier = Modifier.fillMaxWidth(),
+                            style = LocalTextStyle.current.copy(
+                                textAlign = TextAlign.Start,
+                                color = White,
+                                shadow = Shadow(
+                                    color = DarkGray,
+                                    offset = Offset(1f, 1f),
+                                    blurRadius = 8f
+                                ),
+                                fontWeight = FontWeight(550)
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(spacing.medium))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+
+
+                            TextField(
+                                value = keyword.value,
+                                onValueChange = {
+                                    keyword.value = it
+                                },
+                                placeholder = {
+                                    Text(
+                                        "이곳에 입력해주세요",
+                                        style = LocalTextStyle.current.copy(
+                                            color = White,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    )
+                                },
+                                keyboardActions = KeyboardActions(
+                                    onDone = {
+                                        insertKeyword()
+                                    }
+                                ),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
+                                    imeAction = ImeAction.Done
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(bottom = spacing.small)
+                                    .height(50.dp)
+                                    .focusRequester(focusRequester)
+                                    .bringIntoViewRequester(bringIntoViewRequester)
+                                    .onFocusEvent { focusState ->
+                                        if (focusState.isFocused) {
+                                            coroutineScope.launch {
+                                                bringIntoViewRequester.bringIntoView()
+                                            }
+                                        }
+                                    },
+                                colors = TextFieldDefaults.textFieldColors(
+                                    textColor = White,
+                                    disabledTextColor = White,
+                                    backgroundColor = Transparent,
+                                    cursorColor = White,
+                                    focusedIndicatorColor = bright_blue,
+                                    unfocusedIndicatorColor = White
+                                ),
+                            )
+
+                            Spacer(modifier = Modifier.width(spacing.small))
+
+                            IconButton(
+                                onClick = {
+                                    insertKeyword()
+                                }
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .shadow(
+                                            5.dp,
+                                            shape = RoundedCornerShape(5.dp)
+                                        )
+                                        .background(
+                                            color = White,
+                                            shape = RoundedCornerShape(5.dp)
+                                        )
+                                        .padding(vertical = 5.dp, horizontal = 10.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = bright_blue
+                                    )
+
+                                    Spacer(modifier = Modifier.width(spacing.small))
+
+                                    Text(
+                                        "완료",
+                                        style = LocalTextStyle.current.copy(
+                                            color = bright_blue,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    )
+                                }
+                            }
+
+                            LaunchedEffect(Unit) {
+                                focusRequester.requestFocus()
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -760,8 +1036,13 @@ fun MyTodayQuestion(navController: NavController, authViewModel: AuthViewModel) 
                             )
                         }
                         is Resource.Success -> {
+
+                            val lazyListState = rememberLazyListState()
+
                             LazyRow(
+                                state = lazyListState,
                                 modifier = Modifier.fillMaxWidth(),
+                                contentPadding = PaddingValues(end = 50.dp),
                                 horizontalArrangement = Arrangement.spacedBy(spacing.medium)
                             ) {
                                 item {
@@ -774,6 +1055,15 @@ fun MyTodayQuestion(navController: NavController, authViewModel: AuthViewModel) 
                                 }
 
                             }
+
+                            ScrollToLeftButton(
+                                lazyListState = lazyListState,
+                                threshold = 0,
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .align(Alignment.CenterEnd)
+                                    .padding(spacing.small)
+                            )
                         }
                     }
                 }
@@ -961,6 +1251,8 @@ fun MyInterviewLogs(navController: NavController, authViewModel: AuthViewModel) 
         }
     }
 
+    val lazyListState = rememberLazyListState()
+
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
             fontFamily = nexonFont
@@ -1020,8 +1312,10 @@ fun MyInterviewLogs(navController: NavController, authViewModel: AuthViewModel) 
                         }
                         is Resource.Success -> {
                             LazyRow(
+                                state = lazyListState,
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                                horizontalArrangement = Arrangement.spacedBy(spacing.medium),
+                                contentPadding = PaddingValues(end = 50.dp)
                             ) {
                                 item {
                                     MyInterviewLogFirstItem(count = it.data.size)
@@ -1033,6 +1327,15 @@ fun MyInterviewLogs(navController: NavController, authViewModel: AuthViewModel) 
                                 }
 
                             }
+
+                            ScrollToLeftButton(
+                                lazyListState = lazyListState,
+                                threshold = 0,
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .align(Alignment.CenterEnd)
+                                    .padding(spacing.small)
+                            )
                         }
                     }
                 }
@@ -1041,6 +1344,48 @@ fun MyInterviewLogs(navController: NavController, authViewModel: AuthViewModel) 
         }
     }
 
+}
+
+@Composable
+private fun ScrollToLeftButton(
+    lazyListState: LazyListState,
+    threshold: Int,
+    modifier: Modifier = Modifier
+) {
+
+    val isVisible by remember(threshold) {
+        derivedStateOf { lazyListState.firstVisibleItemIndex > 0 }
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    if (isVisible) {
+        FloatingActionButton(
+            modifier = modifier,
+            onClick = {
+                coroutineScope.launch {
+                    lazyListState.animateScrollToItem(
+                        index = 0
+                    )
+                }
+            },
+            elevation = FloatingActionButtonDefaults.elevation(
+                defaultElevation = 3.dp,
+                pressedElevation = 6.dp,
+                hoveredElevation = 4.dp,
+                focusedElevation = 4.dp
+            ),
+            shape = CircleShape,
+            backgroundColor = highlight_red
+
+        ) {
+            Icon(
+                contentDescription = null,
+                imageVector = Icons.Default.ArrowBack,
+                tint = White
+            )
+        }
+    }
 }
 
 @Composable
@@ -1242,7 +1587,11 @@ private fun MyScriptList(navController: NavController, authViewModel: AuthViewMo
                             )
                         }
                         is Resource.Success -> {
+                            val lazyListState = rememberLazyListState()
+
                             LazyRow(
+                                state = lazyListState,
+                                contentPadding = PaddingValues(end = 50.dp),
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(spacing.medium)
                             ) {
@@ -1256,6 +1605,15 @@ private fun MyScriptList(navController: NavController, authViewModel: AuthViewMo
                                 }
 
                             }
+
+                            ScrollToLeftButton(
+                                lazyListState = lazyListState,
+                                threshold = 0,
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .align(Alignment.CenterEnd)
+                                    .padding(spacing.small)
+                            )
                         }
                     }
                 }
@@ -1448,15 +1806,29 @@ private fun KeywordItem(
 
     val context = LocalContext.current
 
-    CompositionLocalProvider(
-        LocalTextStyle provides TextStyle(
-            fontFamily = nexonFont
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .wrapContentSize()
-                .height(30.dp)
+    val focusedState = rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    val textModifier = remember(focusedState.value) {
+        if (focusedState.value) {
+            Modifier
+                .shadow(
+                    3.dp,
+                    shape = RoundedCornerShape(50)
+                )
+                .border(
+                    width = 1.dp,
+                    color = bright_white_blue,
+                    shape = RoundedCornerShape(50)
+                )
+                .background(
+                    color = White,
+                    shape = RoundedCornerShape(50)
+                )
+                .padding(horizontal = spacing.medium, vertical = spacing.small)
+        } else {
+            Modifier
                 .shadow(
                     3.dp,
                     shape = RoundedCornerShape(50)
@@ -1465,21 +1837,66 @@ private fun KeywordItem(
                     color = White,
                     shape = RoundedCornerShape(50)
                 )
-                .combinedClickable(
-                    onClick = {
-                        invokeVibration(context)
-                        AlertUtils.showToast(context, "길게 누르면 삭제돼요!")
-                    },
-                    onLongClick = {
-                        invokeVibration(context)
-                        viewModel.deleteInspiringKeyword(keyword)
-                        AlertUtils.showToast(context, "삭제 완료")
-                    }
-                )
-                .padding(vertical = spacing.small, horizontal = spacing.medium)
+                .padding(horizontal = spacing.medium, vertical = spacing.small)
+        }
 
+    }
+
+    CompositionLocalProvider(
+        LocalTextStyle provides TextStyle(
+            fontFamily = nexonFont
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .clickable {
+                    focusedState.value = !focusedState.value
+                }
         ) {
-            Text(keyword.keyword, fontSize = 14.sp, color = DarkGray)
+
+            Text(
+                keyword.keyword,
+                fontSize = 14.sp,
+                color = DarkGray,
+                modifier = textModifier
+            )
+
+            if (
+                focusedState.value
+            ) {
+
+                Icon(
+                    contentDescription = null,
+                    tint = Gray,
+                    imageVector = Icons.Default.Close,
+                    modifier = Modifier
+                        .offset(x = 5.dp, y = (-5).dp)
+                        .shadow(
+                            1.dp,
+                            shape = CircleShape
+                        )
+                        .border(
+                            1.dp,
+                            shape = CircleShape,
+                            color = bright_white_blue
+                        )
+                        .background(
+                            color = White,
+                            shape = CircleShape
+                        )
+                        .size(20.dp)
+                        .aspectRatio(1f)
+                        .align(Alignment.TopEnd)
+                        .padding(3.dp)
+                        .clickable {
+                            invokeVibration(context)
+                            viewModel.deleteInspiringKeyword(keyword)
+                            AlertUtils.showToast(context, "삭제 완료")
+                        }
+                )
+
+            }
+
         }
     }
 

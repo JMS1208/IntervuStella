@@ -95,7 +95,7 @@ fun LoginScreen(
             .fillMaxSize()
             .onTouchKeyBoardFocusDismiss()
     ) {
-//        LogoUI()
+        LogoUI(modifier = Modifier.align(Alignment.CenterHorizontally))
 
         LoginUI { email, password ->
             if(email.isBlank()) {
@@ -135,7 +135,17 @@ fun LoginScreen(
     }
 }
 
-
+@Composable
+private fun LogoUI(modifier: Modifier) {
+    Box(
+        modifier = modifier
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.logo1),
+            contentDescription = null
+        )
+    }
+}
 
 
 @Composable
@@ -256,7 +266,7 @@ fun LoginUI(
                 )
             },
             colors = ButtonDefaults.buttonColors(
-                backgroundColor = Color.DarkGray
+                backgroundColor = bright_blue
             ),
             shape = RoundedCornerShape(12.dp),
             border = BorderStroke(1.dp, Color.LightGray),

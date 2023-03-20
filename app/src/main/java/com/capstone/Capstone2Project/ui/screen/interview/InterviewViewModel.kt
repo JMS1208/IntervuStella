@@ -1,30 +1,31 @@
 package com.capstone.Capstone2Project.ui.screen.interview
 
-import androidx.lifecycle.SavedStateHandle
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capstone.Capstone2Project.data.model.*
-import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.data.resource.successOrNull
 import com.capstone.Capstone2Project.repository.NetworkRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
+import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
 class InterviewViewModel @Inject constructor(
     private val repository: NetworkRepository,
-    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private var _customQuestionnaireFlow = MutableStateFlow<Resource<CustomQuestionnaire>?>(null)
-    val customQuestionnaireFlow: StateFlow<Resource<CustomQuestionnaire>?> =
-        _customQuestionnaireFlow
+    private var _state: MutableStateFlow<State> = MutableStateFlow(State())
+    val state: StateFlow<State> = _state
 
+//    private var _recordRequest: MutableStateFlow<Boolean> = MutableStateFlow(false)
+//    val recordRequest: StateFlow<Boolean> = _recordRequest
 
     private var _oldInterviewLogLineFlow: MutableStateFlow<InterviewLogLine?> =
         MutableStateFlow(null)
@@ -34,95 +35,27 @@ class InterviewViewModel @Inject constructor(
         MutableStateFlow(null)
     val newInterviewLogLineFlow: StateFlow<InterviewLogLine?> = _newInterviewLogLineFlow
 
-    private var _currentPageFlow: MutableStateFlow<Int?> = MutableStateFlow(null)
-    val currentPageFlow: StateFlow<Int?> = _currentPageFlow
+    private var logState: InterviewViewModel.LogState = InterviewViewModel.LogState(false, null)
 
 
-    //TODO(인터뷰 대답 저장하는 거 만들어야함)
-    private var _interviewResultFlow: MutableStateFlow<InterviewResult?> = MutableStateFlow(null)
-    val interviewResultFlow: StateFlow<InterviewResult?> = _interviewResultFlow
+    private var _decibelFlow: MutableStateFlow<Int?> = MutableStateFlow(null)
+    val decibelFlow: StateFlow<Int?> = _decibelFlow
 
+    init {
+        viewModelScope.launch {
+            state.collectLatest { _s ->
+                while (_s.interviewState == InterviewState.InProgress) {
+                    delay(1000)
+                    _state.update { s ->
+                        val newProgress = s.progress + 1
+                        s.copy(
+                            progress = newProgress
+                        )
+                    }
 
-    private var _progressFlow: MutableStateFlow<Int> = MutableStateFlow(0)
-    val progressFlow: StateFlow<Int> = _progressFlow
-
-    private var logState: LogState = LogState(false, null)
-
-    private var _interviewStateFlow: MutableStateFlow<InterviewState> = MutableStateFlow(InterviewState.Ready)
-    val interviewStateFlow: StateFlow<InterviewState> = _interviewStateFlow
-
-    fun startInterview() = viewModelScope.launch {
-
-        _interviewStateFlow.value = InterviewState.OnGoing
-
-        while (interviewStateFlow.value == InterviewState.OnGoing) {
-            delay(1000)
-            _progressFlow.value = progressFlow.value + 1
-        }
-    }
-
-    //TODO
-    fun pauseInterview() = viewModelScope.launch {
-        _interviewStateFlow.value = InterviewState.Ready
-    }
-
-    fun stopInterview() = viewModelScope.launch {
-        _interviewStateFlow.value = InterviewState.Ended
-    }
-
-    fun updateAnswer(answer: String) = viewModelScope.launch {
-        if(interviewStateFlow.value ==  InterviewState.OnGoing) {
-            val currentPage = currentPageFlow.value
-
-            val interviewResult = interviewResultFlow.value
-
-            if(interviewResult != null && currentPage != null) {
-
-                interviewResult.apply {
-                    answers[currentPage].answer = answer
                 }
-
             }
         }
-    }
-
-
-
-    fun fetchCustomQuestionnaire(script: Script) = viewModelScope.launch {
-        _customQuestionnaireFlow.value = Resource.Loading
-
-        val result = repository.getCustomQuestionnaire(script)
-
-        _customQuestionnaireFlow.value = result
-
-
-        result.successOrNull()?.let { customQuestionnaire ->
-            _currentPageFlow.value = 0
-
-            val emptyAnswers = mutableListOf<AnswerItem>()
-
-            customQuestionnaire.questions.forEach {
-                emptyAnswers.add(AnswerItem(
-                    answerUUID = UUID.randomUUID().toString(),
-                    questionUUID = it.uuid,
-                    answer = ""
-                ))
-            }
-
-            _interviewResultFlow.value = InterviewResult(
-                uuid = UUID.randomUUID().toString(),
-                scriptUUID = customQuestionnaire.scriptUUID,
-                memo = null,
-                memo_date = null,
-                interview_date = System.currentTimeMillis(),
-                score = null,
-                logs = emptyList(),
-                answers = emptyAnswers
-            )
-
-        }
-
-
     }
 
     private suspend inline fun logLock(logLine: LogLine, block: () -> Unit) {
@@ -144,41 +77,39 @@ class InterviewViewModel @Inject constructor(
 
     private fun loadNewInterviewLogLine(newInterviewLogLine: InterviewLogLine) =
         viewModelScope.launch {
-            logLock(newInterviewLogLine.logLine) {
-                _oldInterviewLogLineFlow.value = newInterviewLogLineFlow.value
-                _newInterviewLogLineFlow.value = newInterviewLogLine
+            if (state.value.interviewState == InterviewState.InProgress) {
+                logLock(newInterviewLogLine.logLine) {
+                    _oldInterviewLogLineFlow.value = newInterviewLogLineFlow.value
+                    _newInterviewLogLineFlow.value = newInterviewLogLine
+
+                    _state.update {
+
+                        val logs = it.logs.toMutableList()
+
+                        logs.add(newInterviewLogLine)
+
+                        it.copy(
+                            logs = logs
+                        )
+                    }
+
+                }
             }
         }
-
-    fun moveNextPage() = viewModelScope.launch {
-
-        val questionnaire = customQuestionnaireFlow.value?.successOrNull() ?: return@launch
-
-        currentPageFlow.value?.let { page ->
-
-            val nextPage = page + 1
-
-            if (nextPage < questionnaire.questions.size) {
-                _currentPageFlow.value = nextPage
-            } else {
-                stopInterview()
-            }
-
-        }
-    }
-
 
     fun loadInterviewLogLine(logLine: LogLine) {
 
-        val currentPage = currentPageFlow.value ?: return
+        val currentPage = state.value.currentPage ?: return
 
-        val questionnaire = customQuestionnaireFlow.value?.successOrNull() ?: return
+        val questionnaire = state.value.customQuestionnaire ?: return
 
         val question = questionnaire.questions[currentPage].question
 
+        val progress = state.value.progress
+
         val interviewLogLine = InterviewLogLine(
             date = System.currentTimeMillis(),
-            progress = progressFlow.value,
+            progress = progress,
             logLine = logLine,
             questionItem = QuestionItem(UUID.randomUUID().toString(), question)
         )
@@ -187,18 +118,342 @@ class InterviewViewModel @Inject constructor(
 
     }
 
+    fun fetchCustomQuestionnaire(script: Script?) = viewModelScope.launch {
+        if (script == null) {
+            _state.update {
+                it.copy(
+                    interviewState = InterviewState.Error("유효하지 않은 자기소개서 입니다")
+                )
+            }
+            return@launch
+        }
+
+        _state.update {
+            it.copy(
+                interviewState = InterviewState.Ready
+            )
+        }
+
+        val result = repository.getCustomQuestionnaire(script)
+
+
+        result.successOrNull()?.let { questionnaire ->
+
+            if (questionnaire.questions.isEmpty()) {
+                _state.update {
+                    it.copy(
+                        interviewState = InterviewState.Error(
+                            "생성된 질문 목록이 없습니다"
+                        )
+                    )
+                }
+                return@launch
+            }
+
+            _state.update {
+
+                val answers = mutableListOf<AnswerItem>()
+
+                questionnaire.questions.forEach { question ->
+                    answers.add(
+                        AnswerItem(
+                            answerUUID = UUID.randomUUID().toString(),
+                            questionUUID = question.uuid,
+                            answer = ""
+                        )
+                    )
+                }
+
+                it.copy(
+                    interviewState = InterviewState.Prepared,
+                    answers = answers,
+                    currentPage = 0,
+                    interviewDate = System.currentTimeMillis(),
+                    customQuestionnaire = questionnaire,
+                    progress = 0
+                )
+            }
+        }
+
+    }
+
+
+    fun moveToNextPage() = viewModelScope.launch {
+
+        if (state.value.interviewState != InterviewState.InProgress) {
+            return@launch
+        }
+
+        val currentPage = state.value.currentPage ?: return@launch
+
+        val questions = state.value.customQuestionnaire?.questions ?: return@launch
+
+        if (currentPage + 1 < questions.size) {
+            _state.update {
+                it.copy(
+                    currentPage = currentPage + 1,
+                    beforeNext = null
+                )
+            }
+        } else {
+//            _state.update {
+//
+//                it.copy(
+//                    interviewState = InterviewState.Finished,
+//                    beforeNext = null
+//                )
+//            }
+            finishInterview()
+        }
+        Log.e("TAG", "moveToNextPage: 이동했음 !!!!!!!!!!")
+
+
+    }
+
+    fun appendAnswer(answer: String) = viewModelScope.launch {
+        if (state.value.interviewState == InterviewState.InProgress) {
+            handleStateException {
+                _state.update {
+                    val updatedAnswers = it.answers?.let { answers ->
+                        for (i in answers.indices) {
+                            if (i == it.currentPage) {
+                                answers[i].answer += " ${answer.trim()}"
+                            }
+                        }
+                        answers
+                    }
+
+                    it.copy(
+                        answers = updatedAnswers
+                    )
+
+                }
+
+            }
+        }
+    }
+
+    fun updateAnswer(answer: String) = viewModelScope.launch {
+        if (state.value.interviewState == InterviewState.InProgress) {
+            handleStateException {
+                _state.update {
+                    val updatedAnswers = it.answers?.let { answers ->
+                        for (i in answers.indices) {
+                            if (i == it.currentPage) {
+                                answers[i].answer = answer
+                            }
+                        }
+                        answers
+                    }
+
+                    it.copy(
+                        answers = updatedAnswers
+                    )
+
+                }
+            }
+        }
+    }
+
+    fun deleteAnswer() = viewModelScope.launch {
+        updateAnswer("")
+    }
+
+    fun checkAnswer() = viewModelScope.launch {
+        handleStateException {
+            state.value.let {
+                val questionnaire = it.customQuestionnaire
+                val answers = it.answers
+                val currentPage = it.currentPage
+                val answerItem = answers!![currentPage!!]
+                val questionItem = questionnaire!!.questions[currentPage]
+                val qna = QnA(
+                    answerItem = answerItem,
+                    questionItem = questionItem
+                )
+
+                _state.update {_->
+                    it.copy(
+                        beforeNext = qna
+                    )
+                }
+            }
+
+
+
+        }
+
+    }
+
+//    fun writeMemo(interviewUUID: String, memo: String) = viewModelScope.launch {
+//
+//        repository.writeMemo(interviewUUID, memo)
+//    }
+
+
+    fun startInterview() = viewModelScope.launch {
+        if (state.value.interviewState == InterviewState.Prepared) {
+            _state.update {
+                it.copy(
+                    interviewState = InterviewState.InProgress
+                )
+            }
+        } else {
+            _state.update {
+                it.copy(
+                    interviewState = InterviewState.Error(
+                        message = "아직 준비되지 않았습니다"
+                    )
+                )
+            }
+        }
+    }
+
+
+    fun finishInterview() = viewModelScope.launch {
+        handleStateException {
+
+            _state.update{
+                it.copy(
+                    interviewState = InterviewState.Loading
+                )
+            }
+
+            delay(1000)
+
+            with(state.value) {
+                val interviewUUID = UUID.randomUUID().toString()
+                val interviewData = InterviewData(
+                    interviewUUID = interviewUUID,
+                    interviewDate = System.currentTimeMillis(),
+//                    memo = memo ?: "",
+                    logs = logs,
+                    scriptUUID = customQuestionnaire!!.scriptUUID
+                )
+
+                val result = repository.sendInterviewData(interviewData)
+
+                if(result.result == "성공") {
+                    _state.update {
+                        it.copy(
+                            interviewState = InterviewState.Finished(interviewUUID)
+                        )
+                    }
+                } else {
+                    throw Exception("네트워크 오류")
+                }
+            }
+        }
+    }
+
+    fun destroyInterview() = viewModelScope.launch {
+
+    }
+
+    fun pauseInterview() = viewModelScope.launch {
+        _state.update {
+            it.copy(
+                interviewState = InterviewState.Paused,
+                recognizerState = RecognizerState.Stopped
+            )
+        }
+    }
+
+    fun restartInterview() = viewModelScope.launch {
+        if (state.value.interviewState == InterviewState.Paused
+        ) {
+            _state.update {
+                it.copy(
+                    interviewState = InterviewState.InProgress
+                )
+            }
+            return@launch
+        }
+
+    }
+
+    fun stopRecordSTT() = viewModelScope.launch {
+        _state.update {
+            it.copy(
+                recognizerState = RecognizerState.Stopped
+            )
+        }
+    }
+
+    fun startRecordSTT() = viewModelScope.launch {
+        _state.update {
+            it.copy(
+                recognizerState = RecognizerState.Started
+            )
+        }
+    }
+
+    fun updateDecibel(decibel: Int) = viewModelScope.launch {
+        _decibelFlow.update {
+            decibel
+        }
+    }
+
+    private inline fun handleStateException(block: () -> Unit) {
+        try {
+            block()
+        } catch (E: Exception) {
+            E.printStackTrace()
+            _state.update {
+                it.copy(
+                    interviewState = InterviewState.Error(
+                        E.message.toString()
+                    )
+                )
+            }
+        }
+    }
+
+
+    data class State(
+        var interviewState: InterviewState = InterviewState.Ready,
+        var progress: Int = 0,
+        val logs: List<InterviewLogLine> = emptyList(),
+        var currentPage: Int? = null,
+        val customQuestionnaire: CustomQuestionnaire? = null,
+        val answers: List<AnswerItem>? = null,
+//        var memo: String? = null,
+//        var memoDate: Long? = null,
+        var interviewDate: Long? = null,
+        var recognizerState: RecognizerState = RecognizerState.Stopped,
+        val beforeNext: QnA? = null
+    )
+
+    data class QnA(
+        val answerItem: AnswerItem,
+        val questionItem: QuestionItem
+    )
+
+    sealed class RecognizerState {
+
+        object Started : RecognizerState()
+        object Stopped : RecognizerState()
+
+    }
+
+
+    sealed class InterviewState {
+        object Ready : InterviewState() //패치전
+        object Prepared : InterviewState() //패치후
+        object InProgress : InterviewState() //진행중
+        object Paused : InterviewState() //일시중지
+        //object WritingMemo : InterviewState() //메모적기
+        data class Finished(
+            val interviewUUID: String
+        ): InterviewState()
+        data class Error( //오류
+            val message: String
+        ) : InterviewState()
+        object Loading: InterviewState()
+    }
 
     data class LogState(
         var locked: Boolean,
         var type: LogLine.Type?
     )
-
-    sealed class InterviewState{
-        object Ready: InterviewState()
-        object OnGoing: InterviewState()
-        object Ended: InterviewState()
-    }
-
-
-
 }

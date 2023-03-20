@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.capstone.Capstone2Project.ui.screen.home.toPx
 import com.capstone.Capstone2Project.utils.theme.bright_blue
+import kotlin.math.roundToInt
 
 
 @Preview(showBackground = true)
@@ -56,6 +58,30 @@ private fun Preview() {
     }
 }
 
+
+class DottedShape(
+    private val step: Dp,
+) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ) = Outline.Generic(Path().apply {
+        val stepPx = with(density) { step.toPx() }
+        val stepsCount = (size.width / stepPx).roundToInt()
+        val actualStep = size.width / stepsCount
+        val dotSize = Size(width = actualStep / 2, height = size.height)
+        for (i in 0 until stepsCount) {
+            addRect(
+                Rect(
+                    offset = Offset(x = i * actualStep, y = 0f),
+                    size = dotSize
+                )
+            )
+        }
+        close()
+    })
+}
 
 class PocketBookShape(
     private val cornerRadius: Dp,
@@ -112,6 +138,68 @@ private fun createCirclePath(size: Size): Path {
 
 }
 
+
+private fun createRoundedCornerStrokePath(radius: Float, size: Size): Path {
+    return Path().apply {
+        moveTo(radius, 0f)
+        lineTo(size.width - radius, 0f)
+        arcTo(
+            rect = Rect(
+                size.width - 2 * radius,
+                0f,
+                size.width,
+                radius * 2
+            ),
+            startAngleDegrees = 270f,
+            sweepAngleDegrees = 90f,
+            forceMoveTo = false
+        )
+
+        lineTo(size.width, size.height - 2 * radius)
+
+        arcTo(
+            rect = Rect(
+                size.width - 2 * radius,
+                size.height - 2 * radius,
+                size.width,
+                size.height
+            ),
+            startAngleDegrees = 0f,
+            sweepAngleDegrees = 90f,
+            forceMoveTo = false
+        )
+        lineTo(radius, size.height)
+
+        arcTo(
+            rect = Rect(
+                0f,
+                size.height - 2 * radius,
+                2 * radius,
+                size.height
+            ),
+            startAngleDegrees = 90f,
+            sweepAngleDegrees = 90f,
+            forceMoveTo = false
+        )
+        lineTo(0f, radius)
+        arcTo(
+            rect = Rect(
+                0f,
+                0f,
+                2 * radius,
+                2 * radius
+            ),
+            startAngleDegrees = 180f,
+            sweepAngleDegrees = 90f,
+            forceMoveTo = false
+        )
+
+
+
+        close()
+
+    }
+}
 private fun createRoundedCornerPath(radius: Float, size: Size): Path {
     return Path().apply {
 

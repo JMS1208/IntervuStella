@@ -11,10 +11,13 @@ import androidx.navigation.navArgument
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.ui.screen.auth.LoginScreen
 import com.capstone.Capstone2Project.ui.screen.auth.SignUpScreen
-import com.capstone.Capstone2Project.ui.screen.interview.InterviewScreen
 import com.capstone.Capstone2Project.ui.screen.home.HomeScreen
 import com.capstone.Capstone2Project.ui.screen.interesting.topic.TopicScreen
+import com.capstone.Capstone2Project.ui.screen.interview.InterviewFinishScreen
+import com.capstone.Capstone2Project.ui.screen.interview.InterviewResultScreen
+import com.capstone.Capstone2Project.ui.screen.interview.InterviewScreen
 import com.capstone.Capstone2Project.ui.screen.mypage.MyPageScreen
+import com.capstone.Capstone2Project.ui.screen.othersanswers.OthersAnswersScreen
 import com.capstone.Capstone2Project.ui.screen.script.ScriptWritingFinishScreen
 import com.capstone.Capstone2Project.ui.screen.script.ScriptWritingScreen
 
@@ -56,6 +59,29 @@ fun AppNavHost(
             }
         }
 
+        composable(
+            "$ROUTE_INTERVIEW_FINISHED/{interviewUUID}"
+        ) { navBackStackEntry ->
+
+            val interviewUUID = navBackStackEntry.arguments?.getString("interviewUUID")
+
+            interviewUUID?.let {
+                InterviewFinishScreen(interviewUUID = it, navController = navController)
+            }
+        }
+
+        composable(
+            "$ROUTE_INTERVIEW_RESULT/{interviewUUID}"
+        ) { navBackStackEntry ->
+
+            val interviewUUID = navBackStackEntry.arguments?.getString("interviewUUID")
+
+            interviewUUID?.let {
+                InterviewResultScreen(interviewUUID = it, navController = navController)
+            }
+
+        }
+
 
         composable("$ROUTE_SCRIPT_WRITING?script={script}",
             arguments = listOf(
@@ -90,6 +116,15 @@ fun AppNavHost(
 
         composable(ROUTE_MY_PAGE) {
             MyPageScreen(navController = navController)
+        }
+
+        composable("$ROUTE_OTHERS_ANSWERS/{question_uuid}") {navBackStackEntry ->
+
+            val questionUUID = navBackStackEntry.arguments?.getString("question_uuid")
+
+            questionUUID?.let {
+                OthersAnswersScreen(questionUUID = it, navController = navController)
+            }
         }
     }
 }

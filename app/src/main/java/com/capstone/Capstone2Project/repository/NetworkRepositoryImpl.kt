@@ -2,7 +2,12 @@ package com.capstone.Capstone2Project.repository
 
 import com.capstone.Capstone2Project.data.model.*
 import com.capstone.Capstone2Project.data.model.TodayQuestion
+import com.capstone.Capstone2Project.data.model.response.InterviewDataResponse
 import com.capstone.Capstone2Project.data.resource.Resource
+import com.capstone.Capstone2Project.ui.screen.interesting.topic.TopicViewModel
+import com.capstone.Capstone2Project.ui.screen.othersanswers.AnswerData
+import com.capstone.Capstone2Project.ui.screen.othersanswers.OthersAnswersData
+import com.capstone.Capstone2Project.ui.screen.othersanswers.QuestionData
 import com.capstone.Capstone2Project.utils.extensions.generateRandomText
 import java.util.*
 import javax.inject.Inject
@@ -12,6 +17,7 @@ import javax.inject.Singleton
 class NetworkRepositoryImpl @Inject constructor(
 //    private val mainService: MainService
 ) : NetworkRepository {
+    /*
     override suspend fun getDefaultTopics(): Resource<List<Topic>> {
         //TODO(mainService로 부터 받아오기)
         val topics = listOf(
@@ -26,6 +32,8 @@ class NetworkRepositoryImpl @Inject constructor(
         )
         return Resource.Success(topics)
     }
+
+     */
 
     override suspend fun getScripts(hostUUID: String): Resource<List<Script>> {
         //TODO(uuid로 host 참고해서 자소서 쓴 목록 가져오기)
@@ -75,7 +83,7 @@ class NetworkRepositoryImpl @Inject constructor(
 
         repeat(5) {
 
-            val questionItem = QuestionItem(UUID.randomUUID().toString(),"예시 질문 $it")
+            val questionItem = QuestionItem(UUID.randomUUID().toString(), "예시 질문 $it")
 
             questionItems.add(
                 questionItem
@@ -184,8 +192,9 @@ class NetworkRepositoryImpl @Inject constructor(
 
         for (i in 0 until 10) {
             val topic = Topic(
-                uuid = UUID.randomUUID().toString(),
-                name = "관심주제 예시"
+                //uuid = UUID.randomUUID().toString(),
+                name = "관심주제 예시",
+                selected = false
             )
 
             val todayQuestion = TodayQuestion(
@@ -200,5 +209,112 @@ class NetworkRepositoryImpl @Inject constructor(
 
     }
 
+    override suspend fun sendInterviewData(interviewData: InterviewData): InterviewDataResponse {
+        //TODO(interviewData 보내기)
+
+        return InterviewDataResponse("성공")
+    }
+
+    override suspend fun writeMemo(interviewUUID: String, memo: String): Resource<String> {
+        //TODO(Memo 보내기)
+        return Resource.Success(memo)
+
+    }
+
+    override suspend fun getInterviewResult(interviewUUID: String): Resource<InterviewResult> {
+
+        val newAchievements = mutableListOf<Achievement>()
+
+        for (i in 0 until 10) {
+            newAchievements.add(
+                Achievement(
+                    date = System.currentTimeMillis(),
+                    text = "업적 예시 $i",
+                    type = (0..3).random()
+                )
+            )
+        }
+
+        val interviewResult = InterviewResult(
+            uuid = interviewUUID,
+            scriptUUID = UUID.randomUUID().toString(),
+            interview_date = System.currentTimeMillis(),
+            score = 678,
+            feedBack = generateRandomText(500),
+            duration = 678,
+            newAchievement = newAchievements
+
+        )
+
+        return Resource.Success(interviewResult)
+    }
+
+    override suspend fun getOthersAnswersData(questionUUID: String): Resource<OthersAnswersData> {
+        val myAnswer = AnswerData(
+            uuid = UUID.randomUUID().toString(),
+            nickName = "닉네임",
+            email = "ad***@ad***.com",
+            content = "프로세스와 스레드의 차이는",
+            like = false,
+            likeCount = 50
+        )
+
+        val questionData = QuestionData(
+            field = "운영체제",
+            question = "프로세스와 스레드의 차이는 무엇인가요?"
+        )
+
+        val othersAnswers = mutableListOf<AnswerData>()
+
+        for (i in 0 until 16) {
+
+            val othersAnswer = AnswerData(
+                uuid = UUID.randomUUID().toString(),
+                nickName = "닉네임$i",
+                email = "ad$i***@ad***.com",
+                content = "프로세스와 스레드의 차이는",
+                like = false,
+                likeCount = (0..100).random()
+            )
+
+            othersAnswers.add(othersAnswer)
+        }
+
+        return Resource.Success(
+            OthersAnswersData(
+                myAnswer, questionData, othersAnswers
+            )
+        )
+    }
+
+
+    override suspend fun updateLikeForAnswerData(
+        answerUUID: String,
+        like: Boolean
+    ): Resource<String> {
+        //TODO()
+        return Resource.Success("성공")
+    }
+
+    override suspend fun isUserPresent(hostUUID: String): Boolean {
+        return false
+    }
+
+    override suspend fun checkAttendance(hostUUID: String) {
+
+    }
+
+    override suspend fun getUserTopics(hostUUID: String): Resource<List<Topic>> {
+        return Resource.Success(listOf(
+            Topic(name = "운영체제", selected = false),
+            Topic(name = "네트워크", selected = true),
+            Topic(name = "데이터베이스", selected = true),
+            Topic(name = "알고리즘", selected = true),
+            Topic(name = "자료구조", selected = false),
+            Topic(name = "프로그래밍 기초", selected = false),
+            Topic(name = "JAVA", selected = false),
+            Topic(name = "전산 기본", selected = false)
+        ))
+    }
 
 }
