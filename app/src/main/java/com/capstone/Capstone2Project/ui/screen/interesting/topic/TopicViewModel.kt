@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capstone.Capstone2Project.data.model.Topic
+import com.capstone.Capstone2Project.data.model.Topics
 import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.repository.NetworkRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,7 +16,7 @@ import javax.inject.Inject
 @HiltViewModel
 class TopicViewModel @Inject constructor(
     private val repository: NetworkRepository
-): ViewModel() {
+) : ViewModel() {
 
     private val _userTopicsFlow: MutableStateFlow<Resource<List<Topic>>?> = MutableStateFlow(null)
     val userTopicsFlow: StateFlow<Resource<List<Topic>>?> = _userTopicsFlow
@@ -28,9 +29,18 @@ class TopicViewModel @Inject constructor(
     }
 
 
-    fun selectUserTopics(hostUUID: String, topics: List<Topic>) = viewModelScope.launch(Dispatchers.IO) {
-        Log.e("TAG", "selectUserTopics: $topics", )
-    }
+    fun postUserTopics(hostUUID: String, topics: List<Topic>) =
+        viewModelScope.launch(Dispatchers.IO) {
+
+            val topicNameList = topics
+                .filter { it.selected }
+                .map { it.name }
+
+            val result = repository.postTopics(
+                hostUUID,
+                Topics(topicNameList)
+            )
+        }
 
     fun changeSelectedTopic(topic: Topic) = viewModelScope.launch {
         if (userTopicsFlow.value is Resource.Success) {
@@ -39,14 +49,10 @@ class TopicViewModel @Inject constructor(
                 return@launch
             }
 
-            val topics = mutableListOf<Topic>()
 
-            topics.addAll((userTopicsFlow.value as Resource.Success<List<Topic>>).data)
-
-            val _topics =topics.map {
-                if (it.name == topic.name) {
+            val topics = (userTopicsFlow.value as Resource.Success<List<Topic>>).data.map {
+                if (it == topic) {
                     it.copy(
-                        name = it.name,
                         selected = !it.selected
                     )
                 } else {
@@ -54,12 +60,15 @@ class TopicViewModel @Inject constructor(
                 }
             }
 
-            _userTopicsFlow.value = Resource.Success(_topics)
+            _userTopicsFlow.value = Resource.Success(topics)
 
-            Log.e("TAG", "changeSelectedTopic: $_topics", )
 
         }
     }
 
 
+    sealed class Effect {
+        object Loading : Effect()
+
+    }
 }

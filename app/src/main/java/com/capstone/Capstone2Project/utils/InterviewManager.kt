@@ -1,28 +1,19 @@
 package com.capstone.Capstone2Project.utils
 
 import android.content.Context
-import android.media.FaceDetector
-import android.media.Image
-import android.net.Uri
+import android.graphics.BitmapFactory
 import android.util.Log
-import android.view.View
 import android.view.ViewGroup
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
-import androidx.camera.video.VideoCapture
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.compositionLocalOf
 import androidx.core.content.ContextCompat
-import androidx.core.content.PermissionChecker
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
-import com.google.mlkit.vision.face.FaceDetection
-import com.google.mlkit.vision.face.FaceDetectorOptions
 import java.nio.ByteBuffer
-import java.security.AccessController.getContext
-import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -33,9 +24,11 @@ class InterviewManager private constructor(private val builder: Builder) :
 
     private var cameraExecutor: ExecutorService? = null
 
+    private var videoRecordManager: VideoRecordManager? = null
 
     init {
         getLifecycle().addObserver(this)
+
     }
 
     fun updatePreview(
@@ -120,6 +113,7 @@ class InterviewManager private constructor(private val builder: Builder) :
     }
     private fun startCamera(previewView: PreviewView) {
 
+
         val cameraExecutor = cameraExecutor ?: return
 
         val cameraProviderFuture = ProcessCameraProvider.getInstance(getContext())
@@ -174,22 +168,6 @@ class InterviewManager private constructor(private val builder: Builder) :
             Lifecycle.Event.ON_CREATE -> {
                 cameraExecutor = Executors.newSingleThreadExecutor()
             }
-//            Lifecycle.Event.ON_START-> {
-//                if (cameraExecutor == null) {
-//                    cameraExecutor = Executors.newSingleThreadExecutor()
-//                }
-//            }
-//
-//            Lifecycle.Event.ON_STOP-> {
-//                Log.e(TAG, "onStateChanged: 테스트!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", )
-////                cameraExecutor?.shutdown()
-////                cameraExecutor = null
-//            }
-//            Lifecycle.Event.ON_DESTROY -> {
-//
-//                cameraExecutor?.shutdown()
-//                cameraExecutor = null
-//            }
             else -> Unit
         }
     }
@@ -233,6 +211,8 @@ class InterviewManager private constructor(private val builder: Builder) :
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     class ImageAnalyzer(private val listener: ImageListener) : ImageAnalysis.Analyzer {
         override fun  analyze(imageProxy: ImageProxy) {
+
+
 
             listener(imageProxy)
 

@@ -7,4 +7,5 @@ data class InterviewData(
 //    val memo: String,
     val logs: List<InterviewLogLine>,
     val scriptUUID: String,
+    val durations: List<Int>
 )

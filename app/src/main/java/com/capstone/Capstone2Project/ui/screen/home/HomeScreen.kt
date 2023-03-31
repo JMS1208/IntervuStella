@@ -15,15 +15,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.focus.FocusRequester.Companion.createRefs
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.Color.Companion.DarkGray
 import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -43,12 +42,12 @@ import com.capstone.Capstone2Project.navigation.ROUTE_MY_PAGE
 import com.capstone.Capstone2Project.navigation.ROUTE_SCRIPT_WRITING
 import com.capstone.Capstone2Project.navigation.ROUTE_TOPIC
 import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
-import com.capstone.Capstone2Project.ui.screen.guide.InterviewIntroDialog
+import com.capstone.Capstone2Project.ui.screen.interview.stopRecordingService
+import com.capstone.Capstone2Project.ui.screen.intro.InterviewIntroDialog
 import com.capstone.Capstone2Project.utils.composable.HighlightText
 import com.capstone.Capstone2Project.utils.etc.CustomFont
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
 import com.capstone.Capstone2Project.utils.extensions.WithEmojiView
-import com.capstone.Capstone2Project.utils.extensions.clickableWithoutRipple
 import com.capstone.Capstone2Project.utils.extensions.gradientBackground
 import com.capstone.Capstone2Project.utils.extensions.shimmerEffect
 import com.capstone.Capstone2Project.utils.theme.*
@@ -57,7 +56,6 @@ import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.core.daysOfWeek
 import com.kizitonwose.calendar.core.firstDayOfWeekFromLocale
-import kotlinx.coroutines.NonDisposableHandle.parent
 import java.text.SimpleDateFormat
 import java.time.DayOfWeek
 import java.time.YearMonth
@@ -782,6 +780,8 @@ private fun LogoAndInfoContent(
 
     val spacing = LocalSpacing.current
 
+    val context = LocalContext.current
+
     CompositionLocalProvider(
         LocalTextStyle provides androidx.compose.ui.text.TextStyle(
             fontFamily = nexonFont
@@ -796,7 +796,9 @@ private fun LogoAndInfoContent(
             Image(
                 painterResource(id = R.drawable.logo3),
                 contentDescription = null,
-                modifier = Modifier.height(30.dp))
+                modifier = Modifier.height(30.dp).clickable {
+                    stopRecordingService(context)
+                })
 
             Icon(
                 imageVector = Icons.Outlined.Person,

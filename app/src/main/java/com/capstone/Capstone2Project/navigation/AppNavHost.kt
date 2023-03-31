@@ -14,6 +14,7 @@ import com.capstone.Capstone2Project.ui.screen.auth.SignUpScreen
 import com.capstone.Capstone2Project.ui.screen.home.HomeScreen
 import com.capstone.Capstone2Project.ui.screen.interesting.topic.TopicScreen
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewFinishScreen
+import com.capstone.Capstone2Project.ui.screen.interview.InterviewGuideScreen
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewResultScreen
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewScreen
 import com.capstone.Capstone2Project.ui.screen.mypage.MyPageScreen
@@ -49,13 +50,36 @@ fun AppNavHost(
         }
 
         composable(
-            "$ROUTE_CAMERA/{script}"
+            "$ROUTE_CAMERA/{script}",
+//            arguments = listOf(
+//                navArgument("script") {
+//                    defaultValue = Script.makeTestScript().toJsonString()
+//                    type = NavType.StringType
+//                },
+//                navArgument("use_recording") {
+//                    defaultValue = Boolean
+//                    type = NavType.BoolType
+//                }
+//            )
+        ) { navBackStackEntry ->
+            val scriptJson = navBackStackEntry.arguments?.getString("script")
+
+//            val useRecording = navBackStackEntry.arguments?.getBoolean("use_recording") ?: false
+
+            scriptJson?.let {
+                val script = Script.jsonStringToScript(it)
+                InterviewScreen(navController, script)
+            }
+        }
+
+        composable(
+            "$ROUTE_INTERVIEW_GUIDE/{script}"
         ) { navBackStackEntry ->
             val scriptJson = navBackStackEntry.arguments?.getString("script")
 
             scriptJson?.let {
                 val script = Script.jsonStringToScript(it)
-                InterviewScreen(navController, script)
+                InterviewGuideScreen(navController, script)
             }
         }
 
@@ -118,7 +142,7 @@ fun AppNavHost(
             MyPageScreen(navController = navController)
         }
 
-        composable("$ROUTE_OTHERS_ANSWERS/{question_uuid}") {navBackStackEntry ->
+        composable("$ROUTE_OTHERS_ANSWERS/{question_uuid}") { navBackStackEntry ->
 
             val questionUUID = navBackStackEntry.arguments?.getString("question_uuid")
 

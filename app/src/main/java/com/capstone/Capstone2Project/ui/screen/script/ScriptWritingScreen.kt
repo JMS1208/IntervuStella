@@ -662,7 +662,7 @@ private fun ScriptNameSetting(
                 Spacer(modifier = Modifier.height(spacing.small))
 
                 Text(
-                    "* 자기소개서 수정시 이전에 만든\n인터뷰 질문은 사용하실 수 없습니다",
+                    "* 자기소개서 수정시 해당 자기소개서를 기반으로 만들어진\n면접 질문은 사용하실 수 없습니다",
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 12.sp,
                     color = Black,

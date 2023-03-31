@@ -170,7 +170,8 @@ class InterviewViewModel @Inject constructor(
                     currentPage = 0,
                     interviewDate = System.currentTimeMillis(),
                     customQuestionnaire = questionnaire,
-                    progress = 0
+                    progress = 0,
+                    durations = List(answers.size) {0}
                 )
             }
         }
@@ -179,35 +180,51 @@ class InterviewViewModel @Inject constructor(
 
 
     fun moveToNextPage() = viewModelScope.launch {
-
-        if (state.value.interviewState != InterviewState.InProgress) {
-            return@launch
-        }
-
-        val currentPage = state.value.currentPage ?: return@launch
-
-        val questions = state.value.customQuestionnaire?.questions ?: return@launch
-
-        if (currentPage + 1 < questions.size) {
-            _state.update {
-                it.copy(
-                    currentPage = currentPage + 1,
-                    beforeNext = null
-                )
+        handleStateException {
+            if (state.value.interviewState != InterviewState.InProgress && state.value.interviewState !is InterviewState.EditAnswer) {
+                return@launch
             }
-        } else {
-//            _state.update {
-//
-//                it.copy(
-//                    interviewState = InterviewState.Finished,
-//                    beforeNext = null
-//                )
-//            }
-            finishInterview()
+
+            val currentPage = state.value.currentPage ?: return@launch
+
+            val questions = state.value.customQuestionnaire?.questions ?: return@launch
+
+            val durations = state.value.durations ?: return@launch
+
+            if (currentPage + 1 < questions.size) {
+                _state.update {
+
+//                    val newDurations = durations.mapIndexed { idx, duration ->
+//                        if (idx == currentPage) {
+//                            if (currentPage == 0) {
+//                                it.progress
+//                            } else {
+//                                it.progress - durations[idx-1]
+//                            }
+//                        } else {
+//                            duration
+//                        }
+//                    }
+
+                    val newCumDurations = durations.mapIndexed { index, duration ->
+                        if (index == currentPage) {
+                            it.progress
+                        } else {
+                            duration
+                        }
+                    }
+
+                    it.copy(
+                        currentPage = currentPage + 1,
+                        interviewState = InterviewState.InProgress,
+                        durations = newCumDurations
+                    )
+
+                }
+            } else {
+                finishInterview()
+            }
         }
-        Log.e("TAG", "moveToNextPage: 이동했음 !!!!!!!!!!")
-
-
     }
 
     fun appendAnswer(answer: String) = viewModelScope.launch {
@@ -274,7 +291,9 @@ class InterviewViewModel @Inject constructor(
 
                 _state.update {_->
                     it.copy(
-                        beforeNext = qna
+                        interviewState = InterviewState.EditAnswer(
+                            qna
+                        )
                     )
                 }
             }
@@ -284,11 +303,6 @@ class InterviewViewModel @Inject constructor(
         }
 
     }
-
-//    fun writeMemo(interviewUUID: String, memo: String) = viewModelScope.launch {
-//
-//        repository.writeMemo(interviewUUID, memo)
-//    }
 
 
     fun startInterview() = viewModelScope.launch {
@@ -310,25 +324,46 @@ class InterviewViewModel @Inject constructor(
     }
 
 
-    fun finishInterview() = viewModelScope.launch {
+    private fun finishInterview() = viewModelScope.launch {
         handleStateException {
 
+            val durations = state.value.durations ?: return@launch
+
+            val currentPage = state.value.currentPage ?: return@launch
+
+
             _state.update{
+
+                val newCumDurations = durations.mapIndexed { index, duration ->
+                    if (index == currentPage) {
+                        it.progress
+                    } else {
+                        duration
+                    }
+                }.toMutableList()
+
+                for (i in newCumDurations.size-1 downTo 0) {
+                    val beforeDuration = if (i-1 < 0) 0 else newCumDurations[i-1]
+                    newCumDurations[i] -= beforeDuration
+                }
+
                 it.copy(
-                    interviewState = InterviewState.Loading
+                    interviewState = InterviewState.Loading,
+                    durations = newCumDurations
                 )
             }
 
             delay(1000)
 
             with(state.value) {
+
                 val interviewUUID = UUID.randomUUID().toString()
                 val interviewData = InterviewData(
                     interviewUUID = interviewUUID,
                     interviewDate = System.currentTimeMillis(),
-//                    memo = memo ?: "",
                     logs = logs,
-                    scriptUUID = customQuestionnaire!!.scriptUUID
+                    scriptUUID = customQuestionnaire!!.scriptUUID,
+                    durations = durations
                 )
 
                 val result = repository.sendInterviewData(interviewData)
@@ -339,6 +374,7 @@ class InterviewViewModel @Inject constructor(
                             interviewState = InterviewState.Finished(interviewUUID)
                         )
                     }
+
                 } else {
                     throw Exception("네트워크 오류")
                 }
@@ -417,11 +453,9 @@ class InterviewViewModel @Inject constructor(
         var currentPage: Int? = null,
         val customQuestionnaire: CustomQuestionnaire? = null,
         val answers: List<AnswerItem>? = null,
-//        var memo: String? = null,
-//        var memoDate: Long? = null,
         var interviewDate: Long? = null,
         var recognizerState: RecognizerState = RecognizerState.Stopped,
-        val beforeNext: QnA? = null
+        val durations: List<Int>? = null
     )
 
     data class QnA(
@@ -443,6 +477,9 @@ class InterviewViewModel @Inject constructor(
         object InProgress : InterviewState() //진행중
         object Paused : InterviewState() //일시중지
         //object WritingMemo : InterviewState() //메모적기
+        data class EditAnswer(
+            val qnA: QnA
+        ): InterviewState()
         data class Finished(
             val interviewUUID: String
         ): InterviewState()

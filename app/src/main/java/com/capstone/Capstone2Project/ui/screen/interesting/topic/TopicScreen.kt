@@ -1,9 +1,6 @@
 package com.capstone.Capstone2Project.ui.screen.interesting.topic
 
 import android.annotation.SuppressLint
-import android.system.Os
-import android.system.Os.remove
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -21,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.DarkGray
 import androidx.compose.ui.graphics.Color.Companion.White
@@ -33,19 +29,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.capstone.Capstone2Project.data.model.Topic
 import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.navigation.ROUTE_TOPIC
 import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
-import com.capstone.Capstone2Project.utils.composable.GlassMorphismCard
-import com.capstone.Capstone2Project.utils.composable.GlassMorphismCardBackground
 import com.capstone.Capstone2Project.utils.composable.HighlightText
 import com.capstone.Capstone2Project.utils.etc.AlertUtils
 import com.capstone.Capstone2Project.utils.etc.CustomFont
@@ -94,7 +86,10 @@ fun TopicScreen(
                 LoadingScreen()
             }
             is Resource.Success -> {
-                InterestingTopicContent(navController = navController, topicList = it.data)
+                InterestingTopicContent(
+                    navController = navController,
+                    topicList = it.data
+                )
             }
         }
 
@@ -114,12 +109,6 @@ fun InterestingTopicContent(
     val scrollState = rememberScrollState()
 
     val spacing = MaterialTheme.spacing
-
-    val context = LocalContext.current
-
-    var selectedTopics by remember {
-        mutableStateOf(topicList)
-    }
 
     val authViewModel: AuthViewModel = hiltViewModel()
 
@@ -191,7 +180,7 @@ fun InterestingTopicContent(
                         )
                         .padding(horizontal = spacing.medium, vertical = spacing.extraMedium)
                     ,
-                    selectedTopics
+                    topicList
                 ) { topic->
                     viewModel.changeSelectedTopic(topic)
                 }
@@ -200,11 +189,11 @@ fun InterestingTopicContent(
 
 
                 TopicFooter(
-                    selectedTopics
+                    topicList
                 ) {
 
                     authViewModel.currentUser?.uid?.let {
-                        viewModel.selectUserTopics(it, selectedTopics)
+                        viewModel.postUserTopics(it, topicList)
                     }
 
                     navController.navigate(ROUTE_HOME) {
@@ -232,6 +221,13 @@ fun TopicFooter(
 
     val nextText = if (selectedTopics.isNotEmpty()) "선택 완료" else "다음에 선택할게요"
 
+    val selectedCount = remember(selectedTopics) {
+        selectedTopics.filter {
+            it.selected
+        }.size
+    }
+
+
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
             fontFamily = CustomFont.nexonFont
@@ -248,7 +244,7 @@ fun TopicFooter(
                     .fillMaxWidth()
                     .padding(top = spacing.medium, start = spacing.small)
             ) {
-                Text("선택한 영역 ${selectedTopics.size} 개")
+                Text("선택한 영역 $selectedCount 개")
             }
 
 

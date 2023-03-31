@@ -76,9 +76,12 @@ import com.capstone.Capstone2Project.data.model.InterviewLog
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.data.model.TodayQuestion
 import com.capstone.Capstone2Project.data.resource.Resource
+import com.capstone.Capstone2Project.navigation.ROUTE_HOME
+import com.capstone.Capstone2Project.navigation.ROUTE_LOGIN
 import com.capstone.Capstone2Project.navigation.ROUTE_SCRIPT_WRITING
 import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
 import com.capstone.Capstone2Project.ui.screen.home.ChartScreen
+import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.etc.AlertUtils
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
 import com.capstone.Capstone2Project.utils.etc.invokeVibration
@@ -96,20 +99,12 @@ private fun Preview() {
     MyPageScreen(navController = rememberNavController())
 }
 
-@OptIn(
-    ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class,
-    ExperimentalAnimationApi::class
-)
 @Composable
 fun MyPageScreen(
     navController: NavController
 ) {
     val authViewModel: AuthViewModel = hiltViewModel()
     val viewModel: MyPageViewModel = hiltViewModel()
-
-    val spacing = LocalSpacing.current
-
-    val keywordsFlow = viewModel.myInspiringKeywords.collectAsStateWithLifecycle()
 
     LaunchedEffect(authViewModel) {
         authViewModel.currentUser?.uid?.let {
@@ -120,6 +115,57 @@ fun MyPageScreen(
     }
 
     val context = LocalContext.current
+
+
+
+    val loginFlow = authViewModel.loginFlow.collectAsStateWithLifecycle()
+
+    loginFlow.value.let {
+        when(it) {
+            is Resource.Error -> {
+                AlertUtils.showToast(context, it.error?.message ?: "로그인 오류 발생")
+                LaunchedEffect(Unit) {
+                    navController.navigate(ROUTE_LOGIN) {
+                        popUpTo(ROUTE_LOGIN) {
+                            inclusive = true
+                        }
+                    }
+                }
+            }
+            Resource.Loading -> {
+                LoadingScreen()
+            }
+            is Resource.Success -> {
+                MyPageContent(navController)
+            }
+            null -> {
+                LaunchedEffect(Unit) {
+                    navController.navigate(ROUTE_LOGIN) {
+                        popUpTo(ROUTE_LOGIN) {
+                            inclusive = true
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
+
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
+@Composable
+private fun MyPageContent(
+    navController: NavController
+) {
+    val authViewModel: AuthViewModel = hiltViewModel()
+
+    val viewModel: MyPageViewModel = hiltViewModel()
+
+    val spacing = LocalSpacing.current
+
+    val keywordsFlow = viewModel.myInspiringKeywords.collectAsStateWithLifecycle()
 
     val showKeywordAddingDialog = remember {
         mutableStateOf(false)
@@ -486,6 +532,12 @@ fun MyPageScreen(
 
                 MyInterviewScores(navController, authViewModel)
 
+                Spacer(modifier = Modifier.height(spacing.small))
+
+                LogOutText(modifier = Modifier) {
+                    authViewModel.logout()
+                }
+
                 Spacer(modifier = Modifier.height(spacing.large))
 
                 if (showKeywordAddingDialog.value) {
@@ -504,7 +556,35 @@ fun MyPageScreen(
             }
         }
     }
+}
 
+@Composable
+fun LogOutText(
+    modifier: Modifier = Modifier,
+    clicked: () -> Unit
+) {
+
+    val spacing = LocalSpacing.current
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = spacing.medium),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End
+    ) {
+        Text("로그아웃",
+            style = LocalTextStyle.current.copy(
+            fontFamily = nexonFont,
+            fontSize = 14.sp,
+            color = text_blue,
+            fontWeight = FontWeight.SemiBold
+            ),
+            modifier = Modifier.clickable {
+                clicked()
+            }
+        )
+    }
 }
 
 @Preview(showBackground = true)

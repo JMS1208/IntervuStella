@@ -5,6 +5,7 @@ import com.capstone.Capstone2Project.data.model.TodayQuestion
 import com.capstone.Capstone2Project.data.model.response.InterviewDataResponse
 import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.ui.screen.othersanswers.OthersAnswersData
+import retrofit2.Response
 
 interface NetworkRepository {
     //suspend fun getDefaultTopics(): Resource<List<Topic>>
@@ -32,4 +33,13 @@ interface NetworkRepository {
 
     suspend fun getUserTopics(hostUUID: String): Resource<List<Topic>>
 
+    suspend fun postUserInfo(
+        hostUUID: String,
+        userInfo: UserInfo
+    ): Response<Int>
+
+    suspend fun postTopics(
+        hostUUID: String,
+        topics: Topics
+    ): Response<Int>
 }

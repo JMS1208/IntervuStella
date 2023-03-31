@@ -41,23 +41,22 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 
 
-
-
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun RequestPermissions(
-    permissionState: MultiplePermissionsState
+    permissionState: MultiplePermissionsState,
+    dismiss: () -> Unit = {}
 ) {
 
     with(permissionState) {
 
-        if(!allPermissionsGranted) {
+        if (!allPermissionsGranted) {
 
-            if(shouldShowRationale) {
-                GoToSettingsForPermissionDialog(permissionState = permissionState)
+            if (shouldShowRationale) {
+                GoToSettingsForPermissionDialog(permissionState = permissionState, dismiss)
 
             } else {
-                PermissionRationaleDialog(permissionState)
+                PermissionRationaleDialog(permissionState, dismiss)
 
             }
 
@@ -69,32 +68,41 @@ fun RequestPermissions(
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun GoToSettingsForPermissionDialog(permissionState: MultiplePermissionsState) {
+private fun GoToSettingsForPermissionDialog(
+    permissionState: MultiplePermissionsState,
+    dismiss: () -> Unit
+) {
 
     val context = LocalContext.current
 
     DialogContent(
         permissionState = permissionState,
-        buttonText = "설정"
-    ) {
-        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            data = Uri.parse("package:" + context.packageName)
-            context.startActivity(this)
+        buttonText = "설정",
+        dismiss = dismiss,
+        onClick = {
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.parse("package:" + context.packageName)
+                context.startActivity(this)
+            }
         }
-    }
+    )
 
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun PermissionRationaleDialog(permissionState: MultiplePermissionsState) {
+private fun PermissionRationaleDialog(
+    permissionState: MultiplePermissionsState,
+    dismiss: () -> Unit
+) {
 
     DialogContent(
         permissionState = permissionState,
-        buttonText = "요청"
-    ) {
-        permissionState.launchMultiplePermissionRequest()
-    }
+        buttonText = "요청",
+        dismiss = dismiss,
+        onClick = {
+            permissionState.launchMultiplePermissionRequest()
+        })
 
 }
 
@@ -103,7 +111,8 @@ private fun PermissionRationaleDialog(permissionState: MultiplePermissionsState)
 private fun DialogContent(
     permissionState: MultiplePermissionsState,
     buttonText: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    dismiss: () -> Unit
 ) {
     val permissions: MutableList<String> = mutableListOf()
 
@@ -125,7 +134,7 @@ private fun DialogContent(
         ) {
 
             AlertDialog(
-                onDismissRequest = {},
+                onDismissRequest = { dismiss() },
                 title = {
                     Box(
                         modifier = Modifier.fillMaxWidth(),

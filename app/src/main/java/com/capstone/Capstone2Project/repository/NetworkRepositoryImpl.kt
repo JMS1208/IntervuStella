@@ -4,18 +4,19 @@ import com.capstone.Capstone2Project.data.model.*
 import com.capstone.Capstone2Project.data.model.TodayQuestion
 import com.capstone.Capstone2Project.data.model.response.InterviewDataResponse
 import com.capstone.Capstone2Project.data.resource.Resource
-import com.capstone.Capstone2Project.ui.screen.interesting.topic.TopicViewModel
+import com.capstone.Capstone2Project.network.service.MainService
 import com.capstone.Capstone2Project.ui.screen.othersanswers.AnswerData
 import com.capstone.Capstone2Project.ui.screen.othersanswers.OthersAnswersData
 import com.capstone.Capstone2Project.ui.screen.othersanswers.QuestionData
 import com.capstone.Capstone2Project.utils.extensions.generateRandomText
+import retrofit2.Response
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class NetworkRepositoryImpl @Inject constructor(
-//    private val mainService: MainService
+    private val mainService: MainService
 ) : NetworkRepository {
     /*
     override suspend fun getDefaultTopics(): Resource<List<Topic>> {
@@ -317,4 +318,24 @@ class NetworkRepositoryImpl @Inject constructor(
         ))
     }
 
+
+    override suspend fun postUserInfo(
+        hostUUID: String,
+        userInfo: UserInfo
+    ): Response<Int> {
+        return mainService.postUserInfo(
+            hostUUID,
+            userInfo
+        )
+    }
+
+    override suspend fun postTopics(
+        hostUUID: String,
+        topics: Topics
+    ): Response<Int> {
+        return mainService.postInterestingField(
+            hostUUID,
+            topics
+        )
+    }
 }

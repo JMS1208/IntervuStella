@@ -1,13 +1,21 @@
 package com.capstone.Capstone2Project.ui.screen.interview
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -20,6 +28,8 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -74,14 +84,15 @@ import com.capstone.Capstone2Project.navigation.ROUTE_INTERVIEW_FINISHED
 import com.capstone.Capstone2Project.ui.screen.animation.NewLogContent
 import com.capstone.Capstone2Project.ui.screen.animation.OldLogContent
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
-import com.capstone.Capstone2Project.utils.InterviewManager
-import com.capstone.Capstone2Project.utils.LocalInterviewManager
-import com.capstone.Capstone2Project.utils.RequestPermissions
+import com.capstone.Capstone2Project.utils.*
+import com.capstone.Capstone2Project.utils.composable.AnimatedCounter
 import com.capstone.Capstone2Project.utils.composable.ComposableLifecycle
 import com.capstone.Capstone2Project.utils.etc.*
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
 import com.capstone.Capstone2Project.utils.extensions.clickableWithoutRipple
 import com.capstone.Capstone2Project.utils.extensions.progressToString
+import com.capstone.Capstone2Project.utils.extensions.toBitmap
+import com.capstone.Capstone2Project.utils.service.ScreenRecordService
 import com.capstone.Capstone2Project.utils.theme.*
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
@@ -92,8 +103,10 @@ import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.accurate.AccuratePoseDetectorOptions
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
@@ -103,7 +116,8 @@ import kotlin.streams.toList
 @Composable
 fun InterviewScreen(
     navController: NavController,
-    script: Script?
+    script: Script?,
+//    useRecording: Boolean
 ) {
 
     val interviewViewModel: InterviewViewModel = hiltViewModel()
@@ -119,14 +133,29 @@ fun InterviewScreen(
     val permissionState = rememberMultiplePermissionsState(permissions = permissions)
 
 
+//    val screenRecordLauncher = rememberLauncherForActivityResult(
+//        contract = ActivityResultContracts.StartActivityForResult()
+//    ) {
+//        if (it.resultCode != Activity.RESULT_OK) {
+//            return@rememberLauncherForActivityResult
+//        }
+//        if (it.data == null) {
+//            return@rememberLauncherForActivityResult
+//        }
+//
+//        startRecordingService(context, it.resultCode, it.data!!)
+//
+//    }
 
 
     LaunchedEffect(interviewViewModel) {
         //script 가 null 이면 state로 에러떠서 괜찮음
         //TODO(바꿔줘야함)
         //interviewViewModel2.fetchCustomQuestionnaire(script)
-        interviewViewModel.fetchCustomQuestionnaire(Script.makeTestScript())
+        interviewViewModel.fetchCustomQuestionnaire((script ?: Script.makeTestScript()))
+
     }
+
 
     if (!permissionState.allPermissionsGranted) {
         RequestPermissions(permissionState)
@@ -154,6 +183,7 @@ fun InterviewScreen(
                 진행 중이면 상태 처리 후 일시정지
                  */
                 interviewViewModel.pauseInterview()
+                stopRecordingService(context)
             }
             ON_DESTROY -> {
                 /*
@@ -177,17 +207,11 @@ fun InterviewScreen(
 
             InterviewViewModel.InterviewState.Prepared -> {
                 /*
-                인터뷰 시작 전 다이얼로그 띄우기
+                인터뷰 시작 전 카운트 다운 다이얼로그 띄우기
                  */
-                InterviewPreparedDialog(
-                    dismissClick = {
-                        interviewViewModel.startInterview()
-                    },
-                    backButtonClick = {
-                        navController.popBackStack()
-                    }
+                InterviewCountDownDialog(
+                    dismiss = { }
                 )
-
 
             }
 
@@ -219,6 +243,23 @@ fun InterviewScreen(
                         }
 
                     }
+
+                }
+
+            }
+
+            is InterviewViewModel.InterviewState.EditAnswer -> {
+
+                with((it.interviewState as InterviewViewModel.InterviewState.EditAnswer).qnA) {
+                    BeforeSendingAnswerDialog(
+                        dismissClick = { answer ->
+                            interviewViewModel.updateAnswer(answer)
+                            interviewViewModel.moveToNextPage()
+                            //showAnswerDialog.value = false
+                        },
+                        question = this.questionItem.question,
+                        answer = this.answerItem.answer
+                    )
                 }
 
             }
@@ -226,21 +267,98 @@ fun InterviewScreen(
             else -> Unit
         }
 
-        it.beforeNext?.let { qna ->
+    }
 
-            BeforeSendingAnswerDialog(
-                dismissClick = { answer ->
-                    interviewViewModel.updateAnswer(answer)
-                    interviewViewModel.moveToNextPage()
-                    //showAnswerDialog.value = false
-                },
-                question = qna.questionItem.question,
-                answer = qna.answerItem.answer
-            )
 
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+private fun InterviewCountDownDialog(
+    dismiss: () -> Unit,
+//                                     useRecording: Boolean
+) {
+    var count by remember {
+        mutableStateOf(5)
+    }
+
+    val spacing = LocalSpacing.current
+
+    val coroutineScope = rememberCoroutineScope()
+
+    val interviewViewModel: InterviewViewModel = hiltViewModel()
+
+    LaunchedEffect(true) {
+        coroutineScope.launch {
+            while (true) {
+                if (count == 0) {
+                    interviewViewModel.startInterview()
+                    dismiss()
+                }
+                count--
+                delay(1000L)
+            }
         }
     }
 
+    AnimatedVisibility(
+        count >= 0,
+        enter = fadeIn() + expandIn(expandFrom = Alignment.Center) {
+            it * 2
+        },
+        exit = fadeOut()
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            AnimatedContent(count,
+                transitionSpec = {
+                    fadeIn(tween(durationMillis = 1000)) + scaleIn(
+
+                    ) with fadeOut(tween(durationMillis = 1000)) + scaleOut()
+//
+                }
+            ) {
+                Text(
+                    text = if (count > 0) count.toString() else "Start",
+                    style = LocalTextStyle.current.copy(
+                        fontSize = if (count > 0) 150.sp else 100.sp,
+                        fontFamily = nexonFont,
+                        fontWeight = FontWeight.Bold,
+                        color = White,
+                        shadow = Shadow(
+                            offset = Offset(1f, 1f),
+                            color = Black,
+                            blurRadius = 4f
+                        )
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(spacing.medium))
+
+            if (count > 0) {
+                Text(
+                    text = if (count > 2) "면접이 곧 시작됩니다" else "준비해주세요",
+                    style = LocalTextStyle.current.copy(
+                        fontSize = 30.sp,
+                        fontFamily = nexonFont,
+                        fontWeight = FontWeight.Bold,
+                        color = White,
+                        shadow = Shadow(
+                            offset = Offset(1f, 1f),
+                            color = Black,
+                            blurRadius = 4f
+                        )
+                    )
+                )
+            }
+
+        }
+    }
 
 }
 
@@ -272,6 +390,45 @@ fun InterviewUIScreenContent(
         mutableStateOf(false)
     }
 
+    val context = LocalContext.current
+
+    val isRecording = remember {
+        mutableStateOf(false)
+    }
+
+    val screenRecordLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (it.resultCode != Activity.RESULT_OK) {
+            return@rememberLauncherForActivityResult
+        }
+        if (it.data == null) {
+            return@rememberLauncherForActivityResult
+        }
+
+        startRecordingService(context, it.resultCode, it.data!!)
+        isRecording.value = true
+    }
+
+    fun startRecording() {
+        val mediaProjectionManager =
+            context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        val intent = mediaProjectionManager.createScreenCaptureIntent()
+        screenRecordLauncher.launch(intent)
+    }
+
+    fun stopRecording() {
+        stopRecordingService(context)
+        isRecording.value = false
+    }
+
+    fun recordingButtonClicked() {
+        if (isServiceRunning(context, ScreenRecordService::class.java)) {
+            stopRecording()
+        } else {
+            startRecording()
+        }
+    }
 
 
     CompositionLocalProvider(
@@ -286,7 +443,8 @@ fun InterviewUIScreenContent(
             contentAlignment = Alignment.Center
         ) {
 
-            InterviewCameraPreview(showPreview = showPreview.value)
+//            InterviewCameraPreview(showPreview = showPreview.value)
+            InterviewCameraPreview(showPreview = true)
             if (!showPreview.value) {
                 Box(
                     modifier = Modifier
@@ -349,12 +507,22 @@ fun InterviewUIScreenContent(
                         )
                     }
 
+                    //아쉽지만 사용 불가
+//                    RecordButton(
+//                        buttonClicked = {
+//                            recordingButtonClicked()
+//                        },
+//                        isRecording.value
+//                    )
+
                     Spacer(modifier = Modifier.height(spacing.large))
 
                     Spacer(modifier = Modifier.height(spacing.large))
 
                     AnimatedVisibility(visible = showFeedback.value) {
-                        InterviewLogContents()
+                        InterviewLogContents(
+
+                        )
                     }
 
                     QuestionAnswerContents()
@@ -381,7 +549,7 @@ fun InterviewUIScreenContent(
                         /*
                         뷰모델에 요청하거나 바로 나가기 또는 다이얼로그
                          */
-                                        navController.popBackStack()
+                        navController.popBackStack()
                     },
                     liveButtonClicked = {
                         showFeedback.value = it
@@ -394,6 +562,53 @@ fun InterviewUIScreenContent(
 
 
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun RecordButtonPreview() {
+
+}
+
+@Composable
+fun RecordButton(buttonClicked: () -> Unit, isRecording: Boolean) {
+    val spacing = LocalSpacing.current
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.End
+    ) {
+        Icon(
+            imageVector = if (!isRecording) Icons.Default.VideocamOff else Icons.Default.Videocam,
+            contentDescription = null,
+            tint = Color(0xFFFFFFFF),
+            modifier = Modifier
+                .background(
+                    color = Color(0x7C000000),
+                    shape = CircleShape
+                )
+                .padding(
+                    spacing.small
+                )
+                .clickable {
+                    buttonClicked()
+                }
+        )
+        Spacer(modifier = Modifier.height(spacing.small))
+        Text(
+            text = if (isRecording) "녹화중" else "녹화시작",
+            style = LocalTextStyle.current.copy(
+                color = White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Normal,
+                shadow = Shadow(
+                    offset = Offset(1f, 1f),
+                    color = DarkGray,
+                    blurRadius = 4f
+                )
+            )
+
+        )
     }
 }
 
@@ -562,13 +777,25 @@ private fun InterviewCameraPreview(
         PoseDetection.getClient(options)
     }
 
+    val expressionAnalyzer = remember {
+        ExpressionAnalyzer(context)
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    val yuvToRgbConverter = remember {
+        YuvToRgbConverter(context)
+    }
 
     val imageAnalyzer = remember {
         InterviewManager.ImageAnalyzer { imageProxy ->
+
             imageProxy.image?.let { image ->
+
 
                 val inputImage =
                     InputImage.fromMediaImage(image, imageProxy.imageInfo.rotationDegrees)
+
 
                 var readyToDetectFace = true
                 var readyToDetectPose = true
@@ -582,23 +809,72 @@ private fun InterviewCameraPreview(
                     }
                 }
 
-                faceDetector.process(inputImage)
-                    .addOnSuccessListener { faces ->
-                        if (readyToDetectFace) {
-                            processFaceDetectionResult(
-                                faces,
+                if (readyToDetectFace) {
+                    coroutineScope.launch {
+                        try {
+                            val bitmapImage =
+                                Bitmap.createBitmap(
+                                    image.width,
+                                    image.height,
+                                    Bitmap.Config.ARGB_8888
+                                )
+                            yuvToRgbConverter.yuvToRgb(image, bitmapImage)
+                            val result = expressionAnalyzer.classifyExpression(bitmapImage)
+                            processExpressionClassificationResult(
+                                result,
                                 viewModel = interviewViewModel
                             )
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            Log.e("TAG", "InterviewCameraPreview:${e.message} ")
+                        } finally {
                             readyToDetectFace = false
+                            completeDetection()
                         }
+                    }
+                }
 
-                    }
-                    .addOnFailureListener { e ->
-                        e.printStackTrace()
-                    }
-                    .addOnCompleteListener {
-                        completeDetection()
-                    }
+
+//                faceDetector.process(inputImage)
+//                    .addOnSuccessListener { faces ->
+////                        if (readyToDetectFace) {
+//////                            processFaceDetectionResult(
+//////                                faces,
+//////                                viewModel = interviewViewModel
+//////                            )
+////                            coroutineScope.launch {
+////                                try {
+//////                                    val bitmapImage = image.toBitmap()
+//////
+////                                    val bitmapImage = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
+////                                    yuvToRgbConverter.yuvToRgb(image, bitmapImage)
+////                                    val result = expressionAnalyzer.classifyExpression(bitmapImage)
+////                                    processExpressionClassificationResult(
+////                                        result,
+////                                        viewModel = interviewViewModel
+////                                    )
+////
+////
+////                                } catch (e: Exception) {
+////                                    e.printStackTrace()
+////                                    Log.e("TAG", "InterviewCameraPreview: ${e.message}", )
+////                                } finally {
+////                                    readyToDetectFace = false
+////                                }
+////
+////
+////                            }
+////
+////                        }
+//
+//                    }
+//                    .addOnFailureListener { e ->
+//                        e.printStackTrace()
+//                    }
+//                    .addOnCompleteListener {
+//                        completeDetection()
+//                    }
+
 
                 poseDetector.process(inputImage)
                     .addOnSuccessListener { pose ->
@@ -613,8 +889,6 @@ private fun InterviewCameraPreview(
                     .addOnCompleteListener {
                         completeDetection()
                     }
-
-
             }
 
 
@@ -647,6 +921,17 @@ private fun InterviewCameraPreview(
 
 }
 
+private fun processExpressionClassificationResult(
+    result: String,
+    viewModel: InterviewViewModel
+) {
+    Log.e("TAG", "processExpressionClassificationResult: ${result.toList()}")
+    val logLine = LogLine(type = LogLine.Type.Face, message = result)
+    viewModel.loadInterviewLogLine(
+        logLine
+    )
+}
+
 private fun processPoseDetectionResult(pose: Pose?, viewModel: InterviewViewModel) {
 
     pose?.toLogLine()?.let {
@@ -661,12 +946,12 @@ private fun processFaceDetectionResult(
     viewModel: InterviewViewModel
 ) {
     if (faces.isEmpty()) {
-        val logLine = LogLine(
-            type = LogLine.Type.Error,
-            "얼굴을 발견하지 못했습니다"
-        )
-
-        viewModel.loadInterviewLogLine(logLine)
+//        val logLine = LogLine(
+//            type = LogLine.Type.Error,
+//            "얼굴을 발견하지 못했습니다"
+//        )
+//
+//        viewModel.loadInterviewLogLine(logLine)
         return
     }
 
@@ -708,7 +993,7 @@ private fun MoreButton(
 
 @Composable
 private fun InterviewLogContents(
-
+    modifier: Modifier = Modifier
 ) {
     val interviewViewModel: InterviewViewModel = hiltViewModel()
 
@@ -728,7 +1013,7 @@ private fun InterviewLogContents(
             Alignment.CenterVertically
         ),
         horizontalAlignment = Alignment.End,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = spacing.small)
     ) {
@@ -1107,14 +1392,6 @@ private fun QuestionAnswerContents(
                     if (question.value.isNotBlank()) {
                         TypingAnimatedText(
                             modifier = Modifier
-                                .shadow(
-                                    3.dp,
-                                    shape = RoundedCornerShape(50)
-                                )
-                                .background(
-                                    color = bright_blue,
-                                    shape = RoundedCornerShape(50)
-                                )
                                 .padding(
                                     horizontal = 10.dp,
                                     vertical = 5.dp
@@ -1434,7 +1711,7 @@ private fun BeforeSendingAnswerDialog(
                         }
 
                         Text(
-                            text = "이대로 제출",
+                            text = "답변 제출",
                             modifier = Modifier
                                 .weight(1f)
                                 .clickable {
@@ -1934,7 +2211,7 @@ fun InterviewPreparedDialog(
                             Spacer(modifier = Modifier.height(spacing.small))
 
                             Text(
-                                "웃는 모습, 목소리 크기, 자세 등 면접 도중\n피드백을 실시간으로 받아볼 수 있어요",
+                                "웃는 모습, 목소리 크기, 자세 등 면접 도중\n피드백을 실시간으로 받아볼 수 있어요.",
                                 style = LocalTextStyle.current.copy(
                                     color = Black,
                                     fontSize = 13.sp,

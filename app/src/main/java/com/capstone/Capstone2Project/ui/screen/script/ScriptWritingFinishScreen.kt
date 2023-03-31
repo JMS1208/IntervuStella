@@ -31,6 +31,7 @@ import com.airbnb.lottie.compose.*
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.navigation.ROUTE_CAMERA
 import com.capstone.Capstone2Project.navigation.ROUTE_HOME
+import com.capstone.Capstone2Project.navigation.ROUTE_INTERVIEW_GUIDE
 import com.capstone.Capstone2Project.navigation.ROUTE_SCRIPT_WRITING
 import com.capstone.Capstone2Project.utils.etc.CustomFont
 import com.capstone.Capstone2Project.utils.theme.LocalSpacing
@@ -110,7 +111,7 @@ fun ScriptWritingFinishScreen(
             IconButton(
                 onClick = {
                     navController.navigate(
-                        "$ROUTE_CAMERA/{script}".replace(
+                        "$ROUTE_INTERVIEW_GUIDE/{script}".replace(
                             oldValue = "{script}",
                             newValue = script.toJsonString()
                         )

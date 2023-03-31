@@ -25,14 +25,15 @@ class FileManager(private val context: Context) {
     }
 
     //파일 만들기
-    suspend fun createFile(directory: String, ext: String): String {
+    suspend fun createFile(directory: String, ext: String): File {
         return withContext(Dispatchers.IO) {
             val timestamp = SimpleDateFormat(
                 FILE_TIMESTAMP_FORMAT,
                 Locale.getDefault()
             ).format(System.currentTimeMillis())
             //child가 파일명이 될것
-            return@withContext File(getPrivateFileDirectory(directory),"$timestamp.$ext").canonicalPath
+            return@withContext File(getPrivateFileDirectory(directory),"$timestamp.$ext")
+                //.canonicalPath
         }
     }
 
