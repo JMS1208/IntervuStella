@@ -36,14 +36,14 @@ class ExpressionAnalyzer (
     }
 
 
-    suspend fun classifyExpression(bitmap: Bitmap): String {
+    suspend fun classifyExpression(bitmap: Bitmap): List<Float> {
 
         val buffer = convertBitmapGrayByteBuffer(resizeBitmap(bitmap))
         val result = Array(1) { FloatArray(modelOutputClasses) {0f} }
 
         interpreter.run(buffer, result)
 
-        return result[0].toList().toString()
+        return result[0].toList()
 
     }
 

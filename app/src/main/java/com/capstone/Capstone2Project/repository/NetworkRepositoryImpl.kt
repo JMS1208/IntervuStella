@@ -1,13 +1,22 @@
 package com.capstone.Capstone2Project.repository
 
+import android.accounts.NetworkErrorException
 import com.capstone.Capstone2Project.data.model.*
-import com.capstone.Capstone2Project.data.model.TodayQuestion
+import com.capstone.Capstone2Project.data.model.fornetwork.Memo
+import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestion
+import com.capstone.Capstone2Project.data.model.fornetwork.Topics
+import com.capstone.Capstone2Project.data.model.inapp.TodayAttendanceQuiz
+import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
+import com.capstone.Capstone2Project.data.model.inapp.WeekAttendanceInfo
+import com.capstone.Capstone2Project.data.model.inapp.WeekItem
 import com.capstone.Capstone2Project.data.model.response.InterviewDataResponse
 import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.network.service.MainService
 import com.capstone.Capstone2Project.ui.screen.othersanswers.AnswerData
 import com.capstone.Capstone2Project.ui.screen.othersanswers.OthersAnswersData
 import com.capstone.Capstone2Project.ui.screen.othersanswers.QuestionData
+import com.capstone.Capstone2Project.utils.etc.Name.REQUEST_FAILURE
+import com.capstone.Capstone2Project.utils.etc.Name.REQUEST_SUCCESS
 import com.capstone.Capstone2Project.utils.extensions.generateRandomText
 import retrofit2.Response
 import java.util.*
@@ -36,7 +45,7 @@ class NetworkRepositoryImpl @Inject constructor(
 
      */
 
-    override suspend fun getScripts(hostUUID: String): Resource<List<Script>> {
+    override suspend fun getScripts(hostUUID: String): Result<List<Script>> {
         //TODO(uuid로 host 참고해서 자소서 쓴 목록 가져오기)
         val scripts = mutableListOf<Script>()
 
@@ -74,7 +83,7 @@ class NetworkRepositoryImpl @Inject constructor(
             scripts.add(script)
         }
 
-        return Resource.Success(scripts)
+        return Result.success(scripts)
 
     }
 
@@ -94,7 +103,8 @@ class NetworkRepositoryImpl @Inject constructor(
         val customQuestionnaire = CustomQuestionnaire(
             date = System.currentTimeMillis(),
             questions = questionItems,
-            scriptUUID = UUID.randomUUID().toString()
+            scriptUUID = UUID.randomUUID().toString(),
+            questionnaireUUID = UUID.randomUUID().toString()
         )
 
         return Resource.Success(customQuestionnaire)
@@ -126,48 +136,23 @@ class NetworkRepositoryImpl @Inject constructor(
         return Resource.Success(script)
     }
 
-    override suspend fun getInterviewLogs(hostUUID: String): Resource<List<InterviewLog>> {
+    override suspend fun getInterviewRecords(hostUUID: String): Result<List<InterviewResult>> {
 
-        val interviewLogList = mutableListOf<InterviewLog>()
+        val interviewRecords = mutableListOf<InterviewResult>()
 
         for (i in 0 until 10) {
-            val scriptUUID = UUID.randomUUID().toString()
 
-            val interviewLogLines = mutableListOf<InterviewLogLine>()
+            val interviewRecord = InterviewResult.createTestInterviewResult()
 
-            for (j in 0 until 100) {
-                val interviewLogLine = InterviewLogLine(
-                    date = System.currentTimeMillis(),
-                    progress = j,
-                    questionItem = QuestionItem(uuid = UUID.randomUUID().toString(), "질문 예시"),
-                    logLine = LogLine(
-                        type = LogLine.Type.Error,
-                        message = "로그 메시지 예시 $j",
-                    )
-                )
-                interviewLogLines.add(interviewLogLine)
-            }
+            interviewRecords.add(interviewRecord)
 
-            val interviewLog = InterviewLog(
-                hostUUID = hostUUID,
-                scriptUUID = scriptUUID,
-                interviewUUID = UUID.randomUUID().toString(),
-                logLines = interviewLogLines,
-                scriptName = "스크립트 제목 예시 $i",
-                date = System.currentTimeMillis()
-            )
-
-
-            interviewLogList.add(interviewLog)
         }
 
-
-        return Resource.Success(interviewLogList)
-
+        return Result.success(interviewRecords)
 
     }
 
-    override suspend fun getInterviewScores(hostUUID: String): Resource<List<InterviewScore>> {
+    override suspend fun getInterviewScores(hostUUID: String): Result<List<InterviewScore>> {
 
         val interviewScores = mutableListOf<InterviewScore>()
 
@@ -183,30 +168,22 @@ class NetworkRepositoryImpl @Inject constructor(
             interviewScores.add(interviewScore)
         }
 
-        return Resource.Success(interviewScores)
+        return Result.success(interviewScores)
 
     }
 
-    override suspend fun getMyTodayQuestions(hostUUID: String): Resource<List<TodayQuestion>> {
+    override suspend fun getMyTodayQuestionsMemo(hostUUID: String): Result<List<TodayQuestionMemo>> {
 
-        val myTodayQuestions = mutableListOf<TodayQuestion>()
+        val myTodayQuestionsMemo = mutableListOf<TodayQuestionMemo>()
 
         for (i in 0 until 10) {
-            val topic = Topic(
-                //uuid = UUID.randomUUID().toString(),
-                name = "관심주제 예시",
-                selected = false
-            )
 
-            val todayQuestion = TodayQuestion(
-                topic = topic,
-                question = "오늘의 질문 예시"
-            )
+            val todayQuestion = TodayQuestionMemo.createTestTodayQuestionMemo()
 
-            myTodayQuestions.add(todayQuestion)
+            myTodayQuestionsMemo.add(todayQuestion)
         }
 
-        return Resource.Success(myTodayQuestions)
+        return Result.success(myTodayQuestionsMemo)
 
     }
 
@@ -236,16 +213,7 @@ class NetworkRepositoryImpl @Inject constructor(
             )
         }
 
-        val interviewResult = InterviewResult(
-            uuid = interviewUUID,
-            scriptUUID = UUID.randomUUID().toString(),
-            interview_date = System.currentTimeMillis(),
-            score = 678,
-            feedBack = generateRandomText(500),
-            duration = 678,
-            newAchievement = newAchievements
-
-        )
+        val interviewResult = InterviewResult.createTestInterviewResult()
 
         return Resource.Success(interviewResult)
     }
@@ -297,25 +265,69 @@ class NetworkRepositoryImpl @Inject constructor(
         return Resource.Success("성공")
     }
 
-    override suspend fun isUserPresent(hostUUID: String): Boolean {
-        return false
-    }
+//    override suspend fun isUserPresent(hostUUID: String): Response<Boolean> {
+//
+////        return try {
+////            val response = mainService.isPresentToday(hostUUID)
+////
+////            if(!response.isSuccessful) {
+////                throw Exception("네트워크 오류")
+////            }
+////
+////            if(response.body() == null) {
+////                throw Exception("네트워크 오류")
+////            }
+////
+////            val result = response.body() == REQUEST_SUCCESS
+////
+////            Resource.Success(result)
+////
+////        } catch (e: Exception) {
+////            e.printStackTrace()
+////            Resource.Error(e)
+////        }
+//        return mainService.isPresentToday(hostUUID)
+//    }
 
-    override suspend fun checkAttendance(hostUUID: String) {
+    override suspend fun checkAttendance(hostUUID: String): Resource<Boolean> {
+        return try {
+            //TODO 원래 통신해야하는데, 임시용
+            val response = mainService.requestAttendanceToday(hostUUID)
 
+            if (!response.isSuccessful) {
+                throw Exception("네트워크 통신 오류-AttendanceCheck")
+            }
+
+            val result = response.body() ?: throw Exception("네트워크 통신 오류-AttendanceCheck")
+
+            //1이면 성공, 0이면 실패
+            Resource.Success(result == 1)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Resource.Error(e)
+        }
     }
 
     override suspend fun getUserTopics(hostUUID: String): Resource<List<Topic>> {
-        return Resource.Success(listOf(
-            Topic(name = "운영체제", selected = false),
-            Topic(name = "네트워크", selected = true),
-            Topic(name = "데이터베이스", selected = true),
-            Topic(name = "알고리즘", selected = true),
-            Topic(name = "자료구조", selected = false),
-            Topic(name = "프로그래밍 기초", selected = false),
-            Topic(name = "JAVA", selected = false),
-            Topic(name = "전산 기본", selected = false)
-        ))
+
+        return try {
+
+            val result = mainService.getUserInterestingField(hostUUID)
+
+
+            if (!result.isSuccessful) {
+                throw Exception("네트워크 오류")
+            }
+
+            val topics = result.body() ?: throw Exception("네트워크 오류")
+
+            Resource.Success(topics)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Resource.Error(e)
+        }
+
     }
 
 
@@ -337,5 +349,173 @@ class NetworkRepositoryImpl @Inject constructor(
             hostUUID,
             topics
         )
+
+    }
+
+    override suspend fun getTodayQuestionAttendance(
+        hostUUID: String,
+        currentQuestionUUID: String?
+    ): Resource<TodayAttendanceQuiz> {
+        return try {
+            val isPresentTodayResponse = mainService.isPresentToday(hostUUID)
+
+            if (!isPresentTodayResponse.isSuccessful) {
+                throw Exception("네트워크 오류-attendance")
+            }
+
+            val isPresentToday =
+                isPresentTodayResponse.body() ?: throw Exception("서버 오류-attendance null")
+
+            val todayQuestionResponse = if (currentQuestionUUID == null) {
+                mainService.getTodayQuestionFirst(hostUUID)
+            } else {
+                mainService.changeTodayQuestion(hostUUID, currentQuestionUUID)
+            }
+
+            if (!todayQuestionResponse.isSuccessful) {
+                throw Exception("네트워크 오류-today_question")
+            }
+
+            val todayQuestion =
+                todayQuestionResponse.body() ?: throw Exception("서버 오류-today_question null")
+
+
+            Resource.Success(
+                TodayAttendanceQuiz(
+                    isPresentToday = isPresentToday == 1, //1일때 출석함 0일때 출석 안함
+                    question = todayQuestion.question,
+                    questionUUID = todayQuestion.questionUUID
+                )
+            )
+
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Resource.Error(e)
+        }
+    }
+
+    override suspend fun getWeekAttendanceInfo(hostUUID: String)
+            : Resource<WeekAttendanceInfo> {
+        return try {
+            val continuousCountResponse = mainService.getContinuousAttendance(hostUUID)
+
+            if (!continuousCountResponse.isSuccessful) {
+                throw Exception("네트워크 오류-연속 출석일")
+            }
+
+            val continuousCount =
+                continuousCountResponse.body() ?: throw Exception("네트워크 오류-연속 출석일")
+
+            val weekAttendanceInfoResponse = mainService.getWeekAttendanceInfo(hostUUID)
+
+            if (!weekAttendanceInfoResponse.isSuccessful) {
+                throw Exception("네트워크 오류-주간출석 정보")
+            }
+
+            val weekItemListOri =
+                weekAttendanceInfoResponse.body() ?: throw Exception("네트워크 오류-주간출석 정보")
+
+            /*
+            1이면 출석, 0이면 결석
+             */
+            val weekItemList: MutableList<WeekItem> =
+                weekItemListOri.mapIndexed { index, isPresent ->
+                    WeekItem.createWeekItem(
+                        isPresent = isPresent == 1,
+                        index = index
+                    ) ?: throw Exception("네트워크 오류-주간출석 정보")
+                }.toMutableList()
+
+            for (i in weekItemList.size - 1 until 7) {
+                WeekItem.createWeekItem(
+                    index = i,
+                    isPresent = null
+                )?.let {
+                    weekItemList.add(
+                        it
+                    )
+                }
+
+            }
+
+            val weekAttendanceInfo = WeekAttendanceInfo(
+                continuousCount = continuousCount,
+                weekAttendance = weekItemList
+            )
+
+            Resource.Success(
+                weekAttendanceInfo
+            )
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Resource.Error(e)
+        }
+    }
+
+    override suspend fun getTodayQuestionMemo(
+        hostUUID: String,
+        questionUUID: String,
+        question: String
+    ): Resource<TodayQuestionMemo> {
+        return try {
+
+            val response = mainService.getTodayQuestionMemo(hostUUID, questionUUID)
+
+            if (!response.isSuccessful) {
+                throw Exception("네트워크 오류")
+            }
+
+
+            val todayQuestionMemo = response.body()
+
+            if (todayQuestionMemo == null) {
+
+                Resource.Success(
+                    TodayQuestionMemo.createNewTodayQuestionMemo(
+                        questionUUID,
+                        question
+                    )
+                )
+            } else {
+                Resource.Success(
+                    todayQuestionMemo
+                )
+            }
+
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Resource.Error(e)
+        }
+    }
+
+
+    override suspend fun updateTodayQuestionMemo(
+        hostUUID: String,
+        questionUUID: String,
+        memo: String
+    ): Boolean {
+        return try {
+
+            val response = mainService.updateMyMemoAboutQuestion(
+                hostUUID = hostUUID,
+                questionUUID = questionUUID,
+                memo = Memo(memo)
+            )
+
+            if (!response.isSuccessful) {
+                throw Exception("네트워크 오류")
+            }
+
+            val result = response.body() ?: throw Exception("네트워크 오류")
+
+            result == 1
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
     }
 }

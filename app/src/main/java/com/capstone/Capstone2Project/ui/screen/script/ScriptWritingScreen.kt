@@ -188,7 +188,8 @@ private fun ScriptPaperContent(
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
-            fontFamily = nexonFont
+            fontFamily = nexonFont,
+            color = Black
         )
     ) {
         Scaffold(
@@ -197,7 +198,7 @@ private fun ScriptPaperContent(
             topBar = {
                 CenterAlignedTopAppBar(
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.Transparent
+                        containerColor = Color.White
                     ),
                     title = {
                         Text(
@@ -308,7 +309,6 @@ private fun ScriptPaperContent(
                                                 if (pagerState.canScrollBackward && !pagerState.isScrollInProgress && pagerState.currentPage != pagerState.pageCount - 1) {
                                                     focusManager.clearFocus()
                                                     pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                                                    Log.d("TAG", "페이지 테스트: ")
                                                     return@launch
                                                 }
                                                 if (pagerState.currentPage == pagerState.pageCount - 1 && !pagerState.isScrollInProgress) {

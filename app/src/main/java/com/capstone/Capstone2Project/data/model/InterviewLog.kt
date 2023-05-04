@@ -13,7 +13,7 @@ data class InterviewLog(
 
 data class InterviewLogLine(
     val date: Long = System.currentTimeMillis(),
-    val progress: Int,
+    val progress: Long,
     val questionItem: QuestionItem,
     val logLine: LogLine
 ) {
@@ -29,12 +29,16 @@ data class InterviewLogLine(
 
 data class LogLine(
     val type: Type,
-    val message: String
+    val message: String,
+    val index: Int? = null,
+    //표정은 Angry, Disgust, Fear, Sad 순 0,1,2,3
+    //포즈는 어깨높이, 얼굴만지기 순 0,1
 ) {
     enum class Type {
         Error,
-        Face,
+        Camera,
         Pose,
-        Voice
+        Voice,
+        Expression
     }
 }

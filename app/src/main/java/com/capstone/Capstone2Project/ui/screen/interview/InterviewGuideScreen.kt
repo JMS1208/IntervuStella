@@ -110,7 +110,8 @@ fun InterviewGuideScreen(
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
-            fontFamily = CustomFont.nexonFont
+            fontFamily = CustomFont.nexonFont,
+            color = Black
         )
     ) {
         Scaffold(
@@ -118,7 +119,7 @@ fun InterviewGuideScreen(
             topBar = {
                 CenterAlignedTopAppBar(
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.Transparent
+                        containerColor = Color.White
                     ),
                     title = {
                         Text(

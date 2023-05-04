@@ -37,6 +37,7 @@ import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.navigation.ROUTE_TOPIC
 import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
+import com.capstone.Capstone2Project.ui.screen.home.HomeViewModel
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.composable.HighlightText
 import com.capstone.Capstone2Project.utils.etc.AlertUtils
@@ -46,6 +47,8 @@ import com.capstone.Capstone2Project.utils.extensions.clickableWithoutRipple
 import com.capstone.Capstone2Project.utils.theme.*
 import com.google.accompanist.flowlayout.FlowMainAxisAlignment
 import com.google.accompanist.flowlayout.FlowRow
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 @Preview(showBackground = true)
 @Composable
@@ -76,7 +79,7 @@ fun TopicScreen(
     val userTopics = topicViewModel.userTopicsFlow.collectAsStateWithLifecycle()
 
     userTopics.value?.let {
-        when(it) {
+        when (it) {
             is Resource.Error -> {
                 it.error?.message?.let { message ->
                     AlertUtils.showToast(context, message, Toast.LENGTH_LONG)
@@ -114,7 +117,11 @@ fun InterestingTopicContent(
 
     val viewModel: TopicViewModel = hiltViewModel()
 
+    val coroutineScope = rememberCoroutineScope()
 
+    val context = LocalContext.current
+
+    val homeViewModel: HomeViewModel = hiltViewModel()
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -128,7 +135,7 @@ fun InterestingTopicContent(
             topBar = {
                 CenterAlignedTopAppBar(
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.Transparent
+                        containerColor = Color.White
                     ),
                     title = {
                         Text(
@@ -178,10 +185,9 @@ fun InterestingTopicContent(
                             color = bg_grey,
                             shape = RoundedCornerShape(10.dp)
                         )
-                        .padding(horizontal = spacing.medium, vertical = spacing.extraMedium)
-                    ,
+                        .padding(horizontal = spacing.medium, vertical = spacing.extraMedium),
                     topicList
-                ) { topic->
+                ) { topic ->
                     viewModel.changeSelectedTopic(topic)
                 }
 
@@ -194,13 +200,17 @@ fun InterestingTopicContent(
 
                     authViewModel.currentUser?.uid?.let {
                         viewModel.postUserTopics(it, topicList)
+                        //homeViewModel.fetchUserTopics(it)
                     }
+
 
                     navController.navigate(ROUTE_HOME) {
                         popUpTo(ROUTE_TOPIC) {
                             inclusive = true
                         }
                     }
+
+
                 }
 
             }
@@ -362,7 +372,7 @@ fun FlowItemContent(
     )
 
     val textColor = remember(topic.selected) {
-        if(topic.selected) White else DarkGray
+        if (topic.selected) White else DarkGray
     }
 
     val spacing = LocalSpacing.current

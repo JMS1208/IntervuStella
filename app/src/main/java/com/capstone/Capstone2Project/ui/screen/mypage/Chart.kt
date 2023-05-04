@@ -114,7 +114,7 @@ fun ChartScreen() {
                     val (lowRef, highRef, newRef) = createRefs()
 
                     Text(
-                        "최저 점수\n400점",
+                        "최저 등급\nA",
                         modifier = Modifier.constrainAs(lowRef) {
                             bottom.linkTo(parent.bottom, margin = spacing.small)
                             start.linkTo(parent.start, margin = spacing.small)
@@ -127,7 +127,7 @@ fun ChartScreen() {
                     )
 
                     Text(
-                        "최고 점수\n920점",
+                        "최고 등급\nS",
                         modifier = Modifier
                             .wrapContentSize()
                             .constrainAs(highRef) {
@@ -356,9 +356,9 @@ private fun getLines(): List<List<DataPoint>> {
 private fun getDataPointList(): List<DataPoint> {
     return listOf(
         DataPoint(1f, 0f),
-        DataPoint(2f, 20f),
+        DataPoint(2f, 50f),
         DataPoint(3f, 50f),
-        DataPoint(4f, 10f),
+        DataPoint(4f, 100f),
         DataPoint(5f, 0f)
     )
 }

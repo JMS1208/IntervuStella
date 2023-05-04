@@ -1,11 +1,9 @@
 package com.capstone.Capstone2Project.ui.screen.animation
 
 import androidx.compose.animation.*
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Button
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
@@ -18,8 +16,6 @@ import androidx.compose.ui.graphics.Color.Companion.DarkGray
 import androidx.compose.ui.graphics.Color.Companion.Red
 import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,7 +26,6 @@ import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.capstone.Capstone2Project.R
 import com.capstone.Capstone2Project.data.model.InterviewLogLine
 import com.capstone.Capstone2Project.data.model.LogLine
 import com.capstone.Capstone2Project.data.model.QuestionItem
@@ -54,14 +49,14 @@ private fun Preview() {
             while (true) {
                 emit(
                     InterviewLogLine(
-                        progress = Random.nextInt(0, 100),
+                        progress = Random.nextLong(0, 100),
                         date = System.currentTimeMillis(),
                         questionItem = QuestionItem(
                             uuid = UUID.randomUUID().toString(),
                             question = "질문 예시"
                         ),
                         logLine = LogLine(
-                            type = LogLine.Type.Face,
+                            type = LogLine.Type.Camera,
                             message = generateRandomText()
                         )
                     )

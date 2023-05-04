@@ -1,6 +1,5 @@
 package com.capstone.Capstone2Project.utils.etc
 
-import com.capstone.Capstone2Project.data.model.InterviewLogLine
 import com.capstone.Capstone2Project.data.model.LogLine
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.pose.Pose
@@ -11,7 +10,7 @@ import kotlin.math.sqrt
 
 fun Face.toLogLine(): LogLine? {
 
-    val type: LogLine.Type = LogLine.Type.Face
+    val type: LogLine.Type = LogLine.Type.Camera
 
     val message: String
 
@@ -78,28 +77,28 @@ fun Face.toLogLine(): LogLine? {
         }
     }
 
-    smilingProbability?.let {
-        when {
-            it < 0.001f -> {
-                message = "살짝 미소를 띄워볼까요?"
-
-                return LogLine(
-                    type = type,
-                    message = message
-                )
-            }
-
-            it > 0.8f -> {
-                message = "크게 웃는 모습 좋아요"
-
-                return LogLine(
-                    type = type,
-                    message = message
-                )
-            }
-            else -> Unit
-        }
-    }
+//    smilingProbability?.let {
+//        when {
+//            it < 0.001f -> {
+//                message = "살짝 미소를 띄워볼까요?"
+//
+//                return LogLine(
+//                    type = type,
+//                    message = message
+//                )
+//            }
+//
+//            it > 0.8f -> {
+//                message = "크게 웃는 모습 좋아요"
+//
+//                return LogLine(
+//                    type = type,
+//                    message = message
+//                )
+//            }
+//            else -> Unit
+//        }
+//    }
 
     return null
 }
@@ -118,7 +117,8 @@ fun Pose.toLogLine(): LogLine? {
         if(diff > 30.0f) {
             return LogLine(
                 type = type,
-                message = "자세를 교정해주세요"
+                message = "자세를 교정해주세요",
+                index = 0
             )
         }
 
@@ -139,7 +139,8 @@ fun Pose.toLogLine(): LogLine? {
         if(diff < 200.0f) {
             return LogLine(
                 type = type,
-                message = "긴장을 풀어주세요"
+                message = "긴장을 풀어주세요",
+                index = 1
             )
         }
 
@@ -154,7 +155,8 @@ fun Pose.toLogLine(): LogLine? {
         if(diff < 200.0f) {
             return LogLine(
                 type = type,
-                message = "긴장을 풀어주세요"
+                message = "긴장을 풀어주세요",
+                index = 1
             )
         }
     }

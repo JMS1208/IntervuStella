@@ -21,6 +21,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import com.capstone.Capstone2Project.navigation.AppNavHost
+import com.capstone.Capstone2Project.utils.ThemeHelper
 import com.capstone.Capstone2Project.utils.etc.CustomFont
 import com.capstone.Capstone2Project.utils.theme.Capstone2ProjectTheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -38,15 +39,21 @@ class MainActivity : BaseActivity() {
         setBaseContent {
             CompositionLocalProvider(
                 LocalTextStyle provides TextStyle(
-                    fontFamily = CustomFont.nexonFont
+                    fontFamily = CustomFont.nexonFont,
+                    color = Color.Black
                 )
             ) {
                 AppNavHost()
             }
         }
 
+        setupThemeMode()
 
 
+    }
+
+    private fun setupThemeMode() {
+        ThemeHelper.applyTheme(ThemeHelper.ThemeMode.LIGHT)
     }
 
 }

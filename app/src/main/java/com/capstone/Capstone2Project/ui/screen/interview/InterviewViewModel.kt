@@ -1,6 +1,5 @@
 package com.capstone.Capstone2Project.ui.screen.interview
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capstone.Capstone2Project.data.model.*
@@ -79,17 +78,38 @@ class InterviewViewModel @Inject constructor(
         viewModelScope.launch {
             if (state.value.interviewState == InterviewState.InProgress) {
                 logLock(newInterviewLogLine.logLine) {
+                    if (newInterviewLogLine.logLine.message
+                            == newInterviewLogLineFlow.value?.logLine?.message) {
+                        return@logLock
+                    }
+
                     _oldInterviewLogLineFlow.value = newInterviewLogLineFlow.value
                     _newInterviewLogLineFlow.value = newInterviewLogLine
 
                     _state.update {
 
-                        val logs = it.logs.toMutableList()
+                        val badExpressions = it.badExpressions.toMutableList()
+                        val badPose = it.badPose.toMutableList()
 
-                        logs.add(newInterviewLogLine)
+                        with(newInterviewLogLine.logLine) {
+                            when(type) {
+                                LogLine.Type.Camera -> {
+                                    index?.let { idx->
+                                        badExpressions[idx] += 1
+                                    }
+                                }
+                                LogLine.Type.Pose -> {
+                                    index?.let { idx->
+                                        badPose[idx] += 1
+                                    }
+                                }
+                                else-> Unit
+                            }
+                        }
 
                         it.copy(
-                            logs = logs
+                            badPose = badPose,
+                            badExpressions = badExpressions
                         )
                     }
 
@@ -359,11 +379,18 @@ class InterviewViewModel @Inject constructor(
 
                 val interviewUUID = UUID.randomUUID().toString()
                 val interviewData = InterviewData(
-                    interviewUUID = interviewUUID,
-                    interviewDate = System.currentTimeMillis(),
-                    logs = logs,
-                    scriptUUID = customQuestionnaire!!.scriptUUID,
-                    durations = durations
+//                    interviewUUID = interviewUUID,
+//                    interviewDate = System.currentTimeMillis(),
+//                    logs = logs,
+//                    scriptUUID = customQuestionnaire!!.scriptUUID,
+
+                    answers = answers!!,
+                    badExpressions = badExpressions,
+                    badPose = badPose,
+                    questionnaireUUID = this.customQuestionnaire?.questionnaireUUID!!,
+                    durations = durations,
+                    progress = durations.sum()
+
                 )
 
                 val result = repository.sendInterviewData(interviewData)
@@ -448,14 +475,16 @@ class InterviewViewModel @Inject constructor(
 
     data class State(
         var interviewState: InterviewState = InterviewState.Ready,
-        var progress: Int = 0,
-        val logs: List<InterviewLogLine> = emptyList(),
+        var progress: Long = 0,
+//        val logs: List<InterviewLogLine> = emptyList(),
+        val badExpressions :List<Int> = List(4) { 0 },
+        var badPose: List<Int> = List(2) { 0 },
         var currentPage: Int? = null,
         val customQuestionnaire: CustomQuestionnaire? = null,
         val answers: List<AnswerItem>? = null,
         var interviewDate: Long? = null,
         var recognizerState: RecognizerState = RecognizerState.Stopped,
-        val durations: List<Int>? = null
+        val durations: List<Long>? = null
     )
 
     data class QnA(

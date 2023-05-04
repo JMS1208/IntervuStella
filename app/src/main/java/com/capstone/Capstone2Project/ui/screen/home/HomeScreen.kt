@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.graphics.Color.Companion.DarkGray
 import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.graphics.Color.Companion.White
@@ -33,18 +34,25 @@ import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.capstone.Capstone2Project.R
 import com.capstone.Capstone2Project.data.model.Achievement
-import com.capstone.Capstone2Project.data.model.Attendance
-import com.capstone.Capstone2Project.navigation.ROUTE_MY_PAGE
-import com.capstone.Capstone2Project.navigation.ROUTE_SCRIPT_WRITING
-import com.capstone.Capstone2Project.navigation.ROUTE_TOPIC
+import com.capstone.Capstone2Project.data.model.Topic
+import com.capstone.Capstone2Project.data.model.inapp.TodayAttendanceQuiz
+import com.capstone.Capstone2Project.data.model.inapp.WeekAttendanceInfo
+import com.capstone.Capstone2Project.data.model.inapp.WeekItem
+import com.capstone.Capstone2Project.data.resource.Resource
+import com.capstone.Capstone2Project.data.resource.throwableOrNull
+import com.capstone.Capstone2Project.navigation.*
 import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
+import com.capstone.Capstone2Project.ui.screen.error.ErrorScreen
 import com.capstone.Capstone2Project.ui.screen.interview.stopRecordingService
 import com.capstone.Capstone2Project.ui.screen.intro.InterviewIntroDialog
+import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.composable.HighlightText
+import com.capstone.Capstone2Project.utils.etc.AlertUtils
 import com.capstone.Capstone2Project.utils.etc.CustomFont
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
 import com.capstone.Capstone2Project.utils.extensions.WithEmojiView
@@ -66,18 +74,70 @@ import java.util.*
 @Composable
 fun HomeScreenPreview() {
 
-    HomeScreen(rememberNavController())
+    val homeViewModel: HomeViewModel = hiltViewModel()
+
+    val authViewModel: AuthViewModel = hiltViewModel()
+
+    HomeScreen(rememberNavController(), homeViewModel, authViewModel)
+
+}
+
+@Composable
+fun HomeScreen(
+    navController: NavController,
+    homeViewModel: HomeViewModel,
+    authViewModel: AuthViewModel
+) {
+
+    val context = LocalContext.current
+
+    val state = homeViewModel.state.collectAsState()
+
+    LaunchedEffect(homeViewModel) {
+        homeViewModel.effect.collect {
+            when (it) {
+                is HomeViewModel.Effect.ShowMessage -> {
+                    AlertUtils.showToast(context, it.message)
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(authViewModel) {
+        authViewModel.currentUser?.uid?.let {
+            homeViewModel.fetchAllHomeData(it)
+
+        } ?: run {
+            navController.navigate(ROUTE_LOGIN) {
+                popUpTo(ROUTE_HOME) {
+                    inclusive = true
+                }
+            }
+        }
+
+    }
+
+    state.value?.let {
+        HomeScreenContent(
+            navController,
+            it
+        )
+    }
+
 
 }
 
 
 @Composable
-fun HomeScreen(
-    navController: NavController
+private fun HomeScreenContent(
+    navController: NavController,
+    state: HomeViewModel.State
 ) {
     val scrollState = rememberScrollState()
 
     val spacing = LocalSpacing.current
+
+    val context = LocalContext.current
 
     Scaffold(
         floatingActionButtonPosition = FabPosition.Center,
@@ -88,7 +148,7 @@ fun HomeScreen(
     ) { innerPadding ->
 
 
-        ConstraintLayout(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
@@ -97,44 +157,36 @@ fun HomeScreen(
                 .padding(innerPadding)
                 .navigationBarsPadding()
                 .padding(top = 30.dp)
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(spacing.large, Alignment.Top)
         ) {
 
+            LogoAndInfoContent(
+                modifier = Modifier.fillMaxWidth(),
+                navController
+            )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState),
-                verticalArrangement = Arrangement.spacedBy(spacing.large, Alignment.Top)
-            ) {
+            ScriptAndInfoContent(
+                modifier = Modifier.fillMaxWidth(),
+                navController
+            )
 
-                LogoAndInfoContent(
-                    modifier = Modifier.fillMaxWidth(),
-                    navController
-                )
 
-                ScriptAndInfoContent(
-                    modifier = Modifier.fillMaxWidth(),
-                    navController
-                )
+            MyTopicAndTodayQuiz(
+                modifier = Modifier.fillMaxWidth(),
+                navController,
+                topicsState = state.topics,
+                todayAttendanceQuiz = state.todayAttendanceQuiz
+            )
 
-                MyTopicAndTodayQuiz(
-                    modifier = Modifier.fillMaxWidth(),
-                    navController
-                )
+            AttendanceCheck(
+                modifier = Modifier.fillMaxWidth(),
+                weekAttendanceInfo = state.weekAttendanceInfo
+            )
 
-                AttendanceCheck(
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                MyAchievement(
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(spacing.large))
-            }
+            Spacer(modifier = Modifier.height(spacing.large))
+            Spacer(modifier = Modifier.height(spacing.medium))
         }
-
-
     }
 
 
@@ -340,130 +392,158 @@ private fun MyAchievement(
 @Composable
 private fun MyTopicAndTodayQuiz(
     modifier: Modifier = Modifier,
-    navController: NavController
+    navController: NavController,
+    topicsState: Resource<List<Topic>>,
+    todayAttendanceQuiz: Resource<TodayAttendanceQuiz>
 ) {
 
     val spacing = LocalSpacing.current
 
+    val context = LocalContext.current
+
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
-            fontFamily = nexonFont
+            fontFamily = nexonFont,
+            color = Black
         )
     ) {
-        Column(
-            modifier = modifier.padding(horizontal = spacing.medium),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    "나의 관심주제",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Medium
-                )
 
-                Row(
-                    modifier = Modifier.clickable {
-                        navController.navigate(ROUTE_TOPIC) {
-
-                        }
-                    },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("변경하기", fontSize = 16.sp, color = Gray)
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = null
-                    )
-                }
-
-
+        when (topicsState) {
+            is Resource.Error -> {
+                AlertUtils.showToast(context, "네트워크 오류")
+                ErrorScreen(topicsState.throwableOrNull()?.message)
             }
+            Resource.Loading -> {
+                LoadingScreen()
+            }
+            is Resource.Success -> {
+                val topicList = topicsState.data
 
-            Spacer(modifier = Modifier.height(spacing.small))
-
-            Column(
-                modifier = Modifier
-                    .shadow(3.dp, shape = RoundedCornerShape(5.dp))
-                    .background(
-                        color = Color.White,
-                        shape = RoundedCornerShape(5.dp)
-                    )
-                    .fillMaxWidth()
-                    .padding(spacing.medium),
-                verticalArrangement = Arrangement.spacedBy(spacing.medium)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                Column(
+                    modifier = modifier.padding(horizontal = spacing.medium),
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Text("면접에 나올만한 질문들을\n하루에 하나씩 대비해보세요 !", color = Gray, fontSize = 16.sp)
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_quiz),
-                        contentDescription = null,
-                        modifier = Modifier.height(60.dp)
-                    )
-                }
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            "나의 관심주제",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Medium
+                        )
 
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(7) {
-                        Box(
-                            modifier = Modifier
-                                .shadow(
-                                    2.dp,
-                                    shape = RoundedCornerShape(15.dp)
-                                )
-                                .background(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(
-                                            Color(0xFFE3EDFF),
-                                            Color.White
-                                        )
-                                    ),
-                                    shape = RoundedCornerShape(15.dp)
-                                )
-                                .border(
-                                    border = BorderStroke(
-                                        1.dp,
-                                        brush = Brush.linearGradient(
-                                            colors = listOf(
-                                                bright_sky_blue,
-                                                bright_violet
-                                            )
-                                        )
-                                    ),
-                                    shape = RoundedCornerShape(15.dp)
-                                )
-                                .padding(vertical = 5.dp, horizontal = 10.dp)
+                        Row(
+                            modifier = Modifier.clickable {
+                                navController.navigate(ROUTE_TOPIC) {
+
+                                }
+                            },
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("#예시$it", fontSize = 15.sp)
+                            Text("변경하기", fontSize = 16.sp, color = Gray)
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = Gray
+                            )
                         }
+
+
                     }
+
+                    Spacer(modifier = Modifier.height(spacing.small))
+
+                    Column(
+                        modifier = Modifier
+                            .shadow(3.dp, shape = RoundedCornerShape(5.dp))
+                            .background(
+                                color = Color.White,
+                                shape = RoundedCornerShape(5.dp)
+                            )
+                            .fillMaxWidth()
+                            .padding(spacing.medium),
+                        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.Bottom,
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("면접에 나올만한 질문들을\n하루에 하나씩 대비해보세요 !", color = Gray, fontSize = 16.sp)
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_quiz),
+                                contentDescription = null,
+                                modifier = Modifier.height(60.dp)
+                            )
+                        }
+
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(topicList.filter { it.selected }) {
+                                Box(
+                                    modifier = Modifier
+                                        .shadow(
+                                            2.dp,
+                                            shape = RoundedCornerShape(15.dp)
+                                        )
+                                        .background(
+                                            brush = Brush.linearGradient(
+                                                colors = listOf(
+                                                    Color(0xFFE3EDFF),
+                                                    Color.White
+                                                )
+                                            ),
+                                            shape = RoundedCornerShape(15.dp)
+                                        )
+                                        .border(
+                                            border = BorderStroke(
+                                                1.dp,
+                                                brush = Brush.linearGradient(
+                                                    colors = listOf(
+                                                        bright_sky_blue,
+                                                        bright_violet
+                                                    )
+                                                )
+                                            ),
+                                            shape = RoundedCornerShape(15.dp)
+                                        )
+                                        .padding(vertical = 5.dp, horizontal = 10.dp)
+                                ) {
+                                    Text("#${it.name}", fontSize = 15.sp)
+                                }
+                            }
+                        }
+
+
+
+                        when (todayAttendanceQuiz) {
+                            is Resource.Error -> {
+                                ErrorScreen(todayAttendanceQuiz.error?.message)
+                            }
+                            Resource.Loading -> {
+                                LoadingScreen()
+                            }
+                            is Resource.Success -> {
+                                TodayQuestionCard(
+                                    question = todayAttendanceQuiz.data.question,
+                                    questionUUID = todayAttendanceQuiz.data.questionUUID,
+                                    isPresentToday = todayAttendanceQuiz.data.isPresentToday,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    navController = navController
+                                )
+                            }
+                        }
+
+                    }
+
                 }
-
-
-
-
-                TodayQuestionCard(
-                    question = "프로세스와 스레드의 차이는 무엇인가요",
-                    questionUUID = UUID.randomUUID().toString(),
-                    modifier = Modifier.fillMaxWidth(),
-                    navController = navController
-                )
-
-
-//                ChartScreen()
-
             }
-
         }
+
     }
 
 
@@ -471,7 +551,8 @@ private fun MyTopicAndTodayQuiz(
 
 @Composable
 private fun AttendanceCheck(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    weekAttendanceInfo: Resource<WeekAttendanceInfo>
 ) {
 
     val spacing = LocalSpacing.current
@@ -479,71 +560,78 @@ private fun AttendanceCheck(
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
-            fontFamily = nexonFont
+            fontFamily = nexonFont,
+            color = Black
         )
     ) {
-        Column(
-            modifier = modifier
-                .padding(horizontal = spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(spacing.small)
-        ) {
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Weekly 출석 !", fontSize = 20.sp, fontWeight = FontWeight.Medium)
-
-                Text("연속 2일 출석 !", fontSize = 16.sp, fontWeight = FontWeight.Normal, color = Gray)
-
+        when (weekAttendanceInfo) {
+            is Resource.Error -> {
+                ErrorScreen(weekAttendanceInfo.error?.message)
             }
-
-
-            val weeklyData = remember {
-                listOf<Attendance>(
-                    Attendance(date = System.currentTimeMillis(), false),
-                    Attendance(date = System.currentTimeMillis(), true),
-                    Attendance(date = System.currentTimeMillis(), false),
-                    Attendance(date = System.currentTimeMillis(), true),
-                    Attendance(date = System.currentTimeMillis(), true),
-                    Attendance(date = System.currentTimeMillis(), false),
-                    Attendance(date = System.currentTimeMillis(), true)
-                )
+            Resource.Loading -> {
+                LoadingScreen()
             }
+            is Resource.Success -> {
+                Column(
+                    modifier = modifier
+                        .padding(horizontal = spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
 
-            LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(3.dp, shape = RoundedCornerShape(5.dp))
-                    .background(
-                        color = White,
-                        shape = RoundedCornerShape(5.dp)
-                    ),
-                horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall),
-                contentPadding = PaddingValues(
-                    start = spacing.small,
-                    end = spacing.small,
-                    top = spacing.small
-                )
-            ) {
-                items(weeklyData) {
-                    ItemAttendance(attendance = it)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Weekly 출석 !", fontSize = 20.sp, fontWeight = FontWeight.Medium)
+
+                        if (weekAttendanceInfo.data.continuousCount > 0) {
+                            Text(
+                                "연속 ${weekAttendanceInfo.data.continuousCount}일 출석 !",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Gray
+                            )
+                        }
+
+                    }
+
+
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(3.dp, shape = RoundedCornerShape(5.dp))
+                            .background(
+                                color = White,
+                                shape = RoundedCornerShape(5.dp)
+                            ),
+                        horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall),
+                        contentPadding = PaddingValues(
+                            start = spacing.small,
+                            end = spacing.small,
+                            top = spacing.small
+                        )
+                    ) {
+                        items(weekAttendanceInfo.data.weekAttendance) {
+                            ItemAttendance(weekItem = it)
+                        }
+                    }
+
+
+                    Text(
+                        "오늘은 ${
+                            SimpleDateFormat(
+                                "yyyy.MM.dd (E)",
+                                Locale.getDefault()
+                            ).format(System.currentTimeMillis())
+                        }",
+                        fontSize = 14.sp,
+                        color = text_blue
+                    )
+
                 }
+
             }
-
-
-            Text(
-                "오늘은 ${
-                    SimpleDateFormat(
-                        "yyyy.MM.dd (E)",
-                        Locale.getDefault()
-                    ).format(System.currentTimeMillis())
-                }",
-                fontSize = 14.sp,
-                color = text_blue
-            )
-
         }
 
 
@@ -551,7 +639,7 @@ private fun AttendanceCheck(
 }
 
 @Composable
-private fun ItemAttendance(attendance: Attendance) {
+private fun ItemAttendance(weekItem: WeekItem) {
 
     val spacing = LocalSpacing.current
 
@@ -562,35 +650,39 @@ private fun ItemAttendance(attendance: Attendance) {
             fontWeight = FontWeight(550)
         )
     ) {
-        attendance.date?.let {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
-                modifier = Modifier.padding(vertical = 10.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .wrapContentSize()
-                        .background(
-                            color = bg_darker_gray,
-                            shape = RoundedCornerShape(5.dp)
-                        )
-                        .padding(horizontal = 6.dp, vertical = 3.dp)
-                ) {
-                    Text(attendance.timeToDayOfWeek()!!)
-                }
 
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
+            modifier = Modifier.padding(vertical = 10.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(50.dp)
+                    .background(
+                        color = bg_darker_gray,
+                        shape = RoundedCornerShape(5.dp)
+                    )
+                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(weekItem.dayOfWeek.value)
+            }
+
+            weekItem.isPresent?.let { isPresent->
                 Image(
-                    painter = painterResource(id = if (attendance.isPresent) R.drawable.ic_check_att else R.drawable.ic_close_att),
+                    painter = painterResource(id = if (isPresent) R.drawable.ic_check_att else R.drawable.ic_close_att),
                     contentDescription = null,
                     modifier = Modifier
                         .padding(5.dp)
                         .size(40.dp)
                 )
-
-
             }
+
+
+
         }
+
 
     }
 }
@@ -611,7 +703,8 @@ private fun ScriptAndInfoContent(
 
     CompositionLocalProvider(
         LocalTextStyle provides androidx.compose.ui.text.TextStyle(
-            fontFamily = nexonFont
+            fontFamily = nexonFont,
+            color = Black
         )
     ) {
         ConstraintLayout(
@@ -788,7 +881,9 @@ private fun LogoAndInfoContent(
         )
     ) {
         Row(
-            modifier = modifier.padding(horizontal = spacing.medium).padding(top = spacing.small),
+            modifier = modifier
+                .padding(horizontal = spacing.medium)
+                .padding(top = spacing.small),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -796,9 +891,11 @@ private fun LogoAndInfoContent(
             Image(
                 painterResource(id = R.drawable.logo3),
                 contentDescription = null,
-                modifier = Modifier.height(30.dp).clickable {
-                    stopRecordingService(context)
-                })
+                modifier = Modifier
+                    .height(30.dp)
+                    .clickable {
+                        stopRecordingService(context)
+                    })
 
             Icon(
                 imageVector = Icons.Outlined.Person,

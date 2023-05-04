@@ -2,6 +2,8 @@ package com.capstone.Capstone2Project.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -9,9 +11,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.capstone.Capstone2Project.data.model.Script
+import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
 import com.capstone.Capstone2Project.ui.screen.auth.LoginScreen
 import com.capstone.Capstone2Project.ui.screen.auth.SignUpScreen
 import com.capstone.Capstone2Project.ui.screen.home.HomeScreen
+import com.capstone.Capstone2Project.ui.screen.home.HomeViewModel
 import com.capstone.Capstone2Project.ui.screen.interesting.topic.TopicScreen
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewFinishScreen
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewGuideScreen
@@ -42,7 +46,12 @@ fun AppNavHost(
         }
 
         composable(ROUTE_HOME) {
-            HomeScreen(navController)
+
+            val homeViewModel: HomeViewModel = hiltViewModel()
+
+            val authViewModel: AuthViewModel = hiltViewModel()
+
+            HomeScreen(navController, homeViewModel, authViewModel)
         }
 
         composable(ROUTE_TOPIC) {
@@ -50,21 +59,9 @@ fun AppNavHost(
         }
 
         composable(
-            "$ROUTE_CAMERA/{script}",
-//            arguments = listOf(
-//                navArgument("script") {
-//                    defaultValue = Script.makeTestScript().toJsonString()
-//                    type = NavType.StringType
-//                },
-//                navArgument("use_recording") {
-//                    defaultValue = Boolean
-//                    type = NavType.BoolType
-//                }
-//            )
+            "$ROUTE_CAMERA/{script}"
         ) { navBackStackEntry ->
             val scriptJson = navBackStackEntry.arguments?.getString("script")
-
-//            val useRecording = navBackStackEntry.arguments?.getBoolean("use_recording") ?: false
 
             scriptJson?.let {
                 val script = Script.jsonStringToScript(it)

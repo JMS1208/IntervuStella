@@ -3,6 +3,7 @@ package com.capstone.Capstone2Project.utils.composable
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.graphics.Paint.Align
 import android.os.Build
 import android.view.View
 import android.view.ViewGroup
@@ -10,13 +11,13 @@ import android.view.ViewOutlineProvider
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Icon
-import androidx.compose.material.LocalTextStyle
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MoveUp
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,31 +32,43 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.airbnb.lottie.compose.*
 import com.capstone.Capstone2Project.R
+import com.capstone.Capstone2Project.data.model.FeedbackItem
 import com.capstone.Capstone2Project.data.model.InterviewResult
 import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewMemoDialog
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
-import com.capstone.Capstone2Project.utils.extensions.generateRandomText
-import com.capstone.Capstone2Project.utils.theme.LocalSpacing
-import com.capstone.Capstone2Project.utils.theme.bright_blue
-import com.capstone.Capstone2Project.utils.theme.highlight_red
+import com.capstone.Capstone2Project.utils.theme.*
 import eightbitlab.com.blurview.BlurAlgorithm
 import eightbitlab.com.blurview.BlurView
 import eightbitlab.com.blurview.RenderEffectBlur
 import eightbitlab.com.blurview.RenderScriptBlur
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+
+@Preview(showBackground = true)
+@Composable
+private fun Preview() {
+    InterviewResultContent(
+        interviewResult = InterviewResult.createTestInterviewResult(),
+        navController = rememberNavController()
+    )
+}
 
 @Composable
 fun InterviewResultContent(
@@ -91,6 +104,8 @@ fun InterviewResultContent(
         mutableStateOf(false)
     }
 
+    val scrollState = rememberScrollState()
+
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -102,58 +117,97 @@ fun InterviewResultContent(
             modifier = Modifier.fillMaxSize()
         ) {
 
-
             BlurLayout(
                 blurRadius = 5f,
                 innerContent = {
                     if (showScore.value) {
-                        Column(
+
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.8f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                                .fillMaxWidth(0.8f)
+                                .fillMaxHeight(0.5f)
                         ) {
+                            Column(
+                                modifier = Modifier
+                                    .verticalScroll(scrollState),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
 
-                            val starRateComposition by rememberLottieComposition(
-                                spec = LottieCompositionSpec.Asset(
-                                    "lottie/star_rate.json"
+                                val starRateComposition by rememberLottieComposition(
+                                    spec = LottieCompositionSpec.Asset(
+                                        "lottie/star_rate.json"
+                                    )
                                 )
-                            )
 
-                            val starRateProgress by animateLottieCompositionAsState(
-                                starRateComposition,
-                                iterations = LottieConstants.IterateForever
-                            )
-
-
-                            LottieAnimation(
-                                composition = starRateComposition,
-                                progress = { starRateProgress },
-                                modifier = Modifier.height(50.dp)
-                            )
-
-                            Text(
-                                "Score", style = LocalTextStyle.current.copy(
-                                    color = White,
-                                    fontSize = 30.sp,
-                                    shadow = Shadow(
-                                        color = DarkGray,
-                                        offset = Offset(1f, 1f),
-                                        blurRadius = 8f
-                                    ),
-                                    fontWeight = FontWeight.SemiBold
+                                val starRateProgress by animateLottieCompositionAsState(
+                                    starRateComposition,
+                                    iterations = LottieConstants.IterateForever
                                 )
+
+
+                                LottieAnimation(
+                                    composition = starRateComposition,
+                                    progress = { starRateProgress },
+                                    modifier = Modifier.height(50.dp)
+                                )
+
+
+                                RankContent(interviewResult.rank)
+
+                                Spacer(modifier = Modifier.height(spacing.small))
+
+                                Divider(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(1.dp)
+                                        .padding(
+                                            horizontal = spacing.small
+                                        )
+                                        .background(
+                                            shape = DottedShape(5.dp),
+                                            color = White
+                                        )
+                                )
+
+                                for (i in interviewResult.feedbackList.indices) {
+                                    FeedbackItemContent(
+                                        i,
+                                        interviewResult.feedbackList[i]
+                                    )
+
+                                    if (i < interviewResult.feedbackList.lastIndex) {
+                                        Spacer(modifier = Modifier.height(spacing.small))
+
+                                        Divider(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(1.dp)
+                                                .padding(
+                                                    horizontal = spacing.small
+                                                )
+                                                .background(
+                                                    shape = DottedShape(5.dp),
+                                                    color = White
+                                                )
+                                        )
+
+                                        Spacer(modifier = Modifier.height(spacing.small))
+
+                                    }
+                                }
+
+
+                                Spacer(modifier = Modifier.height(spacing.small))
+                            }
+
+                            ScrollToTopButton(
+                                scrollState = scrollState,
+                                threshold = 0,
+                                modifier = Modifier.align(Alignment.BottomCenter).size(40.dp)
                             )
-
-
-                            ScoreContent(score = interviewResult.score)
-
-                            Spacer(modifier = Modifier.height(spacing.large))
-
-                            FeedBackContent(interviewResult)
-
-                            Spacer(modifier = Modifier.height(spacing.small))
                         }
+
 
                     }
 
@@ -276,70 +330,8 @@ fun InterviewResultContent(
                         }
                     }
                 },
-                bottomInnerContent = { // 이쪽에 업적
-
-                    if (showScore.value) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth(0.8f)
-                                .verticalScroll(rememberScrollState())
-                        ) {
-                            Text(
-                                "New",
-                                modifier = Modifier
-                                    .background(
-                                        color = highlight_red,
-                                        shape = RoundedCornerShape(5.dp),
-                                    )
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    .align(Alignment.Start),
-                                style = LocalTextStyle.current.copy(
-                                    color = White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            )
-
-                            Spacer(modifier = Modifier.height(3.dp))
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(
-                                    10.dp,
-                                    Alignment.CenterHorizontally
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = spacing.small)
-                            ) {
-                                Text(
-                                    "갱신된 업적", style = LocalTextStyle.current.copy(
-                                        color = White,
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                )
-
-                                Box(
-                                    modifier = Modifier
-                                        .height(1.dp)
-                                        .weight(1f)
-                                        .background(White, shape = DottedShape(5.dp))
-                                )
-
-                                Text(
-                                    "${interviewResult.newAchievement.size}개", style = LocalTextStyle.current.copy(
-                                        color = White,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(spacing.medium))
-
-                        }
-                    }
+                bottomInnerContent = { // 이쪽에 감점사항
+                    DeductionListContent(interviewResult)
                 },
                 showBlurLayout = showScore.value
             )
@@ -348,10 +340,10 @@ fun InterviewResultContent(
 
             if (showMemoDialog.value) {
                 InterviewMemoDialog(
-                    interviewUUID = interviewResult.uuid,
+                    interviewUUID = interviewResult.interviewUUID,
                     dismissClick = {
-                    showMemoDialog.value = false
-                })
+                        showMemoDialog.value = false
+                    })
             }
 
         }
@@ -360,142 +352,352 @@ fun InterviewResultContent(
 }
 
 @Composable
-private fun FeedBackContent(interviewResult: InterviewResult) {
+private fun ScrollToTopButton(
+    scrollState: ScrollState,
+    threshold: Int,
+    modifier: Modifier) {
 
-    val spacing = LocalSpacing.current
-
-
-    CompositionLocalProvider(
-        LocalTextStyle provides TextStyle(
-            color = White,
-            fontFamily = nexonFont,
-            fontWeight = FontWeight.SemiBold,
-            shadow = Shadow(
-                color = DarkGray,
-                offset = Offset(1f, 1f),
-                blurRadius = 4f
-            )
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing.small),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.Center
-        ) {
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(
-                    10.dp,
-                    Alignment.CenterHorizontally
-                )
-            ) {
-                Text("면접 결과", fontSize = 18.sp, textAlign = TextAlign.Start)
-                Box(
-                    modifier = Modifier
-                        .height(1.dp)
-                        .weight(1f)
-                        .background(White, shape = DottedShape(5.dp))
-                )
-
-            }
-
-
-            Spacer(modifier = Modifier.height(spacing.small))
-
-            Text(
-                "점수: ${interviewResult.score}", modifier = Modifier.fillMaxWidth(), style = LocalTextStyle.current.copy(
-                    color = White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.End
-                )
-            )
-            Spacer(modifier = Modifier.height(spacing.small))
-            Text(
-                "소요시간: ${interviewResult.durationToString()}",
-                modifier = Modifier.fillMaxWidth(),
-                style = LocalTextStyle.current.copy(
-                    color = White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.End
-                )
-            )
-
-            Spacer(modifier = Modifier.height(spacing.medium))
-
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(
-                    10.dp,
-                    Alignment.CenterHorizontally
-                )
-            ) {
-                Text("면접 평가", fontSize = 18.sp, textAlign = TextAlign.Start)
-                Box(
-                    modifier = Modifier
-                        .height(1.dp)
-                        .weight(1f)
-                        .background(White, shape = DottedShape(5.dp))
-                )
-
-            }
-
-            Spacer(modifier = Modifier.height(spacing.small))
-
-            Text(
-                interviewResult.feedBack, fontSize = 14.sp, modifier = Modifier
-                    .heightIn(50.dp, 150.dp)
-                    .verticalScroll(rememberScrollState())
-            )
-            Spacer(modifier = Modifier.height(spacing.medium))
-
-        }
+    val isVisible by remember(threshold) {
+        derivedStateOf { scrollState.value > 0 }
     }
-
-}
-
-@Composable
-private fun ScoreContent(score: Int) {
-
-    var count by remember {
-        mutableStateOf((score - 100).coerceIn(0, score))
-    }
-
 
     val coroutineScope = rememberCoroutineScope()
 
-    SideEffect {
-        coroutineScope.launch {
-            while (count < score) {
-                count++
-                delay(400)
-
+    AnimatedVisibility(isVisible, enter = fadeIn(), exit = fadeOut()) {
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            FloatingActionButton(
+                modifier = modifier,
+                onClick = {
+                    coroutineScope.launch {
+                        scrollState.animateScrollTo(
+                            0
+                        )
+                    }
+                },
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 3.dp,
+                    pressedElevation = 6.dp,
+                    hoveredElevation = 4.dp,
+                    focusedElevation = 4.dp
+                ),
+                shape = CircleShape,
+                backgroundColor = bright_blue
+            ) {
+                Icon(
+                    contentDescription = null,
+                    imageVector = Icons.Default.ArrowUpward,
+                    tint = White
+                )
             }
         }
+
     }
-
-
-    Box(
-        modifier = Modifier.padding(16.dp)
-    ) {
-        AnimatedCounter(
-            count = count,
-            style = LocalTextStyle.current.copy(
-                fontSize = 25.sp,
-                fontFamily = nexonFont,
-                fontWeight = FontWeight.Bold,
-                color = DarkGray
-            )
-        )
-    }
-
 
 }
+
+
+@Composable
+private fun DeductionListContent(interviewResult: InterviewResult) {
+
+    val spacing = LocalSpacing.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth(0.8f)
+            .padding(spacing.small)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Divider(
+                modifier = Modifier
+                    .height(1.dp)
+                    .weight(1f)
+                    .background(
+                        shape = DottedShape(5.dp),
+                        color = White
+                    )
+            )
+
+            Text(
+                "감점사항",
+                style = LocalTextStyle.current.copy(
+                    color = White,
+                    fontFamily = nexonFont,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .background(
+                        shape = CircleShape,
+                        color = bright_blue
+                    )
+            ) {}
+
+            Spacer(modifier = Modifier.width(spacing.small))
+
+            Text(
+                "부정적인 표정",
+                style = LocalTextStyle.current.copy(
+                    color = White,
+                    fontFamily = nexonFont,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            )
+
+
+        }
+
+        Spacer(modifier = Modifier.height(spacing.small))
+
+        Text(
+            interviewResult.badExpressionsToString(),
+            style = LocalTextStyle.current.copy(
+                color = White,
+                fontFamily = nexonFont,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        )
+
+        Spacer(modifier = Modifier.height(spacing.medium))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .background(
+                        shape = CircleShape,
+                        color = bright_purple
+                    )
+            ) {}
+
+            Spacer(modifier = Modifier.width(spacing.small))
+
+            Text(
+                "좋지 못한 자세",
+                style = LocalTextStyle.current.copy(
+                    color = White,
+                    fontFamily = nexonFont,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            )
+
+
+        }
+
+        Spacer(modifier = Modifier.height(spacing.small))
+
+        Text(
+            interviewResult.badPosesToString(),
+            style = LocalTextStyle.current.copy(
+                color = White,
+                fontFamily = nexonFont,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        )
+
+        Spacer(modifier = Modifier.height(spacing.small))
+    }
+}
+
+@Composable
+fun FeedbackItemContent(index: Int, feedbackItem: FeedbackItem) {
+
+    val spacing = LocalSpacing.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = spacing.small),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(spacing.small)
+                .background(
+                    color = Color(0x51000000)
+                )
+                .padding(spacing.small)
+        ) {
+
+            Text(
+                "${index + 1}.${feedbackItem.question}",
+                style = LocalTextStyle.current.copy(
+                    color = White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = nexonFont,
+                    fontSize = 15.sp
+                )
+            )
+
+            Spacer(modifier = Modifier.height(spacing.small))
+
+            Text(
+                feedbackItem.answer,
+                style = LocalTextStyle.current.copy(
+                    color = White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = nexonFont,
+                    fontSize = 14.sp
+                )
+            )
+
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(spacing.small),
+            horizontalAlignment = Alignment.End
+        ) {
+            Text(
+                "Feedback",
+                style = LocalTextStyle.current.copy(
+                    color = White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = nexonFont,
+                    fontSize = 15.sp
+                )
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                feedbackItem.feedback,
+                style = LocalTextStyle.current.copy(
+                    color = White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = nexonFont,
+                    fontSize = 15.sp
+                )
+            )
+
+            Spacer(modifier = Modifier.height(spacing.medium))
+
+            Text(
+                text = buildAnnotatedString {
+                    withStyle(
+                        style = SpanStyle(
+                            color = text_red,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    ) {
+                        append("(${feedbackItem.durationToString()} 소요) ")
+                    }
+                    withStyle(
+                        style = SpanStyle(
+                            color = White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    ) {
+                        append("Warning")
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                feedbackItem.durationWarning,
+                style = LocalTextStyle.current.copy(
+                    color = White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = nexonFont,
+                    fontSize = 15.sp
+                )
+            )
+
+        }
+
+    }
+
+}
+
+@Composable
+private fun RankContent(rank: String) {
+
+    val ranking = listOf("A", "B", "C", "D", "S")
+
+    val spacing = LocalSpacing.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = spacing.small),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Text(
+            text = buildAnnotatedString {
+                withStyle(
+                    style = SpanStyle(
+                        color = White,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                ) {
+                    append("Rank - ")
+                }
+
+                for (i in ranking.indices) {
+                    withStyle(
+                        style = SpanStyle(
+                            color = if (ranking[i] == rank) highlight_yellow else White,
+                            fontSize = if (ranking[i] == rank) 30.sp else 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    ) {
+                        append(ranking[i])
+                    }
+
+                    if (i < ranking.lastIndex) {
+                        withStyle(
+                            style = SpanStyle(
+                                color = White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        ) {
+                            append(" / ")
+                        }
+                    }
+
+                }
+
+
+            }
+        )
+    }
+}
+
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -617,7 +819,6 @@ fun BlurLayout(
                 outlineProvider = ViewOutlineProvider.BACKGROUND
                 clipToOutline = true
                 visibility = if (showBlurLayout) View.VISIBLE else View.GONE
-                //background = ShapeDrawable(RoundedCornerShape(10.dp))
             }
 
             val bottomBlurView = it.findViewById<BlurView>(R.id.bottom_blur_view)

@@ -14,7 +14,6 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -85,13 +84,11 @@ import com.capstone.Capstone2Project.ui.screen.animation.NewLogContent
 import com.capstone.Capstone2Project.ui.screen.animation.OldLogContent
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.*
-import com.capstone.Capstone2Project.utils.composable.AnimatedCounter
 import com.capstone.Capstone2Project.utils.composable.ComposableLifecycle
 import com.capstone.Capstone2Project.utils.etc.*
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
 import com.capstone.Capstone2Project.utils.extensions.clickableWithoutRipple
 import com.capstone.Capstone2Project.utils.extensions.progressToString
-import com.capstone.Capstone2Project.utils.extensions.toBitmap
 import com.capstone.Capstone2Project.utils.service.ScreenRecordService
 import com.capstone.Capstone2Project.utils.theme.*
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -103,10 +100,8 @@ import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.accurate.AccuratePoseDetectorOptions
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
@@ -819,9 +814,9 @@ private fun InterviewCameraPreview(
                                     Bitmap.Config.ARGB_8888
                                 )
                             yuvToRgbConverter.yuvToRgb(image, bitmapImage)
-                            val result = expressionAnalyzer.classifyExpression(bitmapImage)
+                            val classifiedExpressions = expressionAnalyzer.classifyExpression(bitmapImage)
                             processExpressionClassificationResult(
-                                result,
+                                classifiedExpressions,
                                 viewModel = interviewViewModel
                             )
                         } catch (e: Exception) {
@@ -922,11 +917,47 @@ private fun InterviewCameraPreview(
 }
 
 private fun processExpressionClassificationResult(
-    result: String,
+    expressions: List<Float>,
     viewModel: InterviewViewModel
 ) {
-    Log.e("TAG", "processExpressionClassificationResult: ${result.toList()}")
-    val logLine = LogLine(type = LogLine.Type.Face, message = result)
+
+    var maxProbability = -1f
+
+    var idx = -1
+
+    expressions.forEachIndexed { index, value ->
+        if(value > maxProbability) {
+            idx = index
+            maxProbability = value
+        }
+    }
+
+    var result = "부정적인 표정 감지 "
+
+    val resultIdx: Int
+
+    result += when(idx) {
+        0-> {
+            resultIdx = 0
+            "[Angry]"
+        }
+        1-> {
+            resultIdx = 1
+            "[Disgust]"
+        }
+        2-> {
+            resultIdx = 2
+            "[Fear]"
+        }
+        4-> {
+            resultIdx = 3
+            "[Sad]"
+        }
+        else-> return
+    }
+
+    val logLine = LogLine(type = LogLine.Type.Camera, message = result, index = resultIdx)
+
     viewModel.loadInterviewLogLine(
         logLine
     )
@@ -946,12 +977,12 @@ private fun processFaceDetectionResult(
     viewModel: InterviewViewModel
 ) {
     if (faces.isEmpty()) {
-//        val logLine = LogLine(
-//            type = LogLine.Type.Error,
-//            "얼굴을 발견하지 못했습니다"
-//        )
-//
-//        viewModel.loadInterviewLogLine(logLine)
+        val logLine = LogLine(
+            type = LogLine.Type.Error,
+            "얼굴을 발견하지 못했습니다"
+        )
+
+        viewModel.loadInterviewLogLine(logLine)
         return
     }
 
