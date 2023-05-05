@@ -8,6 +8,7 @@ import com.capstone.Capstone2Project.data.model.InterviewResult
 import com.capstone.Capstone2Project.data.model.InterviewScore
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
+import com.capstone.Capstone2Project.data.resource.DataState
 //import com.capstone.Capstone2Project.data.model.TodayQuestion
 import com.capstone.Capstone2Project.repository.AppDatabaseRepository
 import com.capstone.Capstone2Project.repository.NetworkRepository
@@ -217,11 +218,7 @@ class MyPageViewModel @Inject constructor(
     )
 
 
-    sealed class DataState {
-        object Loading : DataState()
-        data class Error(val e: Throwable?, val message: String? = null) : DataState()
-        object Normal : DataState()
-    }
+
 
     sealed class DialogState {
         object MemoDialog : DialogState()

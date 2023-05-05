@@ -1,12 +1,10 @@
-package com.capstone.Capstone2Project.ui.screen.othersanswers
+package com.capstone.Capstone2Project.ui.screen.comment
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,7 +12,6 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.MoveUp
 import androidx.compose.material.icons.filled.ThumbUpAlt
 import androidx.compose.material.icons.outlined.ThumbUpAlt
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -36,24 +33,27 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import androidx.room.util.TableInfo
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.items
 import com.capstone.Capstone2Project.R
-import com.capstone.Capstone2Project.data.resource.Resource
+import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestion
+import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestionComment
+import com.capstone.Capstone2Project.data.resource.DataState
+import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
+import com.capstone.Capstone2Project.ui.screen.error.ErrorScreen
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.composable.DottedShape
-import com.capstone.Capstone2Project.utils.etc.AlertUtils
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
 import com.capstone.Capstone2Project.utils.extensions.clickableWithoutRipple
 import com.capstone.Capstone2Project.utils.theme.*
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.launch
 
 
@@ -66,12 +66,20 @@ fun OthersAnswersScreen(
 
     val viewModel: OthersAnswersViewModel = hiltViewModel()
 
-    val dataFlow = viewModel.othersAnswersData.collectAsStateWithLifecycle()
+    val authViewModel: AuthViewModel = hiltViewModel()
+
+//    val dataFlow = viewModel.othersAnswersData.collectAsStateWithLifecycle()
+
+    val state = viewModel.state.collectAsState()
 
     val context = LocalContext.current
 
     LaunchedEffect(viewModel) {
-        viewModel.fetchData(questionUUID)
+        viewModel.fetchOthersComment(questionUUID)
+        authViewModel.currentUser?.uid?.let{
+            viewModel.fetchMyComment(questionUUID, it)
+        }
+        viewModel.fetchTodayQuestion(questionUUID)
     }
 
     Scaffold(
@@ -111,19 +119,32 @@ fun OthersAnswersScreen(
                 )
         ) {
 
-            dataFlow.value?.let {
-                when (it) {
-                    is Resource.Error -> {
-                        navController.popBackStack()
-                        AlertUtils.showToast(context, "네트워크 오류입니다")
+            when (state.value.dataState) {
+                is DataState.Error -> {
+                    ErrorScreen((state.value.dataState as DataState.Error).message)
+                }
+
+                DataState.Loading -> {
+                    LoadingScreen()
+                }
+
+                DataState.Normal -> {
+                    with(state.value) {
+                        val totalComments = totalComments?.flow?.collectAsLazyPagingItems()
+
+                        OthersCommentsContent(
+                            totalComments,
+                            myComment,
+                            todayQuestion,
+                            authViewModel.currentUser,
+                            isRefreshing,
+                            requestRefreshData = {
+                                viewModel.refreshOthersAnswersData(it)
+                            })
                     }
-                    Resource.Loading -> LoadingScreen()
-                    is Resource.Success -> {
-                        OthersAnswersContent(it.data, questionUUID)
-                    }
+
                 }
             }
-
 
         }
     }
@@ -132,9 +153,16 @@ fun OthersAnswersScreen(
 }
 
 @Composable
-private fun OthersAnswersContent(data: OthersAnswersData, questionUUID: String) {
+private fun OthersCommentsContent(
+    totalComments: LazyPagingItems<TodayQuestionComment>?,
+    myComment: TodayQuestionComment?,
+    todayQuestion: TodayQuestion?,
+    firebaseUser: FirebaseUser?,
+    isRefreshing: Boolean?,
+    requestRefreshData: (String) -> Unit
+) {
 
-    val viewModel: OthersAnswersViewModel = hiltViewModel()
+//    val viewModel: OthersAnswersViewModel = hiltViewModel()
 
     val spacing = LocalSpacing.current
 
@@ -143,15 +171,18 @@ private fun OthersAnswersContent(data: OthersAnswersData, questionUUID: String) 
         modifier = Modifier.fillMaxSize()
     ) {
 
-        QuestionContent(
-            data.questionData
-        )
+
+        todayQuestion?.let {
+            QuestionContent(
+                it
+            )
+        }
 
 
-        MyAnswerContent(
-            data.myAnswer,
-            likeClicked = { ad, like ->
-                viewModel.changeMyAnswerLike(ad, like)
+        MyCommentContent(
+            myComment,
+            firebaseUser = firebaseUser,
+            likeClicked = {
             },
             removeClicked = {
 
@@ -164,28 +195,37 @@ private fun OthersAnswersContent(data: OthersAnswersData, questionUUID: String) 
             }
         )
 
+
         Spacer(modifier = Modifier.height(spacing.medium))
 
-        OthersAnswersListContent(
-            data.othersAnswers,
-            questionUUID
-        )
+        totalComments?.let {
+            OthersAnswersListContent(
+                it,
+                firebaseUser = firebaseUser,
+                todayQuestion = todayQuestion,
+                isRefreshing = isRefreshing ?: false,
+                requestRefreshData = { questionUUID ->
+                    requestRefreshData(questionUUID)
+                }
+            )
+        }
+
     }
 
 
 }
 
 @Composable
-private fun OthersAnswersListContent(othersAnswers: List<AnswerData>, questionUUID: String) {
-
-
+private fun OthersAnswersListContent(
+    todayQuestionComments: LazyPagingItems<TodayQuestionComment>,
+    firebaseUser: FirebaseUser?,
+    todayQuestion: TodayQuestion?,
+    isRefreshing: Boolean,
+    requestRefreshData: (String) -> Unit
+) {
     val spacing = LocalSpacing.current
 
     val lazyListState = rememberLazyListState()
-
-    val viewModel: OthersAnswersViewModel = hiltViewModel()
-
-    val isRefreshing = viewModel.isRefreshing.collectAsStateWithLifecycle()
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -226,11 +266,13 @@ private fun OthersAnswersListContent(othersAnswers: List<AnswerData>, questionUU
                     )
 
                     Text(
-                        "답글 ${othersAnswers.size}개", style = LocalTextStyle.current.copy(
+                        "답글 ${todayQuestionComments.itemCount}개",
+                        style = LocalTextStyle.current.copy(
                             color = Gray,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Normal
-                        ), modifier = Modifier
+                        ),
+                        modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(spacing.small)
                     )
@@ -238,9 +280,9 @@ private fun OthersAnswersListContent(othersAnswers: List<AnswerData>, questionUU
 
                 }
 
-                if (othersAnswers.isNotEmpty()) {
+                if (todayQuestionComments.itemCount > 0) {
 
-                    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = isRefreshing.value)
+                    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = isRefreshing)
 
                     val context = LocalContext.current
 
@@ -252,16 +294,26 @@ private fun OthersAnswersListContent(othersAnswers: List<AnswerData>, questionUU
                         SwipeRefresh(
                             state = swipeRefreshState,
                             onRefresh = {
-                                viewModel.refreshOthersAnswersData(questionUUID)
+//                                viewModel.refreshOthersAnswersData(questionUUID)
+                                todayQuestion?.let {
+                                    requestRefreshData(it.questionUUID)
+                                }
                             }
                         ) {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(top = spacing.small, bottom = spacing.large, start = spacing.small, end = spacing.small),
+                                contentPadding = PaddingValues(
+                                    top = spacing.small,
+                                    bottom = spacing.large,
+                                    start = spacing.small,
+                                    end = spacing.small
+                                ),
                                 state = lazyListState
                             ) {
-                                items(othersAnswers) {
-                                    OthersAnswerItemContent(it)
+                                items(todayQuestionComments) { todayQuestionComment ->
+                                    todayQuestionComment?.let {
+                                        OthersAnswerItemContent(it)
+                                    }
                                 }
                             }
                         }
@@ -278,14 +330,15 @@ private fun OthersAnswersListContent(othersAnswers: List<AnswerData>, questionUU
                 } else {
                     Text(
                         "아직 등록된 답변이 없어요", style = LocalTextStyle.current.copy(
-                            color = Black,
+                            color = Gray,
                             fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center
+                        ),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.large)
                     )
                 }
             }
-
 
 
         }
@@ -340,11 +393,11 @@ private fun ScrollToTopButton(
 }
 
 @Composable
-private fun OthersAnswerItemContent(answerData: AnswerData) {
+private fun OthersAnswerItemContent(todayQuestionComment: TodayQuestionComment) {
 
     val spacing = LocalSpacing.current
 
-    val viewModel:OthersAnswersViewModel = hiltViewModel()
+    val viewModel: OthersAnswersViewModel = hiltViewModel()
 
     Column(
         modifier = Modifier
@@ -358,7 +411,7 @@ private fun OthersAnswerItemContent(answerData: AnswerData) {
             verticalAlignment = Alignment.Bottom
         ) {
             Text(
-                answerData.nickName,
+                todayQuestionComment.nickName,
                 style = LocalTextStyle.current.copy(
                     color = Black,
                     fontSize = 16.sp,
@@ -367,7 +420,7 @@ private fun OthersAnswerItemContent(answerData: AnswerData) {
             )
 
             Text(
-                "(${answerData.email})",
+                "(${todayQuestionComment.email})",
                 style = LocalTextStyle.current.copy(
                     color = Gray,
                     fontSize = 13.sp,
@@ -377,7 +430,7 @@ private fun OthersAnswerItemContent(answerData: AnswerData) {
         }
 
         Text(
-            answerData.content,
+            todayQuestionComment.comment,
             style = LocalTextStyle.current.copy(
                 color = Gray,
                 fontSize = 14.sp,
@@ -397,16 +450,15 @@ private fun OthersAnswerItemContent(answerData: AnswerData) {
         ) {
             Icon(
                 contentDescription = null,
-                imageVector = if (answerData.like) Icons.Default.ThumbUpAlt else Icons.Outlined.ThumbUpAlt,
-                tint = if (answerData.like) bright_blue else DarkGray,
+                imageVector = if (todayQuestionComment.isLiked) Icons.Default.ThumbUpAlt else Icons.Outlined.ThumbUpAlt,
+                tint = if (todayQuestionComment.isLiked) bright_blue else DarkGray,
                 modifier = Modifier.clickable {
-                    //myAnswer.like = !myAnswer.like
-                    viewModel.changeOthersAnswerLike(answerData, !answerData.like)
+                    //TODO 좋아요 변경 처리
                 }
             )
 
             Text(
-                answerData.likeCount.toString(),
+                todayQuestionComment.like.toString(),
                 style = LocalTextStyle.current.copy(
                     color = Gray,
                     fontSize = 13.sp,
@@ -428,7 +480,7 @@ private fun OthersAnswerItemContent(answerData: AnswerData) {
 }
 
 @Composable
-private fun QuestionContent(questionData: QuestionData) {
+private fun QuestionContent(todayQuestion: TodayQuestion) {
 
     val spacing = LocalSpacing.current
 
@@ -458,7 +510,7 @@ private fun QuestionContent(questionData: QuestionData) {
                     .padding(horizontal = 15.dp, vertical = 3.dp)
             ) {
                 Text(
-                    questionData.field, style = LocalTextStyle.current.copy(
+                    todayQuestion.field ?: "", style = LocalTextStyle.current.copy(
                         color = bright_blue,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp
@@ -478,7 +530,7 @@ private fun QuestionContent(questionData: QuestionData) {
                 )
 
                 Text(
-                    questionData.question, style = LocalTextStyle.current.copy(
+                    todayQuestion.question, style = LocalTextStyle.current.copy(
                         color = White,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp
@@ -502,9 +554,10 @@ private fun QuestionContent(questionData: QuestionData) {
 
 
 @Composable
-private fun MyAnswerContent(
-    myAnswer: AnswerData?,
-    likeClicked: (AnswerData, Boolean) -> Unit,
+private fun MyCommentContent(
+    myComment: TodayQuestionComment?,
+    firebaseUser: FirebaseUser?,
+    likeClicked: () -> Unit,
     removeClicked: () -> Unit,
     modifyClicked: () -> Unit,
     contentClicked: () -> Unit
@@ -580,7 +633,7 @@ private fun MyAnswerContent(
 
                 )
 
-                if (myAnswer == null) {
+                if (myComment == null) {
 
                     Box(
                         modifier = Modifier
@@ -590,7 +643,7 @@ private fun MyAnswerContent(
                     ) {
                         Text(
                             "위 질문에 대한 나의 답변을 달아보세요", style = LocalTextStyle.current.copy(
-                                color = Black,
+                                color = Gray,
                                 fontSize = 16.sp
                             )
                         )
@@ -609,7 +662,7 @@ private fun MyAnswerContent(
                             verticalAlignment = Alignment.Bottom
                         ) {
                             Text(
-                                myAnswer.nickName,
+                                firebaseUser?.displayName ?: "이름 없음",
                                 style = LocalTextStyle.current.copy(
                                     color = Black,
                                     fontSize = 16.sp,
@@ -618,7 +671,7 @@ private fun MyAnswerContent(
                             )
 
                             Text(
-                                "(${myAnswer.email})",
+                                "(${firebaseUser?.email})",
                                 style = LocalTextStyle.current.copy(
                                     color = Gray,
                                     fontSize = 13.sp,
@@ -628,7 +681,7 @@ private fun MyAnswerContent(
                         }
 
                         Text(
-                            myAnswer.content,
+                            myComment.comment,
                             style = LocalTextStyle.current.copy(
                                 color = Gray,
                                 fontSize = 14.sp,
@@ -648,17 +701,17 @@ private fun MyAnswerContent(
                         ) {
                             Icon(
                                 contentDescription = null,
-                                imageVector = if (myAnswer.like) Icons.Default.ThumbUpAlt else Icons.Outlined.ThumbUpAlt,
-                                tint = if (myAnswer.like) bright_blue else DarkGray,
+                                imageVector = if (myComment.isLiked) Icons.Default.ThumbUpAlt else Icons.Outlined.ThumbUpAlt,
+                                tint = if (myComment.isLiked) bright_blue else DarkGray,
                                 modifier = Modifier.clickable {
                                     //myAnswer.like = !myAnswer.like
                                     //TODO(뷰모델처리)
-                                    likeClicked(myAnswer, !myAnswer.like)
+
                                 }
                             )
 
                             Text(
-                                myAnswer.likeCount.toString(),
+                                myComment.like.toString(),
                                 style = LocalTextStyle.current.copy(
                                     color = Gray,
                                     fontSize = 13.sp,

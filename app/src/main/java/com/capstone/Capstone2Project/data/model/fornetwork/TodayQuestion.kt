@@ -6,5 +6,7 @@ data class TodayQuestion(
     @SerializedName("question")
     val question: String,
     @SerializedName("ques_uuid")
-    val questionUUID: String
+    val questionUUID: String,
+    @SerializedName("ques_type")
+    val field: String? = null
 )

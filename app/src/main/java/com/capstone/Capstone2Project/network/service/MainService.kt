@@ -6,6 +6,7 @@ import com.capstone.Capstone2Project.data.model.UserInfo
 import com.capstone.Capstone2Project.data.model.fornetwork.MemoForQuestion
 import com.capstone.Capstone2Project.data.model.fornetwork.Memo
 import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestion
+import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestionComment
 import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
 import retrofit2.Response
 import retrofit2.http.*
@@ -146,4 +147,47 @@ interface MainService {
         @Query("user_uuid") hostUUID: String,
         @Query("common_ques_uuid") questionUUID: String
     ): Response<TodayQuestionMemo?>
+
+    /*
+    유저별 메모 리스트 가져오기
+     */
+    @GET("user/memo_list/{user_uuid}")
+    suspend fun getTodayQuestionMemoList(
+        @Path("user_uuid") hostUUID: String
+    ): Response<List<TodayQuestionMemo>?>
+
+    /*
+    오늘의 질문에 달린 댓글 리스트 가져오기
+     */
+    @GET("community/view_comment/")
+    suspend fun getTodayQuestionCommentList(
+        @Query("ques_uuid") questionUUID: String,
+        @Query("page") page: Int,
+        @Query("per_page") perPage: Int
+    ): Response<List<TodayQuestionComment>?>
+
+    /*
+    오늘의 질문에 달린 내 댓글 가져오기
+
+     */
+    @GET("community/view_my_comment/")
+    suspend fun getMyTodayQuestionComment(
+        @Query("ques_uuid") questionUUID: String,
+        @Query("user_uuid") hostUUID: String
+    ): Response<TodayQuestionComment?>
+
+    /*
+    오늘의 질문 정보 가져오기
+     */
+
+    @GET("common_question/")
+    suspend fun getTodayQuestionInfo(
+        @Query("common_ques_uuid") questionUUID: String
+    ): Response<TodayQuestion?>
+
+    /*
+    좋아요 숫자 바꾸기
+     */
+    //TODO
+
 }

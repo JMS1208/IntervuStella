@@ -72,6 +72,7 @@ import com.capstone.Capstone2Project.data.model.InterviewResult
 import com.capstone.Capstone2Project.data.model.InterviewScore
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
+import com.capstone.Capstone2Project.data.resource.DataState
 import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.navigation.ROUTE_LOGIN
 import com.capstone.Capstone2Project.navigation.ROUTE_SCRIPT_WRITING
@@ -201,13 +202,13 @@ private fun MyPageContent(
             }
         ) { innerPadding ->
             when(stateFlow.value.dataState) {
-                is MyPageViewModel.DataState.Error -> {
-                    ErrorScreen((stateFlow.value.dataState as MyPageViewModel.DataState.Error).message)
+                is DataState.Error -> {
+                    ErrorScreen((stateFlow.value.dataState as DataState.Error).message)
                 }
-                MyPageViewModel.DataState.Loading -> {
+                DataState.Loading -> {
                     LoadingScreen()
                 }
-                MyPageViewModel.DataState.Normal -> {
+                DataState.Normal -> {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()

@@ -1,5 +1,6 @@
 package com.capstone.Capstone2Project.ui.screen.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capstone.Capstone2Project.data.model.fornetwork.Memo
@@ -37,6 +38,8 @@ class MemoViewModel @Inject constructor(
             questionUUID,
             question
         )
+
+        Log.e("TAG", "loadMemo: $result", )
 
         val showDialog = result !is Resource.Error
 

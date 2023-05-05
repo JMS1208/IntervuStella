@@ -1,9 +1,12 @@
 package com.capstone.Capstone2Project.repository
 
-import android.accounts.NetworkErrorException
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import com.capstone.Capstone2Project.data.model.*
 import com.capstone.Capstone2Project.data.model.fornetwork.Memo
 import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestion
+import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestionComment
 import com.capstone.Capstone2Project.data.model.fornetwork.Topics
 import com.capstone.Capstone2Project.data.model.inapp.TodayAttendanceQuiz
 import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
@@ -12,12 +15,10 @@ import com.capstone.Capstone2Project.data.model.inapp.WeekItem
 import com.capstone.Capstone2Project.data.model.response.InterviewDataResponse
 import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.network.service.MainService
-import com.capstone.Capstone2Project.ui.screen.othersanswers.AnswerData
-import com.capstone.Capstone2Project.ui.screen.othersanswers.OthersAnswersData
-import com.capstone.Capstone2Project.ui.screen.othersanswers.QuestionData
-import com.capstone.Capstone2Project.utils.etc.Name.REQUEST_FAILURE
-import com.capstone.Capstone2Project.utils.etc.Name.REQUEST_SUCCESS
+import com.capstone.Capstone2Project.ui.screen.comment.CommentPagingSource
+import com.capstone.Capstone2Project.ui.screen.comment.CommentPagingSource.Companion.PAGING_SIZE
 import com.capstone.Capstone2Project.utils.extensions.generateRandomText
+import kotlinx.coroutines.flow.Flow
 import retrofit2.Response
 import java.util.*
 import javax.inject.Inject
@@ -27,23 +28,6 @@ import javax.inject.Singleton
 class NetworkRepositoryImpl @Inject constructor(
     private val mainService: MainService
 ) : NetworkRepository {
-    /*
-    override suspend fun getDefaultTopics(): Resource<List<Topic>> {
-        //TODO(mainService로 부터 받아오기)
-        val topics = listOf(
-            Topic(name = "운영체제"),
-            Topic(name = "네트워크"),
-            Topic(name = "데이터베이스"),
-            Topic(name = "알고리즘"),
-            Topic(name = "자료구조"),
-            Topic(name = "프로그래밍 기초"),
-            Topic(name = "JAVA"),
-            Topic(name = "전산 기본")
-        )
-        return Resource.Success(topics)
-    }
-
-     */
 
     override suspend fun getScripts(hostUUID: String): Result<List<Script>> {
         //TODO(uuid로 host 참고해서 자소서 쓴 목록 가져오기)
@@ -170,20 +154,27 @@ class NetworkRepositoryImpl @Inject constructor(
 
         return Result.success(interviewScores)
 
+
+
     }
 
     override suspend fun getMyTodayQuestionsMemo(hostUUID: String): Result<List<TodayQuestionMemo>> {
 
-        val myTodayQuestionsMemo = mutableListOf<TodayQuestionMemo>()
+        return try {
+            val response = mainService.getTodayQuestionMemoList(hostUUID)
 
-        for (i in 0 until 10) {
+            if(!response.isSuccessful) {
+                throw Exception("메모 리스트 네트워크 오류")
+            }
 
-            val todayQuestion = TodayQuestionMemo.createTestTodayQuestionMemo()
+            val result = response.body() ?: throw Exception("메모 리스트 null")
 
-            myTodayQuestionsMemo.add(todayQuestion)
+            Result.success(result)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
         }
-
-        return Result.success(myTodayQuestionsMemo)
 
     }
 
@@ -218,76 +209,14 @@ class NetworkRepositoryImpl @Inject constructor(
         return Resource.Success(interviewResult)
     }
 
-    override suspend fun getOthersAnswersData(questionUUID: String): Resource<OthersAnswersData> {
-        val myAnswer = AnswerData(
-            uuid = UUID.randomUUID().toString(),
-            nickName = "닉네임",
-            email = "ad***@ad***.com",
-            content = "프로세스와 스레드의 차이는",
-            like = false,
-            likeCount = 50
-        )
-
-        val questionData = QuestionData(
-            field = "운영체제",
-            question = "프로세스와 스레드의 차이는 무엇인가요?"
-        )
-
-        val othersAnswers = mutableListOf<AnswerData>()
-
-        for (i in 0 until 16) {
-
-            val othersAnswer = AnswerData(
-                uuid = UUID.randomUUID().toString(),
-                nickName = "닉네임$i",
-                email = "ad$i***@ad***.com",
-                content = "프로세스와 스레드의 차이는",
-                like = false,
-                likeCount = (0..100).random()
-            )
-
-            othersAnswers.add(othersAnswer)
-        }
-
-        return Resource.Success(
-            OthersAnswersData(
-                myAnswer, questionData, othersAnswers
-            )
-        )
-    }
 
 
-    override suspend fun updateLikeForAnswerData(
-        answerUUID: String,
-        like: Boolean
-    ): Resource<String> {
+
+    override suspend fun updateCommentLike(hostUUID: String, commentUUID: String): Result<String> {
         //TODO()
-        return Resource.Success("성공")
+        return Result.success("성공")
     }
 
-//    override suspend fun isUserPresent(hostUUID: String): Response<Boolean> {
-//
-////        return try {
-////            val response = mainService.isPresentToday(hostUUID)
-////
-////            if(!response.isSuccessful) {
-////                throw Exception("네트워크 오류")
-////            }
-////
-////            if(response.body() == null) {
-////                throw Exception("네트워크 오류")
-////            }
-////
-////            val result = response.body() == REQUEST_SUCCESS
-////
-////            Resource.Success(result)
-////
-////        } catch (e: Exception) {
-////            e.printStackTrace()
-////            Resource.Error(e)
-////        }
-//        return mainService.isPresentToday(hostUUID)
-//    }
 
     override suspend fun checkAttendance(hostUUID: String): Resource<Boolean> {
         return try {
@@ -516,6 +445,67 @@ class NetworkRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             e.printStackTrace()
             false
+        }
+    }
+
+    override suspend fun getTodayQuestionCommentList(
+        questionUUID: String
+    ): Pager<Int, TodayQuestionComment> {
+        val pagingSourceFactory = { CommentPagingSource(mainService, questionUUID) }
+
+        return Pager(
+                config = PagingConfig(
+                    pageSize = PAGING_SIZE,
+                    enablePlaceholders = false,
+                    maxSize = PAGING_SIZE * 3
+                ),
+                pagingSourceFactory = pagingSourceFactory
+            )
+    }
+
+    override suspend fun getMyTodayQuestionComment(
+        questionUUID: String,
+        hostUUID: String
+    ): Result<TodayQuestionComment?> {
+
+        return try {
+
+            val response = mainService.getMyTodayQuestionComment(
+                questionUUID, hostUUID
+            )
+
+            if(!response.isSuccessful) {
+                throw Exception("내 댓글 조회 네트워크 오류")
+            }
+
+            val result = response.body()
+
+            Result.success(result)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+
+            Result.failure(e)
+        }
+
+    }
+
+    override suspend fun getTodayQuestionInfo(questionUUID: String): Result<TodayQuestion> {
+        return try {
+
+            val response = mainService.getTodayQuestionInfo(questionUUID)
+
+            if(!response.isSuccessful) {
+                throw Exception("오늘의 질문 정보 조회 네트워크 오류")
+            }
+
+            val result = response.body() ?: throw Exception("오늘의 질문 정보 조회 네트워크 오류")
+
+            Result.success(result)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
         }
     }
 }

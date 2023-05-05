@@ -3,7 +3,6 @@ package com.capstone.Capstone2Project.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -22,7 +21,7 @@ import com.capstone.Capstone2Project.ui.screen.interview.InterviewGuideScreen
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewResultScreen
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewScreen
 import com.capstone.Capstone2Project.ui.screen.mypage.MyPageScreen
-import com.capstone.Capstone2Project.ui.screen.othersanswers.OthersAnswersScreen
+import com.capstone.Capstone2Project.ui.screen.comment.OthersAnswersScreen
 import com.capstone.Capstone2Project.ui.screen.script.ScriptWritingFinishScreen
 import com.capstone.Capstone2Project.ui.screen.script.ScriptWritingScreen
 

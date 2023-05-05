@@ -217,6 +217,10 @@ dependencies {
     //Constraint Layout
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 
-    //Compose dependencies
+    //Compose ViewModel
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1"
+
+    // Paging
+    implementation "androidx.paging:paging-runtime-ktx:3.1.1"
+    implementation "androidx.paging:paging-compose:1.0.0-alpha19"
 }

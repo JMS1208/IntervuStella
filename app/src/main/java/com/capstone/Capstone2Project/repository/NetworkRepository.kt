@@ -1,13 +1,17 @@
 package com.capstone.Capstone2Project.repository
 
+import androidx.paging.Pager
+import androidx.paging.PagingData
 import com.capstone.Capstone2Project.data.model.*
+import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestion
+import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestionComment
 import com.capstone.Capstone2Project.data.model.fornetwork.Topics
 import com.capstone.Capstone2Project.data.model.inapp.TodayAttendanceQuiz
 import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
 import com.capstone.Capstone2Project.data.model.inapp.WeekAttendanceInfo
 import com.capstone.Capstone2Project.data.model.response.InterviewDataResponse
 import com.capstone.Capstone2Project.data.resource.Resource
-import com.capstone.Capstone2Project.ui.screen.othersanswers.OthersAnswersData
+import kotlinx.coroutines.flow.Flow
 import retrofit2.Response
 
 interface NetworkRepository {
@@ -27,12 +31,7 @@ interface NetworkRepository {
 
     suspend fun getInterviewResult(interviewUUID: String): Resource<InterviewResult>
 
-    suspend fun getOthersAnswersData(questionUUID: String): Resource<OthersAnswersData>
-
-    suspend fun updateLikeForAnswerData(answerUUID: String, like: Boolean): Resource<String> //성공여부
-
-
-//    suspend fun isPresentToday(hostUUID: String): Response<Int>
+    suspend fun updateCommentLike(hostUUID: String, commentUUID: String): Result<String> //성공여부
 
     suspend fun checkAttendance(hostUUID: String): Resource<Boolean>
 
@@ -74,4 +73,17 @@ interface NetworkRepository {
         questionUUID: String,
         memo: String
     ): Boolean
+
+    suspend fun getTodayQuestionCommentList(
+        questionUUID: String,
+    ): Pager<Int, TodayQuestionComment>
+
+    suspend fun getMyTodayQuestionComment(
+        questionUUID: String,
+        hostUUID: String
+    ): Result<TodayQuestionComment?>
+
+    suspend fun getTodayQuestionInfo(
+        questionUUID: String
+    ): Result<TodayQuestion>
 }
