@@ -142,7 +142,7 @@ import com.capstone.Capstone2Project.utils.theme.text_red
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScriptScreen(
     navController: NavController,
@@ -152,9 +152,7 @@ fun ScriptScreen(
 
     val state = viewModel.state.collectAsStateWithLifecycle()
 
-
     val context = LocalContext.current
-
 
     LaunchedEffect(viewModel) {
         viewModel.setScriptAndFetchBaseData(
@@ -239,20 +237,7 @@ fun ScriptScreen(
                     }
                     else if (state.value.curPage == state.value.scriptItemList.count{it.second}+1) {
                         ScriptLastContent(
-                            moveToInterviewClicked = {
-
-                                TODO()
-//                                navController.navigate(
-//                                    "$ROUTE_INTERVIEW_GUIDE/{script}".replace(
-//                                        oldValue = "{script}",
-//                                        newValue = script.toJsonString()
-//                                    )
-//                                ) {
-//                                    popUpTo(ROUTE_HOME) {
-//                                        inclusive = true
-//                                    }
-//                                }
-                            },
+                            moveToInterviewClicked = viewModel::sendScriptToServer,
                             moveToHomeClicked = {
                                 navController.navigate(ROUTE_HOME) {
                                     popUpTo(ROUTE_HOME) {
@@ -270,7 +255,6 @@ fun ScriptScreen(
 
                         ScriptWritingContent(
                             scriptItem = scriptItem.first,
-//                                pagerState = pagerState,
                             curPage = state.value.curPage,
                             moveNextPage = viewModel::moveNextPage,
                             movePrevPage = viewModel::movePrevPage,
@@ -302,13 +286,7 @@ fun ScriptScreen(
                                 )
 
                                 navController.navigate(ROUTE_SCRIPT_WRITING_FINISH)
-//                                {
-//                                    popUpToRoute?.let { route->
-//                                        popUpTo(route) {
-//                                            inclusive = true
-//                                        }
-//                                    }
-//                                }
+
                             }
                         }
                     }

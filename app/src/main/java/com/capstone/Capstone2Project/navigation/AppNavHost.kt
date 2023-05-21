@@ -24,8 +24,6 @@ import com.capstone.Capstone2Project.ui.screen.interview.InterviewScreen
 import com.capstone.Capstone2Project.ui.screen.mypage.MyPageScreen
 import com.capstone.Capstone2Project.ui.screen.comment.CommunityScreen
 import com.capstone.Capstone2Project.ui.screen.script.ScriptScreen
-import com.capstone.Capstone2Project.ui.screen.script.ScriptWritingFinishScreen
-import com.capstone.Capstone2Project.ui.screen.script.ScriptWritingScreen
 
 @Composable
 fun AppNavHost(
@@ -127,35 +125,6 @@ fun AppNavHost(
 
         }
 
-        composable(
-//            "$ROUTE_SCRIPT_WRITING_FINISH/{script}"
-            ROUTE_SCRIPT_WRITING_FINISH
-        ) { //navBackStackEntry ->
-
-
-//            val script = navBackStackEntry.savedStateHandle.get<Script>("script")
-
-            val script = navController.previousBackStackEntry?.savedStateHandle?.get<Script>("script")
-
-            if(script != null) {
-
-//                navController.popBackStack()
-
-                ScriptWritingFinishScreen(script = script, navController = navController)
-            }
-
-//            val scriptJson = navBackStackEntry.arguments?.getString("script")
-//
-//            scriptJson?.let {
-//                val script = Script.jsonStringToScript(it)
-//
-//                if (script != null) {
-//                    ScriptWritingFinishScreen(script = script, navController = navController)
-//                }
-//            } ?: run {
-//
-//            }
-        }
 
         composable(ROUTE_MY_PAGE) {
             MyPageScreen(navController = navController)

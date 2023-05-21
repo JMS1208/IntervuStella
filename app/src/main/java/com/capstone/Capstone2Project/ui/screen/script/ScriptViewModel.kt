@@ -288,6 +288,17 @@ class ScriptViewModel @Inject constructor(
         }
     }
 
+    fun sendScriptToServer() = viewModelScope.launch(Dispatchers.IO) {
+        val script = Script(
+            date = System.currentTimeMillis(),
+            title = state.value.title,
+            scriptItems = state.value.scriptItemList.filter{it.second}.map{it.first},
+            jobRole = state.value.jobRoleList.first{it.second}.first
+        )
+
+        TODO("레포지토리연결하고, 용덕님이랑 상의 후 다시 하기")
+    }
+
     fun updateScriptItemAnswer(scriptItem: ScriptItem, answer: String) = viewModelScope.launch {
 
         if (answer.length > scriptItem.maxLength) {
@@ -320,25 +331,16 @@ class ScriptViewModel @Inject constructor(
         val curPage = state.value.curPage
         val totalPage = state.value.scriptItemList.count { it.second }
 
-        if (curPage < totalPage) {
+        if (curPage <= totalPage) {
             _state.update {
                 it.copy(
                     curPage = curPage + 1
                 )
             }
         } else {
-
-            val script = Script(
-                date = System.currentTimeMillis(),
-                title = state.value.title,
-                scriptItems = state.value.scriptItemList.filter{it.second}.map{it.first},
-                jobRole = state.value.jobRoleList.first{it.second}.first
+            _effect.emit(
+                Effect.ShowMessage("페이지를 넘어갈 수 없어요")
             )
-            _state.update {
-                it.copy(
-                    curPage = curPage + 1
-                )
-            }
         }
 
     }
