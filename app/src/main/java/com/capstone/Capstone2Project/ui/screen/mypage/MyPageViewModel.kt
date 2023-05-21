@@ -37,7 +37,7 @@ class MyPageViewModel @Inject constructor(
             )
         }
 
-        val result = repository.getScripts(hostUUID)
+        val result = repository.getMyScriptList(hostUUID)
 
         if (result.isSuccess) {
             _state.update {
@@ -65,7 +65,7 @@ class MyPageViewModel @Inject constructor(
             )
         }
 
-        val result = repository.getInterviewRecords(hostUUID)
+        val result = repository.getMyInterviewResultList(hostUUID)
 
         if(result.isSuccess) {
             _state.update {
@@ -216,8 +216,6 @@ class MyPageViewModel @Inject constructor(
         var myInterviewScores: List<InterviewScore> = emptyList(),
         var myInterviewRecords: List<InterviewResult> = emptyList()
     )
-
-
 
 
     sealed class DialogState {

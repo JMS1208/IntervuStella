@@ -1,5 +1,6 @@
 package com.capstone.Capstone2Project.ui.screen.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -73,9 +74,9 @@ class HomeViewModel @Inject constructor(
 
 
     fun getWeekAttendanceInfo(hostUUID: String) = viewModelScope.launch(Dispatchers.IO) {
-        //TODO(나와봐야 앎)
         _state.update {
             val result = repository.getWeekAttendanceInfo(hostUUID)
+            Log.e("TAG", "getWeekAttendanceInfo: $result", )
             it?.copy(
                 weekAttendanceInfo = result
             )

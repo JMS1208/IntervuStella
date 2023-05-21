@@ -1,8 +1,12 @@
 package com.capstone.Capstone2Project.network.service
 
+import com.capstone.Capstone2Project.data.model.InterviewResult
+import com.capstone.Capstone2Project.data.model.Script
+import com.capstone.Capstone2Project.data.model.ScriptItem
 import com.capstone.Capstone2Project.data.model.Topic
 import com.capstone.Capstone2Project.data.model.fornetwork.Topics
 import com.capstone.Capstone2Project.data.model.UserInfo
+import com.capstone.Capstone2Project.data.model.fornetwork.Comment
 import com.capstone.Capstone2Project.data.model.fornetwork.MemoForQuestion
 import com.capstone.Capstone2Project.data.model.fornetwork.Memo
 import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestion
@@ -163,12 +167,12 @@ interface MainService {
     suspend fun getTodayQuestionCommentList(
         @Query("ques_uuid") questionUUID: String,
         @Query("page") page: Int,
-        @Query("per_page") perPage: Int
+        @Query("per_page") perPage: Int,
+        @Query("user_uuid") hostUUID: String
     ): Response<List<TodayQuestionComment>?>
 
     /*
     오늘의 질문에 달린 내 댓글 가져오기
-
      */
     @GET("community/view_my_comment/")
     suspend fun getMyTodayQuestionComment(
@@ -188,6 +192,66 @@ interface MainService {
     /*
     좋아요 숫자 바꾸기
      */
-    //TODO
+    @PUT("community/recommendation/")
+    suspend fun changeCommentLikeCount(
+        @Query("cc_uuid") commentUUID: String,
+        @Query("user_uuid") hostUUID: String
+    ): Response<Int>
 
+
+    /*
+    댓글 수정하기
+    실패: 0 성공:1
+     */
+    @PUT("community/comment/")
+    suspend fun updateMyComment(
+        @Query("cc_uuid") commentUUID: String,
+        @Body comment: Comment
+    ): Response<TodayQuestionComment?>
+
+    /*
+    댓글 생성하기
+    실패: 0 성공:1
+     */
+    @POST("community/comment/")
+    suspend fun createMyComment(
+        @Body comment: Comment
+    ): Response<TodayQuestionComment?>
+
+    /*
+    댓글 삭제하기
+    실패: 0 성공:1
+     */
+    @DELETE("community/comment/")
+    suspend fun deleteMyComment(
+        @Query("cc_uuid") commentUUID: String,
+        @Query("user_uuid") hostUUID: String
+    ): Response<Int>
+
+    @GET("self_intro/script_list/{user_uuid}")
+    suspend fun getMyScriptList(
+        @Path("user_uuid") hostUUID: String
+    ): Response<List<Script>?>
+
+    /*
+    자소서 작성을 위한 직무 리스트 가져오기
+     */
+    @GET("user/job_object_list/")
+    suspend fun getJobRoleList(
+    ): Response<List<String>?>
+
+    /*
+    자소서 작성을 위한 질문 리스트 가져오기
+     */
+    @GET("self_intro/all_question/")
+    suspend fun getScriptItemList(
+    ): Response<List<ScriptItem>?>
+
+    /*
+    유저가 그동안 봤던 면접의 리스트 가져오기
+     */
+    @GET("interview/interview_list/")
+    suspend fun getMyInterviewList(
+        @Query("user_uuid") hostUUID: String
+    ): Response<List<InterviewResult>>
 }

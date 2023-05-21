@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.DarkGray
+import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -169,6 +170,7 @@ fun InterestingTopicContent(
                     .verticalScroll(
                         scrollState
                     )
+                    .background(color = White)
                     .padding(innerPadding)
                     .padding(spacing.medium),
                 verticalArrangement = Arrangement.Top,
@@ -176,8 +178,6 @@ fun InterestingTopicContent(
             ) {
 
                 TopicHeader()
-
-
 
                 FlowItems(
                     modifier = Modifier
@@ -254,7 +254,7 @@ fun TopicFooter(
                     .fillMaxWidth()
                     .padding(top = spacing.medium, start = spacing.small)
             ) {
-                Text("선택한 영역 $selectedCount 개")
+                Text("선택한 주제 $selectedCount 개", color = Gray)
             }
 
 

@@ -102,9 +102,11 @@ fun InterviewIntroDialog(
                             AlertUtils.showToast(context, message, Toast.LENGTH_LONG)
                         }
                     }
+
                     Resource.Loading -> {
                         LoadingScreen()
                     }
+
                     is Resource.Success -> {
                         SelectScriptContent(
                             navController = navController, scripts = it.data
@@ -194,6 +196,7 @@ private fun SelectScriptContent(
                 }
             },
             onClickSelectScript = {
+
                 val currentPage = pagerState.currentPage
 
                 val script = scripts[currentPage]
@@ -210,17 +213,22 @@ private fun SelectScriptContent(
 //
 //                    }
                 }
-            }
+
+
+            },
+            pagerState = pagerState
         )
     }
 }
 
 
+@OptIn(ExperimentalPagerApi::class)
 @Composable
 private fun BottomButtons(
     navController: NavController,
     onClickWriteNewScript: () -> Unit,
-    onClickSelectScript: () -> Unit
+    onClickSelectScript: () -> Unit,
+    pagerState: PagerState
 ) {
 
     val spacing = LocalSpacing.current
@@ -267,7 +275,7 @@ private fun BottomButtons(
 //                        )
                         .border(
                             width = 1.dp,
-                            color = White ,
+                            color = White,
                             shape = RoundedCornerShape(30.dp)
                         )
                         .clickable {
@@ -301,46 +309,49 @@ private fun BottomButtons(
             }
 
 
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-            ) {
 
-                Row(
+            if (pagerState.pageCount > 0) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(
-                            5.dp,
-                            shape = RoundedCornerShape(30.dp)
-                        )
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    bright_blue,
-                                    text_sharp_blue
-                                )
-                            ),
-                            shape = RoundedCornerShape(30.dp)
-                        )
-                        .shimmerEffect(2000)
-                        .clickable {
-                            onClickSelectScript()
-                        },
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                        .weight(1f)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = White
-                    )
-                    Text(
-                        "선택 완료",
-                        modifier = Modifier.padding(vertical = spacing.medium),
-                        fontSize = 16.sp
-                    )
-                }
 
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(
+                                5.dp,
+                                shape = RoundedCornerShape(30.dp)
+                            )
+                            .background(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        bright_blue,
+                                        text_sharp_blue
+                                    )
+                                ),
+                                shape = RoundedCornerShape(30.dp)
+                            )
+                            .shimmerEffect(2000)
+                            .clickable {
+                                onClickSelectScript()
+                            },
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = White
+                        )
+                        Text(
+                            "선택 완료",
+                            modifier = Modifier.padding(vertical = spacing.medium),
+                            fontSize = 16.sp
+                        )
+                    }
+
+                }
             }
 
 
@@ -431,7 +442,10 @@ private fun PagerContent(
 
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall,Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(
+                spacing.extraSmall,
+                Alignment.CenterVertically
+            ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Card(shape = RoundedCornerShape(15.dp),
@@ -475,7 +489,7 @@ private fun PagerContent(
 
 
                     Text(
-                        text = script.name, style = LocalTextStyle.current.copy(
+                        text = script.title, style = LocalTextStyle.current.copy(
                             color = DarkGray,
                             fontSize = 18.sp,
                             fontWeight = FontWeight(550),
@@ -497,10 +511,15 @@ private fun PagerContent(
                     )
 
                     LazyColumn(
-                        modifier = Modifier.fillMaxWidth().background(color = White, shape = RoundedCornerShape(5.dp)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(color = White, shape = RoundedCornerShape(5.dp)),
                         verticalArrangement = Arrangement.spacedBy(spacing.medium),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        contentPadding = PaddingValues(horizontal = spacing.small, vertical = spacing.medium)
+                        contentPadding = PaddingValues(
+                            horizontal = spacing.small,
+                            vertical = spacing.medium
+                        )
                     ) {
                         items(script.scriptItems.size) { idx ->
                             ScriptItemContent(
@@ -510,39 +529,36 @@ private fun PagerContent(
                     }
 
 
-
-
-
-
-
                 }
 
 
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.small)
-            ) {
-                Checkbox(
-                    checked = isChecked.value,
-                    onCheckedChange = {
-                        isChecked.value = it
-                    },
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = bright_blue,
-                        uncheckedColor = LightGray,
-                        checkmarkColor = White
-                    ),
-                    enabled = script.questionnaireState
-                )
+            if(script.interviewed) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.small)
+                ) {
+                    Checkbox(
+                        checked = isChecked.value,
+                        onCheckedChange = {
+                            isChecked.value = it
+                        },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = bright_blue,
+                            uncheckedColor = LightGray,
+                            checkmarkColor = White
+                        )
+                    )
 
-                Text("이전에 시도한 면접 진행", color = White, fontSize = 14.sp, fontWeight = FontWeight(550))
+                    Text("이전에 시도한 면접 진행", color = White, fontSize = 14.sp, fontWeight = FontWeight(550))
 
+                }
             }
+
         }
 
 

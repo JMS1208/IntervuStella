@@ -1,18 +1,23 @@
 package com.capstone.Capstone2Project.data.model
 
+import com.google.gson.annotations.SerializedName
 import java.util.*
 
 //인터뷰 결과를 조회하는 용
 data class InterviewResult(
+    @SerializedName("interviewUUID")
     val interviewUUID: String,
-//    val scriptUUID: String,
-//    val memo: String?,
-//    val memo_date: Long?,
+    @SerializedName("interviewDate")
     val interviewDate: Long,
+    @SerializedName("rank")
     val rank: String,
+    @SerializedName("badPoses")
     val badPoses: List<Int>,
+    @SerializedName("badExpressions")
     val badExpressions: List<Int>,
+    @SerializedName("totalDuration")
     val totalDuration: Long,
+    @SerializedName("feedbackList")
     val feedbackList: List<FeedbackItem>
 ) {
 
@@ -96,10 +101,15 @@ data class InterviewResult(
 }
 
 data class FeedbackItem(
+    @SerializedName("question")
     val question: String,
+    @SerializedName("answer")
     val answer: String,
+    @SerializedName("feedback")
     val feedback: String,
+    @SerializedName("duration")
     val duration: Long,
+    @SerializedName("durationWarning")
     val durationWarning: String
 ) {
     fun durationToString(): String {

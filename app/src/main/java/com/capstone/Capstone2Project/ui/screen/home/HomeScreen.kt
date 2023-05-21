@@ -1,5 +1,6 @@
 package com.capstone.Capstone2Project.ui.screen.home
 
+import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -612,8 +613,11 @@ private fun AttendanceCheck(
                             top = spacing.small
                         )
                     ) {
-                        items(weekAttendanceInfo.data.weekAttendance) {
-                            ItemAttendance(weekItem = it)
+                        items(weekAttendanceInfo.data.weekAttendance) {weekItem->
+                            weekItem?.let{
+                                ItemAttendance(weekItem = it)
+                                Log.e("TAG", "AttendanceCheck: $it", )
+                            }
                         }
                     }
 

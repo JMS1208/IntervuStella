@@ -7,7 +7,8 @@ import com.capstone.Capstone2Project.network.service.MainService
 
 class CommentPagingSource(
     private val service: MainService,
-    private val questionUUID: String
+    private val questionUUID: String,
+    private val hostUUID: String
 ): PagingSource<Int, TodayQuestionComment>() {
     override fun getRefreshKey(state: PagingState<Int, TodayQuestionComment>): Int? {
         return state.anchorPosition?.let { anchorPosition ->
@@ -19,7 +20,7 @@ class CommentPagingSource(
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, TodayQuestionComment> {
         return try {
             val pageNumber = params.key ?: STARTING_PAGE_INDEX
-            val response = service.getTodayQuestionCommentList(questionUUID = questionUUID, page = pageNumber, perPage = params.loadSize)
+            val response = service.getTodayQuestionCommentList(questionUUID = questionUUID, page = pageNumber, perPage = params.loadSize, hostUUID = hostUUID)
 
             val endOfPaginationReached = response.body().isNullOrEmpty()
 

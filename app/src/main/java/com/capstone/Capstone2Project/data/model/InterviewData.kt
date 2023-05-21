@@ -7,9 +7,5 @@ data class InterviewData(
     val badPose: List<Int>,
     val progress: Long,
     val answers: List<AnswerItem>,
-//    val interviewDate: Long,
-//    val memo: String,
-//    val logs: List<InterviewLogLine>,
-//    val scriptUUID: String,
     val durations: List<Long>
 )

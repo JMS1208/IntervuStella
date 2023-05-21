@@ -53,7 +53,8 @@ private fun Preview() {
                         date = System.currentTimeMillis(),
                         questionItem = QuestionItem(
                             uuid = UUID.randomUUID().toString(),
-                            question = "질문 예시"
+                            question = "질문 예시",
+                            questionType = 0
                         ),
                         logLine = LogLine(
                             type = LogLine.Type.Camera,

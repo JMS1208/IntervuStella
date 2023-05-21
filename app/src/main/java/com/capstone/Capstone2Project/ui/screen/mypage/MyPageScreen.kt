@@ -73,7 +73,6 @@ import com.capstone.Capstone2Project.data.model.InterviewScore
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
 import com.capstone.Capstone2Project.data.resource.DataState
-import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.navigation.ROUTE_LOGIN
 import com.capstone.Capstone2Project.navigation.ROUTE_SCRIPT_WRITING
 import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
@@ -1695,7 +1694,7 @@ private fun MyScriptItem(
         ) {
 
             Text(
-                script.name,
+                script.title,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 fontSize = 16.sp,
@@ -1704,10 +1703,13 @@ private fun MyScriptItem(
 
             Spacer(modifier = Modifier.height(spacing.small))
 
-            Text(
-                simpleDateFormat.format(Date(script.date)),
-                fontSize = 14.sp
-            )
+            script.date?.let {
+                Text(
+                    simpleDateFormat.format(Date(it)),
+                    fontSize = 14.sp
+                )
+            }
+
         }
     }
 

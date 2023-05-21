@@ -1,5 +1,6 @@
 package com.capstone.Capstone2Project.navigation
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -21,7 +22,8 @@ import com.capstone.Capstone2Project.ui.screen.interview.InterviewGuideScreen
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewResultScreen
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewScreen
 import com.capstone.Capstone2Project.ui.screen.mypage.MyPageScreen
-import com.capstone.Capstone2Project.ui.screen.comment.OthersAnswersScreen
+import com.capstone.Capstone2Project.ui.screen.comment.CommunityScreen
+import com.capstone.Capstone2Project.ui.screen.script.ScriptScreen
 import com.capstone.Capstone2Project.ui.screen.script.ScriptWritingFinishScreen
 import com.capstone.Capstone2Project.ui.screen.script.ScriptWritingScreen
 
@@ -116,22 +118,43 @@ fun AppNavHost(
 
             val script = if (scriptJson == null) null else Script.jsonStringToScript(scriptJson)
 
-            ScriptWritingScreen(navController = navController, _script = script)
+            val authViewModel: AuthViewModel = hiltViewModel()
 
+            authViewModel.currentUser?.let { firebaseUser ->
+//                ScriptWritingScreen(navController = navController, oriScript = script, firebaseUser = firebaseUser)
+                ScriptScreen(navController = navController, oriScript = script)
+            }
 
         }
 
-        composable("$ROUTE_SCRIPT_WRITING_FINISH/{script}") { navBackStackEntry ->
+        composable(
+//            "$ROUTE_SCRIPT_WRITING_FINISH/{script}"
+            ROUTE_SCRIPT_WRITING_FINISH
+        ) { //navBackStackEntry ->
 
-            val scriptJson = navBackStackEntry.arguments?.getString("script")
 
-            scriptJson?.let {
-                val script = Script.jsonStringToScript(it)
+//            val script = navBackStackEntry.savedStateHandle.get<Script>("script")
 
-                if (script != null) {
-                    ScriptWritingFinishScreen(script = script, navController = navController)
-                }
+            val script = navController.previousBackStackEntry?.savedStateHandle?.get<Script>("script")
+
+            if(script != null) {
+
+//                navController.popBackStack()
+
+                ScriptWritingFinishScreen(script = script, navController = navController)
             }
+
+//            val scriptJson = navBackStackEntry.arguments?.getString("script")
+//
+//            scriptJson?.let {
+//                val script = Script.jsonStringToScript(it)
+//
+//                if (script != null) {
+//                    ScriptWritingFinishScreen(script = script, navController = navController)
+//                }
+//            } ?: run {
+//
+//            }
         }
 
         composable(ROUTE_MY_PAGE) {
@@ -143,7 +166,7 @@ fun AppNavHost(
             val questionUUID = navBackStackEntry.arguments?.getString("question_uuid")
 
             questionUUID?.let {
-                OthersAnswersScreen(questionUUID = it, navController = navController)
+                CommunityScreen(questionUUID = it, navController = navController)
             }
         }
     }

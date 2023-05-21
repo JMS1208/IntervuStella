@@ -11,17 +11,16 @@ import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
 import com.capstone.Capstone2Project.data.model.inapp.WeekAttendanceInfo
 import com.capstone.Capstone2Project.data.model.response.InterviewDataResponse
 import com.capstone.Capstone2Project.data.resource.Resource
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.flow.Flow
 import retrofit2.Response
 
 interface NetworkRepository {
-    //suspend fun getDefaultTopics(): Resource<List<Topic>>
-    suspend fun getScripts(hostUUID: String): Result<List<Script>>
+//    suspend fun getScripts(hostUUID: String): Result<List<Script>>
     suspend fun getCustomQuestionnaire(script: Script): Resource<CustomQuestionnaire>
 
-    //    suspend fun getScriptPaper(): Resource<ScriptPaper>
-    suspend fun createEmptyScript(hostUUID: String): Resource<Script>
-    suspend fun getInterviewRecords(hostUUID: String): Result<List<InterviewResult>>
+//    suspend fun createEmptyScript(hostUUID: String): Resource<Script>
+//    suspend fun getInterviewRecords(hostUUID: String): Result<List<InterviewResult>>
     suspend fun getInterviewScores(hostUUID: String): Result<List<InterviewScore>>
     suspend fun getMyTodayQuestionsMemo(hostUUID: String): Result<List<TodayQuestionMemo>>
 
@@ -31,7 +30,6 @@ interface NetworkRepository {
 
     suspend fun getInterviewResult(interviewUUID: String): Resource<InterviewResult>
 
-    suspend fun updateCommentLike(hostUUID: String, commentUUID: String): Result<String> //성공여부
 
     suspend fun checkAttendance(hostUUID: String): Resource<Boolean>
 
@@ -62,12 +60,6 @@ interface NetworkRepository {
         question: String
     ): Resource<TodayQuestionMemo>
 
-//    suspend fun postTodayQuestionMemo(
-//        hostUUID: String,
-//        questionUUID: String,
-//        memo: String
-//    ): Boolean
-
     suspend fun updateTodayQuestionMemo(
         hostUUID: String,
         questionUUID: String,
@@ -76,6 +68,7 @@ interface NetworkRepository {
 
     suspend fun getTodayQuestionCommentList(
         questionUUID: String,
+        hostUUID: String
     ): Pager<Int, TodayQuestionComment>
 
     suspend fun getMyTodayQuestionComment(
@@ -86,4 +79,49 @@ interface NetworkRepository {
     suspend fun getTodayQuestionInfo(
         questionUUID: String
     ): Result<TodayQuestion>
+
+    suspend fun changeCommentLikeCount(
+        commentUUID: String,
+        hostUUID: String
+    ): Result<Int>
+
+    suspend fun createMyComment(
+        questionUUID: String,
+        hostUUID: String,
+        comment: String
+    ): Result<TodayQuestionComment>
+
+    suspend fun updateMyComment(
+        commentUUID: String,
+        questionUUID: String,
+        hostUUID: String,
+        comment: String
+    ): Result<TodayQuestionComment>
+
+    suspend fun deleteMyComment(
+        commentUUID: String,
+        hostUUID: String
+    ): Result<Boolean>
+
+    suspend fun getMyScriptList(
+        hostUUID: String
+    ): Result<List<Script>>
+
+    suspend fun getJobRoleList(
+    ): Result<List<String>>
+
+    suspend fun getScriptItemList(
+    ): Result<List<ScriptItem>>
+
+    suspend fun createNewScript(
+        script: Script
+    ): Result<Boolean>
+
+    suspend fun updateScript(
+        script: Script
+    ): Result<Boolean>
+
+    suspend fun getMyInterviewResultList(
+        hostUUID: String
+    ): Result<List<InterviewResult>>
 }

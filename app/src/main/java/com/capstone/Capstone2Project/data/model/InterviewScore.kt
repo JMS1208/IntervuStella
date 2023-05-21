@@ -6,4 +6,5 @@ data class InterviewScore(
     val interviewUUID: String,
     val date: Long,
     val score: Int
+//    max
 )

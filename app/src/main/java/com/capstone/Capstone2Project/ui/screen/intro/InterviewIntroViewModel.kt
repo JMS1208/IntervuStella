@@ -31,7 +31,7 @@ class InterviewIntroViewModel @Inject constructor(
         val currentUUID = authRepository.currentUser?.uid
 
         try {
-            val result: Result<List<Script>> = repository.getScripts(currentUUID!!)
+            val result: Result<List<Script>> = repository.getMyScriptList(currentUUID!!)
 
             if(result.isSuccess) {
                 _scriptsFlow.value = Resource.Success(result.getOrNull()?: emptyList())

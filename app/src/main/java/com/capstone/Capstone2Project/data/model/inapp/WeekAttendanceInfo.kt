@@ -1,7 +1,7 @@
 package com.capstone.Capstone2Project.data.model.inapp
 
 data class WeekAttendanceInfo(
-    val weekAttendance: List<WeekItem>,
+    val weekAttendance: List<WeekItem?>,
     val continuousCount: Int
 )
 data class WeekItem(
