@@ -1,7 +1,6 @@
 package com.capstone.Capstone2Project.repository
 
 import androidx.paging.Pager
-import androidx.paging.PagingData
 import com.capstone.Capstone2Project.data.model.*
 import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestion
 import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestionComment
@@ -11,17 +10,20 @@ import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
 import com.capstone.Capstone2Project.data.model.inapp.WeekAttendanceInfo
 import com.capstone.Capstone2Project.data.model.response.InterviewDataResponse
 import com.capstone.Capstone2Project.data.resource.Resource
-import com.google.gson.annotations.SerializedName
-import kotlinx.coroutines.flow.Flow
 import retrofit2.Response
 
 interface NetworkRepository {
-//    suspend fun getScripts(hostUUID: String): Result<List<Script>>
-    suspend fun getCustomQuestionnaire(script: Script): Resource<CustomQuestionnaire>
+    //    suspend fun getScripts(hostUUID: String): Result<List<Script>>
+    suspend fun getQuestionnaire(
+        hostUUID: String,
+        scriptUUID: String,
+        jobRole: String,
+        reuse: Boolean
+    ): Result<Questionnaire>
 
-//    suspend fun createEmptyScript(hostUUID: String): Resource<Script>
+    //    suspend fun createEmptyScript(hostUUID: String): Resource<Script>
 //    suspend fun getInterviewRecords(hostUUID: String): Result<List<InterviewResult>>
-    suspend fun getInterviewScores(hostUUID: String): Result<List<InterviewScore>>
+    suspend fun getInterviewScore(hostUUID: String): Result<InterviewScore>
     suspend fun getMyTodayQuestionsMemo(hostUUID: String): Result<List<TodayQuestionMemo>>
 
     suspend fun sendInterviewData(interviewData: InterviewData): InterviewDataResponse
@@ -124,4 +126,9 @@ interface NetworkRepository {
     suspend fun getMyInterviewResultList(
         hostUUID: String
     ): Result<List<InterviewResult>>
+
+    suspend fun createScript(
+        hostUUID: String,
+        script: Script
+    ): Result<Boolean>
 }

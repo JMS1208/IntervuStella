@@ -39,6 +39,7 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import com.capstone.Capstone2Project.R
+import com.capstone.Capstone2Project.data.model.InterviewScore
 import com.capstone.Capstone2Project.utils.composable.GlassMorphismCardBackground
 import com.capstone.Capstone2Project.utils.etc.CustomFont
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
@@ -51,19 +52,38 @@ import com.madrapps.plot.line.DataPoint
 import com.madrapps.plot.line.LineGraph
 import com.madrapps.plot.line.LinePlot
 import java.text.DecimalFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 import kotlin.math.absoluteValue
 
 
-@Preview(showBackground = true)
 @Composable
-fun ChartScreen() {
+fun ChartScreen(rankRecords: InterviewScore) {
 
     val spacing = LocalSpacing.current
 
-    val dataPointList = getDataPointList()
+//    val dataPointList = getDataPointList()
+
+    fun getDataPointList(): List<DataPoint> {
+
+        return rankRecords.ranks.mapIndexed { idx, rank->
+            DataPoint(
+                x = idx.toFloat(),
+                y = rank.rankToDataPointY()
+            )
+        }
+    }
+
+
+
 
     val density = LocalDensity.current
+
+    val simpleDateFormat = remember {
+        SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
+    }
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -114,7 +134,7 @@ fun ChartScreen() {
                     val (lowRef, highRef, newRef) = createRefs()
 
                     Text(
-                        "최저 등급\nA",
+                        "최저 등급\n${rankRecords.minRank}",
                         modifier = Modifier.constrainAs(lowRef) {
                             bottom.linkTo(parent.bottom, margin = spacing.small)
                             start.linkTo(parent.start, margin = spacing.small)
@@ -127,7 +147,7 @@ fun ChartScreen() {
                     )
 
                     Text(
-                        "최고 등급\nS",
+                        "최고 등급\n${rankRecords.maxRank}",
                         modifier = Modifier
                             .wrapContentSize()
                             .constrainAs(highRef) {
@@ -169,7 +189,7 @@ fun ChartScreen() {
                     ChartContent(
                         modifier = Modifier
                             .padding(end = spacing.small),
-                        dataPointList = dataPointList
+                        dataPointList = getDataPointList()
                     )
 
 
@@ -177,7 +197,7 @@ fun ChartScreen() {
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 
-                Text("마지막 기록 2023.02.17",
+                Text("마지막 기록 ${simpleDateFormat.format(Date(rankRecords.recentlyDate))}",
                     modifier = Modifier.fillMaxWidth(),
                     fontSize = 14.sp,
                     color = White,

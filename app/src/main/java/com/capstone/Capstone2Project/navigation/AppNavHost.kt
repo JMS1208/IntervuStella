@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.capstone.Capstone2Project.data.model.Questionnaire
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
 import com.capstone.Capstone2Project.ui.screen.auth.LoginScreen
@@ -58,24 +59,30 @@ fun AppNavHost(
         }
 
         composable(
-            "$ROUTE_CAMERA/{script}"
+            "$ROUTE_CAMERA/{questionnaire}"
         ) { navBackStackEntry ->
-            val scriptJson = navBackStackEntry.arguments?.getString("script")
 
-            scriptJson?.let {
-                val script = Script.jsonStringToScript(it)
-                InterviewScreen(navController, script)
+            val questionnaireJson = navBackStackEntry.arguments?.getString("questionnaire")
+
+            questionnaireJson?.let {
+                val questionnaire = Questionnaire.jsonToObject(it)
+
+                InterviewScreen(navController = navController, questionnaire = questionnaire)
+
             }
+
         }
 
         composable(
-            "$ROUTE_INTERVIEW_GUIDE/{script}"
+            "$ROUTE_INTERVIEW_GUIDE/{questionnaire}"
         ) { navBackStackEntry ->
-            val scriptJson = navBackStackEntry.arguments?.getString("script")
+            val questionnaireJson = navBackStackEntry.arguments?.getString("questionnaire")
 
-            scriptJson?.let {
-                val script = Script.jsonStringToScript(it)
-                InterviewGuideScreen(navController, script)
+            questionnaireJson?.let {
+                val questionnaire = Questionnaire.jsonToObject(it)
+                if(questionnaire != null) {
+                    InterviewGuideScreen(navController, questionnaire)
+                }
             }
         }
 
@@ -119,8 +126,7 @@ fun AppNavHost(
             val authViewModel: AuthViewModel = hiltViewModel()
 
             authViewModel.currentUser?.let { firebaseUser ->
-//                ScriptWritingScreen(navController = navController, oriScript = script, firebaseUser = firebaseUser)
-                ScriptScreen(navController = navController, oriScript = script)
+                ScriptScreen(navController = navController, oriScript = script, firebaseUser = firebaseUser)
             }
 
         }

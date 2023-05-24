@@ -38,6 +38,7 @@ import androidx.core.content.ContextCompat.getSystemService
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.airbnb.lottie.compose.*
+import com.capstone.Capstone2Project.data.model.Questionnaire
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.navigation.ROUTE_CAMERA
 import com.capstone.Capstone2Project.navigation.ROUTE_HOME
@@ -49,17 +50,13 @@ import com.capstone.Capstone2Project.utils.theme.*
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 
-@Preview(showBackground = true)
-@Composable
-private fun Preview() {
-    InterviewGuideScreen(navController = rememberNavController(), script = null)
-}
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun InterviewGuideScreen(
     navController: NavController,
-    script: Script?
+    questionnaire: Questionnaire
 ) {
 
     val spacing = LocalSpacing.current
@@ -69,13 +66,6 @@ fun InterviewGuideScreen(
         composition,
         iterations = LottieConstants.IterateForever
     )
-
-//    val isChecked = remember {
-//        mutableStateOf(true)
-//    }
-
-
-    val context = LocalContext.current
 
     val requestPermissionsForRecording = remember {
         mutableStateOf(false)
@@ -87,19 +77,6 @@ fun InterviewGuideScreen(
 
     val permissionState = rememberMultiplePermissionsState(permissions = permissions)
 
-//    val screenRecordLauncher = rememberLauncherForActivityResult(
-//        contract = ActivityResultContracts.StartActivityForResult()
-//    ) {
-//        if (it.resultCode != RESULT_OK) {
-//            return@rememberLauncherForActivityResult
-//        }
-//        if (it.data == null) {
-//            return@rememberLauncherForActivityResult
-//        }
-//
-//        startRecordingService(context, it.resultCode, it.data!!)
-//
-//    }
 
 
     if (requestPermissionsForRecording.value) {
@@ -352,84 +329,11 @@ fun InterviewGuideScreen(
                         }
 
                         Spacer(modifier = Modifier.height(spacing.medium))
-//                        Column(
-//                            modifier = Modifier.fillMaxWidth()
-//                        ) {
-//                            Text(
-//                                "5. 동영상 녹화",
-//                                style = LocalTextStyle.current.copy(
-//                                    color = Color.Black,
-//                                    fontSize = 16.sp,
-//                                    fontWeight = FontWeight.SemiBold,
-//                                    textAlign = TextAlign.Start
-//                                )
-//                            )
-//
-//                            Spacer(modifier = Modifier.height(spacing.small))
-//
-//                            Text(
-//                                "면접과정을 녹화할 수 있어요.\n면접이 종료된 후 동영상으로 다시 확인해보세요.",
-//                                style = LocalTextStyle.current.copy(
-//                                    color = Color.Black,
-//                                    fontSize = 14.sp,
-//                                    fontWeight = FontWeight.Normal,
-//                                    textAlign = TextAlign.Start
-//                                )
-//                            )
-//
-//
-//                        }
+
 
                     }
 
 
-//                    Column(
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .padding(horizontal = spacing.medium),
-//                        horizontalAlignment = Alignment.End,
-//                        verticalArrangement = Arrangement.Center
-//                    ) {
-//
-//                        Row(
-//                            modifier = Modifier.wrapContentWidth(),
-//                            verticalAlignment = Alignment.CenterVertically
-//                        ) {
-//
-//                            Checkbox(
-//                                checked = isChecked.value,
-//                                onCheckedChange = {
-//                                    isChecked.value = it
-//                                },
-//                                colors = CheckboxDefaults.colors(
-//                                    checkedColor = bright_blue,
-//                                    uncheckedColor = Color.LightGray,
-//                                    checkmarkColor = White
-//                                )
-//                            )
-//
-//                            Text(
-//                                "동영상 녹화 사용",
-//                                color = Black,
-//                                style = LocalTextStyle.current.copy(
-//                                    fontSize = 16.sp,
-//                                    fontWeight = FontWeight(550)
-//                                )
-//
-//                            )
-//
-//
-//                        }
-//                        Text(
-//                            "면접이 종료된 후 동영상으로 다시 확인해보세요",
-//                            style = LocalTextStyle.current.copy(
-//                                color = Gray,
-//                                fontSize = 13.sp,
-//                                fontWeight = FontWeight.Normal,
-//                                textAlign = TextAlign.End
-//                            )
-//                        )
-//                    }
 
                     Row(
                         horizontalArrangement = Arrangement.End,
@@ -441,14 +345,13 @@ fun InterviewGuideScreen(
 
                                 if(permissionState.allPermissionsGranted) {
                                     navController.navigate(
-                                        "$ROUTE_CAMERA/{script}".replace(
-                                            oldValue = "{script}",
-                                            newValue = (script ?: Script.makeTestScript()).toJsonString()
+                                        "$ROUTE_CAMERA/{questionnaire}".replace(
+                                            oldValue = "{questionnaire}",
+                                            newValue = questionnaire.toJsonString()
                                         )
                                     ) {
-
                                         popUpTo(ROUTE_HOME) {
-
+                                            inclusive = true
                                         }
                                     }
                                 } else {

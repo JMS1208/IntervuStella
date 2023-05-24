@@ -7,7 +7,9 @@ import com.capstone.Capstone2Project.data.resource.successOrNull
 import com.capstone.Capstone2Project.repository.NetworkRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
@@ -23,8 +25,8 @@ class InterviewViewModel @Inject constructor(
     private var _state: MutableStateFlow<State> = MutableStateFlow(State())
     val state: StateFlow<State> = _state
 
-//    private var _recordRequest: MutableStateFlow<Boolean> = MutableStateFlow(false)
-//    val recordRequest: StateFlow<Boolean> = _recordRequest
+    private var _effect: MutableSharedFlow<Effect> = MutableSharedFlow()
+    val effect: SharedFlow<Effect> = _effect
 
     private var _oldInterviewLogLineFlow: MutableStateFlow<InterviewLogLine?> =
         MutableStateFlow(null)
@@ -121,7 +123,7 @@ class InterviewViewModel @Inject constructor(
 
         val currentPage = state.value.currentPage ?: return
 
-        val questionnaire = state.value.customQuestionnaire ?: return
+        val questionnaire = state.value.questionnaire ?: return
 
         val question = questionnaire.questions[currentPage].question
 
@@ -138,67 +140,6 @@ class InterviewViewModel @Inject constructor(
 
     }
 
-    fun fetchCustomQuestionnaire(script: Script?) = viewModelScope.launch {
-        if (script == null) {
-            _state.update {
-                it.copy(
-                    interviewState = InterviewState.Error("유효하지 않은 자기소개서 입니다")
-                )
-            }
-            return@launch
-        }
-
-        _state.update {
-            it.copy(
-                interviewState = InterviewState.Ready
-            )
-        }
-
-        val result = repository.getCustomQuestionnaire(script)
-
-
-        result.successOrNull()?.let { questionnaire ->
-
-            if (questionnaire.questions.isEmpty()) {
-                _state.update {
-                    it.copy(
-                        interviewState = InterviewState.Error(
-                            "생성된 질문 목록이 없습니다"
-                        )
-                    )
-                }
-                return@launch
-            }
-
-            _state.update {
-
-                val answers = mutableListOf<AnswerItem>()
-
-                questionnaire.questions.forEach { question ->
-                    answers.add(
-                        AnswerItem(
-                            answerUUID = UUID.randomUUID().toString(),
-                            questionUUID = question.uuid,
-                            answer = ""
-                        )
-                    )
-                }
-
-                it.copy(
-                    interviewState = InterviewState.Prepared,
-                    answers = answers,
-                    currentPage = 0,
-                    interviewDate = System.currentTimeMillis(),
-                    customQuestionnaire = questionnaire,
-                    progress = 0,
-                    durations = List(answers.size) {0}
-                )
-            }
-        }
-
-    }
-
-
     fun moveToNextPage() = viewModelScope.launch {
         handleStateException {
             if (state.value.interviewState != InterviewState.InProgress && state.value.interviewState !is InterviewState.EditAnswer) {
@@ -207,24 +148,13 @@ class InterviewViewModel @Inject constructor(
 
             val currentPage = state.value.currentPage ?: return@launch
 
-            val questions = state.value.customQuestionnaire?.questions ?: return@launch
+            val questions = state.value.questionnaire?.questions ?: return@launch
 
             val durations = state.value.durations ?: return@launch
 
             if (currentPage + 1 < questions.size) {
                 _state.update {
 
-//                    val newDurations = durations.mapIndexed { idx, duration ->
-//                        if (idx == currentPage) {
-//                            if (currentPage == 0) {
-//                                it.progress
-//                            } else {
-//                                it.progress - durations[idx-1]
-//                            }
-//                        } else {
-//                            duration
-//                        }
-//                    }
 
                     val newCumDurations = durations.mapIndexed { index, duration ->
                         if (index == currentPage) {
@@ -299,7 +229,7 @@ class InterviewViewModel @Inject constructor(
     fun checkAnswer() = viewModelScope.launch {
         handleStateException {
             state.value.let {
-                val questionnaire = it.customQuestionnaire
+                val questionnaire = it.questionnaire
                 val answers = it.answers
                 val currentPage = it.currentPage
                 val answerItem = answers!![currentPage!!]
@@ -379,18 +309,12 @@ class InterviewViewModel @Inject constructor(
 
                 val interviewUUID = UUID.randomUUID().toString()
                 val interviewData = InterviewData(
-//                    interviewUUID = interviewUUID,
-//                    interviewDate = System.currentTimeMillis(),
-//                    logs = logs,
-//                    scriptUUID = customQuestionnaire!!.scriptUUID,
-
                     answers = answers!!,
                     badExpressions = badExpressions,
                     badPose = badPose,
-                    questionnaireUUID = this.customQuestionnaire?.questionnaireUUID!!,
                     durations = durations,
-                    progress = durations.sum()
-
+                    progress = durations.sum(),
+                    questionnaireUUID = questionnaire?.uuid!!
                 )
 
                 val result = repository.sendInterviewData(interviewData)
@@ -472,6 +396,53 @@ class InterviewViewModel @Inject constructor(
         }
     }
 
+    /*
+    맨처음 면접 질문지 초기화하기
+     */
+    fun initQuestionnaire(questionnaire: Questionnaire?) = viewModelScope.launch {
+        if(questionnaire == null) {
+            val message = "잠시 후 다시 시도해주세요"
+            _effect.emit(
+                Effect.ShowMessage(message)
+            )
+            _state.update {
+                it.copy(
+                    interviewState = InterviewState.Error(message)
+                )
+            }
+            return@launch
+        }
+
+        _state.update {
+            it.copy(
+                interviewState = InterviewState.Ready
+            )
+        }
+        val answers = mutableListOf<AnswerItem>()
+
+        questionnaire.questions.forEach {
+            answers.add(
+                AnswerItem(
+                    answerUUID = UUID.randomUUID().toString(),
+                    questionUUID = it.uuid,
+                    answer = ""
+                )
+            )
+        }
+
+        _state.update {
+            it.copy(
+                interviewState = InterviewState.Prepared,
+                questionnaire = questionnaire,
+                answers = answers,
+                currentPage = 0,
+                interviewDate = System.currentTimeMillis(),
+                progress = 0,
+                durations = List(answers.size) {0}
+            )
+        }
+
+    }
 
     data class State(
         var interviewState: InterviewState = InterviewState.Ready,
@@ -480,7 +451,7 @@ class InterviewViewModel @Inject constructor(
         val badExpressions :List<Int> = List(4) { 0 },
         var badPose: List<Int> = List(2) { 0 },
         var currentPage: Int? = null,
-        val customQuestionnaire: CustomQuestionnaire? = null,
+        val questionnaire: Questionnaire? = null,
         val answers: List<AnswerItem>? = null,
         var interviewDate: Long? = null,
         var recognizerState: RecognizerState = RecognizerState.Stopped,
@@ -499,7 +470,6 @@ class InterviewViewModel @Inject constructor(
 
     }
 
-
     sealed class InterviewState {
         object Ready : InterviewState() //패치전
         object Prepared : InterviewState() //패치후
@@ -516,6 +486,10 @@ class InterviewViewModel @Inject constructor(
             val message: String
         ) : InterviewState()
         object Loading: InterviewState()
+    }
+
+    sealed class Effect {
+        data class ShowMessage(val message: String) : Effect()
     }
 
     data class LogState(

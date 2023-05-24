@@ -77,6 +77,7 @@ import androidx.navigation.NavController
 import com.airbnb.lottie.compose.*
 import com.capstone.Capstone2Project.R
 import com.capstone.Capstone2Project.data.model.LogLine
+import com.capstone.Capstone2Project.data.model.Questionnaire
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.navigation.ROUTE_INTERVIEW_FINISHED
@@ -111,8 +112,7 @@ import kotlin.streams.toList
 @Composable
 fun InterviewScreen(
     navController: NavController,
-    script: Script?,
-//    useRecording: Boolean
+    questionnaire: Questionnaire?
 ) {
 
     val interviewViewModel: InterviewViewModel = hiltViewModel()
@@ -127,35 +127,21 @@ fun InterviewScreen(
 
     val permissionState = rememberMultiplePermissionsState(permissions = permissions)
 
-
-//    val screenRecordLauncher = rememberLauncherForActivityResult(
-//        contract = ActivityResultContracts.StartActivityForResult()
-//    ) {
-//        if (it.resultCode != Activity.RESULT_OK) {
-//            return@rememberLauncherForActivityResult
-//        }
-//        if (it.data == null) {
-//            return@rememberLauncherForActivityResult
-//        }
-//
-//        startRecordingService(context, it.resultCode, it.data!!)
-//
-//    }
-
-
-    LaunchedEffect(interviewViewModel) {
-        //script 가 null 이면 state로 에러떠서 괜찮음
-        //TODO(바꿔줘야함)
-        //interviewViewModel2.fetchCustomQuestionnaire(script)
-        interviewViewModel.fetchCustomQuestionnaire((script ?: Script.makeTestScript()))
-
-    }
-
-
     if (!permissionState.allPermissionsGranted) {
         RequestPermissions(permissionState)
     } else {
-        InterviewUIScreenContent(navController = navController)
+        InterviewUIScreenContent(navController = navController, questionnaire = questionnaire)
+    }
+
+    LaunchedEffect(interviewViewModel) {
+        interviewViewModel.effect.collect {
+            when(it) {
+                is InterviewViewModel.Effect.ShowMessage -> {
+                    val message = it.message
+                    AlertUtils.showToast(context, message)
+                }
+            }
+        }
     }
 
     ComposableLifecycle { _, event ->
@@ -360,11 +346,16 @@ private fun InterviewCountDownDialog(
 
 @Composable
 fun InterviewUIScreenContent(
-    navController: NavController
+    navController: NavController,
+    questionnaire: Questionnaire?
 ) {
 
     val interviewViewModel: InterviewViewModel = hiltViewModel()
     //val state = interviewViewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(interviewViewModel) {
+        interviewViewModel.initQuestionnaire(questionnaire)
+    }
 
     val spacing = LocalSpacing.current
 
@@ -1399,8 +1390,8 @@ private fun QuestionAnswerContents(
     val question = remember(state.value.currentPage) {
         derivedStateOf {
             with(state.value) {
-                if (customQuestionnaire?.questions != null && currentPage != null) {
-                    customQuestionnaire.questions[currentPage!!].question
+                if (questionnaire?.questions != null && currentPage != null) {
+                    questionnaire.questions[currentPage!!].question
                 } else {
                     ""
                 }
@@ -1413,7 +1404,7 @@ private fun QuestionAnswerContents(
         if (interviewState == InterviewViewModel.InterviewState.InProgress) {
 
 
-            if (customQuestionnaire?.questions != null && currentPage != null && answers != null) {
+            if (questionnaire?.questions != null && currentPage != null && answers != null) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()

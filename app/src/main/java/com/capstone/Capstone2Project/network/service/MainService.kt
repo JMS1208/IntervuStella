@@ -1,5 +1,6 @@
 package com.capstone.Capstone2Project.network.service
 
+import com.capstone.Capstone2Project.data.model.Questionnaire
 import com.capstone.Capstone2Project.data.model.InterviewResult
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.data.model.ScriptItem
@@ -254,4 +255,24 @@ interface MainService {
     suspend fun getMyInterviewList(
         @Query("user_uuid") hostUUID: String
     ): Response<List<InterviewResult>>
+
+    /*
+    자기소개서 생성하기
+     */
+    @POST("self_intro/script/")
+    suspend fun createScript(
+        @Query("user_uuid") hostUUID: String,
+        @Body script: Script
+    ): Response<Int> //1:성공 0:실패
+
+    /*
+    면접 질문지 가져오기
+     */
+    @GET("interview/interview_questionnaire/")
+    suspend fun getQuestionnaire(
+        @Query("user_uuid") hostUUID: String,
+        @Query("script_uuid") scriptUUID: String,
+        @Query("role") jobRole: String,
+        @Query("reuse") reuse: Int
+    ): Response<Questionnaire>
 }

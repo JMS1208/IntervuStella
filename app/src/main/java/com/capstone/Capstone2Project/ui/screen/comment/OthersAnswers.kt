@@ -152,7 +152,7 @@ fun CommunityScreen(
                     ErrorScreen((state.value.dataState as DataState.Error).message)
                 }
 
-                DataState.Loading -> {
+                is DataState.Loading -> {
                     LoadingScreen()
                 }
 

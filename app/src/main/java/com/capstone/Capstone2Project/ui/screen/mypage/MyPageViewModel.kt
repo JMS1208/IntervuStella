@@ -1,6 +1,5 @@
 package com.capstone.Capstone2Project.ui.screen.mypage
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capstone.Capstone2Project.data.model.InspiringKeyword
@@ -33,7 +32,7 @@ class MyPageViewModel @Inject constructor(
 
         _state.update {
             it.copy(
-                dataState = DataState.Loading
+                dataState = DataState.Loading()
             )
         }
 
@@ -61,7 +60,7 @@ class MyPageViewModel @Inject constructor(
     fun fetchMyInterviewRecords(hostUUID: String) = viewModelScope.launch {
         _state.update {
             it.copy(
-                dataState = DataState.Loading
+                dataState = DataState.Loading()
             )
         }
 
@@ -89,16 +88,16 @@ class MyPageViewModel @Inject constructor(
     fun fetchMyInterviewScores(hostUUID: String) = viewModelScope.launch {
         _state.update {
             it.copy(
-                dataState = DataState.Loading
+                dataState = DataState.Loading()
             )
         }
 
-        val result = repository.getInterviewScores(hostUUID)
+        val result = repository.getInterviewScore(hostUUID)
 
         if(result.isSuccess) {
             _state.update {
                 it.copy(
-                    myInterviewScores = result.getOrNull() ?: emptyList(),
+                    myRankRecords = result.getOrNull(),
                     dataState = DataState.Normal
                 )
             }
@@ -119,7 +118,7 @@ class MyPageViewModel @Inject constructor(
 
         _state.update {
             it.copy(
-                dataState = DataState.Loading
+                dataState = DataState.Loading()
             )
         }
 
@@ -151,7 +150,7 @@ class MyPageViewModel @Inject constructor(
 
         _state.update {
             it.copy(
-                dataState = DataState.Loading
+                dataState = DataState.Loading()
             )
         }
 
@@ -209,11 +208,11 @@ class MyPageViewModel @Inject constructor(
 
     data class State(
         var dialogState: DialogState = DialogState.Nothing,
-        var dataState: DataState = DataState.Loading,
+        var dataState: DataState = DataState.Loading(),
         var inspiringKeywords: List<InspiringKeyword> = emptyList(),
         var todayQuestionsMemo: List<TodayQuestionMemo> = emptyList(),
         var myScripts: List<Script> = emptyList(),
-        var myInterviewScores: List<InterviewScore> = emptyList(),
+        var myRankRecords: InterviewScore? = null,
         var myInterviewRecords: List<InterviewResult> = emptyList()
     )
 

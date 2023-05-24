@@ -204,7 +204,7 @@ private fun MyPageContent(
                 is DataState.Error -> {
                     ErrorScreen((stateFlow.value.dataState as DataState.Error).message)
                 }
-                DataState.Loading -> {
+                is DataState.Loading -> {
                     LoadingScreen()
                 }
                 DataState.Normal -> {
@@ -497,7 +497,7 @@ private fun MyPageContent(
 
                         Spacer(modifier = Modifier.height(spacing.small))
 
-                        MyInterviewScores(navController, firebaseUser, stateFlow.value.myInterviewScores)
+                        MyInterviewScores(navController, firebaseUser, stateFlow.value.myRankRecords)
 
                         Spacer(modifier = Modifier.height(spacing.small))
 
@@ -1282,7 +1282,7 @@ private fun MyTodayQuestionsFirstItem(count: Int) {
 fun MyInterviewScores(
     navController: NavController,
     firebaseUser: FirebaseUser,
-    interviewScores: List<InterviewScore>
+    rankRecords: InterviewScore?
 ) {
 
     val spacing = LocalSpacing.current
@@ -1293,14 +1293,17 @@ fun MyInterviewScores(
             fontFamily = nexonFont
         )
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(spacing.small),
-            contentAlignment = Alignment.Center
-        ) {
-            ChartScreen()
+        rankRecords?.let {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(spacing.small),
+                contentAlignment = Alignment.Center
+            ) {
+                ChartScreen(it)
+            }
         }
+
 
     }
 

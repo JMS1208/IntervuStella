@@ -1,14 +1,12 @@
 package com.capstone.Capstone2Project.ui.screen.script
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.capstone.Capstone2Project.data.model.Questionnaire
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.data.model.ScriptItem
 import com.capstone.Capstone2Project.data.resource.DataState
-import com.capstone.Capstone2Project.navigation.ROUTE_SCRIPT_WRITING_FINISH
 import com.capstone.Capstone2Project.repository.NetworkRepository
-import com.capstone.Capstone2Project.utils.etc.AlertUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -211,7 +209,7 @@ class ScriptViewModel @Inject constructor(
     fun setScriptAndFetchBaseData(script: Script?) = viewModelScope.launch(Dispatchers.IO) {
         _state.update {
             it.copy(
-                dataState = DataState.Loading
+                dataState = DataState.Loading()
             )
         }
 
@@ -258,7 +256,7 @@ class ScriptViewModel @Inject constructor(
     }
 
     /*
-    자기소개서 만들기 (질문, 직무 선택하고 다음 페이지 넘어가는 상황)
+    세팅한걸로 초벌 자기소개서 만들기 (질문, 직무 선택하고 다음 페이지 넘어가는 상황)
      */
     fun makeScript() = viewModelScope.launch {
 
@@ -288,7 +286,7 @@ class ScriptViewModel @Inject constructor(
         }
     }
 
-    fun sendScriptToServer() = viewModelScope.launch(Dispatchers.IO) {
+    private fun sendScriptToServer(hostUUID: String) = viewModelScope.launch(Dispatchers.IO) {
         val script = Script(
             date = System.currentTimeMillis(),
             title = state.value.title,
@@ -296,7 +294,17 @@ class ScriptViewModel @Inject constructor(
             jobRole = state.value.jobRoleList.first{it.second}.first
         )
 
-        TODO("레포지토리연결하고, 용덕님이랑 상의 후 다시 하기")
+        val result = repository.createScript(hostUUID, script)
+
+        if(result.isFailure || result.getOrNull() == false) {
+            _effect.emit(
+                Effect.ShowMessage(result.exceptionOrNull()?.message?:"자기소개서 생성 실패")
+            )
+        } else {
+            _effect.emit(
+                Effect.ShowMessage("자기소개서 생성 완료")
+            )
+        }
     }
 
     fun updateScriptItemAnswer(scriptItem: ScriptItem, answer: String) = viewModelScope.launch {
@@ -327,7 +335,7 @@ class ScriptViewModel @Inject constructor(
         }
     }
 
-    fun moveNextPage() = viewModelScope.launch {
+    fun moveNextPage(hostUUID: String) = viewModelScope.launch {
         val curPage = state.value.curPage
         val totalPage = state.value.scriptItemList.count { it.second }
 
@@ -336,6 +344,9 @@ class ScriptViewModel @Inject constructor(
                 it.copy(
                     curPage = curPage + 1
                 )
+            }
+            if(curPage == totalPage) {
+                sendScriptToServer(hostUUID)
             }
         } else {
             _effect.emit(
@@ -361,11 +372,52 @@ class ScriptViewModel @Inject constructor(
         }
     }
 
+    /*
+    면접 질문지 가져오기 요청
+     */
+    fun startInterview(hostUUID: String, reuse: Boolean) = viewModelScope.launch {
+        try {
+            _state.update {
+                it.copy(
+                    dataState = DataState.Loading(
+                        message = "질문지를 생성하고 있습니다:)\n잠시만 기다려주세요 ..."
+                    )
+                )
+            }
+
+            val jobRole = state.value.jobRoleList.first{it.second}.first
+
+            val scriptUUID = state.value.uuid
+
+            /*
+            여기서는 재사용 X
+             */
+            val result = repository.getQuestionnaire(hostUUID, scriptUUID, jobRole, reuse)
+
+            if(result.isFailure) {
+                throw Exception(result.exceptionOrNull())
+            }
+
+            val questionnaire = result.getOrNull()?: throw Exception()
+
+            _effect.emit(
+                Effect.NavigateTo(questionnaire)
+            )
+
+        } catch(e: Exception) {
+            e.printStackTrace()
+            _effect.emit(
+                Effect.ShowMessage(e.message?:"질문지 생성 오류")
+            )
+        }
+
+    }
+
 
     data class State(
         var scriptItemList: List<Pair<ScriptItem, Boolean>> = emptyList(), //Boolean 값은 선택된 경우 True
         var jobRoleList: List<Pair<String, Boolean>> = emptyList(),
-        var dataState: DataState = DataState.Loading,
+        var dataState: DataState = DataState.Loading(),
         var uuid: String = UUID.randomUUID().toString(),
         var interviewed: Boolean = false,
         var title: String = "",
@@ -376,7 +428,7 @@ class ScriptViewModel @Inject constructor(
 
     sealed class Effect {
         data class ShowMessage(val message: String) : Effect()
-        data class NavigateTo(val script: Script) : Effect()
+        data class NavigateTo(val questionnaire: Questionnaire) : Effect()
     }
 
 

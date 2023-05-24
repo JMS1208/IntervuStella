@@ -933,7 +933,7 @@ fun ChartData() {
             .fillMaxWidth()
 
     ) {
-        ChartScreen()
+//        ChartScreen()
     }
 }
 

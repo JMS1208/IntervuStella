@@ -17,9 +17,8 @@ import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.network.service.MainService
 import com.capstone.Capstone2Project.ui.screen.comment.CommentPagingSource
 import com.capstone.Capstone2Project.ui.screen.comment.CommentPagingSource.Companion.PAGING_SIZE
-import com.capstone.Capstone2Project.utils.extensions.generateRandomText
+import kotlinx.coroutines.delay
 import retrofit2.Response
-import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,50 +28,60 @@ class NetworkRepositoryImpl @Inject constructor(
 ) : NetworkRepository {
 
 
-    override suspend fun getCustomQuestionnaire(script: Script): Resource<CustomQuestionnaire> {
+    override suspend fun getQuestionnaire(
+        hostUUID: String,
+        scriptUUID: String,
+        jobRole: String,
+        reuse: Boolean
+    ): Result<Questionnaire> {
+        return try {
+            /*
+            reuse 1이면 재사용, 0이면 재사용 x
+             */
+            //TODO("아래 주석 풀어야함")
+//            val response = mainService.getQuestionnaire(hostUUID, scriptUUID, jobRole, if(reuse) 1 else 0)
+//
+//            if(!response.isSuccessful) {
+//                throw Exception("면접 질문지 생성 오류")
+//            }
+//
+//            val result = response.body() ?: throw Exception("면접 질문지 생성 오류")
 
-        val questionItems = mutableListOf<QuestionItem>()
 
-        repeat(5) {
+            val result = Questionnaire.createTestQuestionnaire()
 
-            val questionItem = QuestionItem(UUID.randomUUID().toString(), "예시 질문 $it")
+            Result.success(result)
 
-            questionItems.add(
-                questionItem
-            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
         }
-
-        val customQuestionnaire = CustomQuestionnaire(
-            date = System.currentTimeMillis(),
-            questions = questionItems,
-            scriptUUID = UUID.randomUUID().toString(),
-            questionnaireUUID = UUID.randomUUID().toString()
-        )
-
-        return Resource.Success(customQuestionnaire)
 
     }
 
 
+    override suspend fun getInterviewScore(hostUUID: String): Result<InterviewScore> {
+        return try {
 
-    override suspend fun getInterviewScores(hostUUID: String): Result<List<InterviewScore>> {
+            val ranks = mutableListOf<Rank>()
 
-        val interviewScores = mutableListOf<InterviewScore>()
+            for (i in 0 until 10) {
+                ranks.add(Rank.makeTestRank())
+            }
 
-        val interviewScore = InterviewScore(
-            scriptUUID = UUID.randomUUID().toString(),
-            hostUUID = hostUUID,
-            interviewUUID = UUID.randomUUID().toString(),
-            date = System.currentTimeMillis() + (0..1000000).random(),
-            score = (500..1000).random()
-        )
+            val interviewScore = InterviewScore(
+                maxRank = "S",
+                minRank = "D",
+                recentlyDate = System.currentTimeMillis(),
+                ranks = ranks
+            )
 
-        for (i in 0 until 10) {
-            interviewScores.add(interviewScore)
+            Result.success(interviewScore)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
         }
-
-        return Result.success(interviewScores)
-
 
 
     }
@@ -82,7 +91,7 @@ class NetworkRepositoryImpl @Inject constructor(
         return try {
             val response = mainService.getTodayQuestionMemoList(hostUUID)
 
-            if(!response.isSuccessful) {
+            if (!response.isSuccessful) {
                 throw Exception("메모 리스트 네트워크 오류")
             }
 
@@ -127,9 +136,6 @@ class NetworkRepositoryImpl @Inject constructor(
 
         return Resource.Success(interviewResult)
     }
-
-
-
 
 
     override suspend fun checkAttendance(hostUUID: String): Resource<Boolean> {
@@ -369,13 +375,13 @@ class NetworkRepositoryImpl @Inject constructor(
         val pagingSourceFactory = { CommentPagingSource(mainService, questionUUID, hostUUID) }
 
         return Pager(
-                config = PagingConfig(
-                    pageSize = PAGING_SIZE,
-                    enablePlaceholders = false,
-                    maxSize = PAGING_SIZE * 3
-                ),
-                pagingSourceFactory = pagingSourceFactory
-            )
+            config = PagingConfig(
+                pageSize = PAGING_SIZE,
+                enablePlaceholders = false,
+                maxSize = PAGING_SIZE * 3
+            ),
+            pagingSourceFactory = pagingSourceFactory
+        )
     }
 
     override suspend fun getMyTodayQuestionComment(
@@ -389,7 +395,7 @@ class NetworkRepositoryImpl @Inject constructor(
                 questionUUID, hostUUID
             )
 
-            if(!response.isSuccessful) {
+            if (!response.isSuccessful) {
                 throw Exception("내 댓글 조회 네트워크 오류")
             }
 
@@ -410,7 +416,7 @@ class NetworkRepositoryImpl @Inject constructor(
 
             val response = mainService.getTodayQuestionInfo(questionUUID)
 
-            if(!response.isSuccessful) {
+            if (!response.isSuccessful) {
                 throw Exception("오늘의 질문 정보 조회 네트워크 오류")
             }
 
@@ -432,13 +438,13 @@ class NetworkRepositoryImpl @Inject constructor(
 
             val response = mainService.changeCommentLikeCount(commentUUID, hostUUID)
 
-            if(!response.isSuccessful) {
+            if (!response.isSuccessful) {
                 throw Exception("댓글 좋아요 변경 오류")
             }
 
             val result = response.body() ?: throw Exception("댓글 좋아요 변경 오류")
 
-            if(result == -1) {
+            if (result == -1) {
                 throw Exception("댓글 좋아요 변경 오류-유저 식별 불가")
             }
 
@@ -460,7 +466,7 @@ class NetworkRepositoryImpl @Inject constructor(
 
             val response = mainService.createMyComment(commentObj)
 
-            if(!response.isSuccessful) {
+            if (!response.isSuccessful) {
                 throw Exception("코멘트 생성 실패 네트워크 오류")
             }
 
@@ -468,7 +474,7 @@ class NetworkRepositoryImpl @Inject constructor(
 
             Result.success(result)
 
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             e.printStackTrace()
             Result.failure(e)
         }
@@ -486,7 +492,7 @@ class NetworkRepositoryImpl @Inject constructor(
 
             val response = mainService.updateMyComment(commentUUID, commentObj)
 
-            if(!response.isSuccessful) {
+            if (!response.isSuccessful) {
                 throw Exception("코멘트 수정 실패 네트워크 오류")
             }
 
@@ -494,7 +500,7 @@ class NetworkRepositoryImpl @Inject constructor(
 
             Result.success(result)
 
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             e.printStackTrace()
             Result.failure(e)
         }
@@ -504,15 +510,15 @@ class NetworkRepositoryImpl @Inject constructor(
         return try {
             val response = mainService.deleteMyComment(commentUUID, hostUUID)
 
-            if(!response.isSuccessful) {
+            if (!response.isSuccessful) {
                 throw Exception("코멘트 삭제 실패 네트워크 오류")
             }
 
             val result = response.body() == 1
 
-            if(result) {
+            if (result) {
                 Result.success(true)
-            } else{
+            } else {
                 throw Exception("코멘트 삭제 실패 네트워크 오류")
             }
 
@@ -527,12 +533,11 @@ class NetworkRepositoryImpl @Inject constructor(
 
             val response = mainService.getMyScriptList(hostUUID)
 
-            if(!response.isSuccessful) {
+            if (!response.isSuccessful) {
                 throw Exception("자기소개서 목록 네트워크 오류")
             }
 
             val result = response.body() ?: throw Exception("자기소개서 목록 네트워크 오류")
-
 
 
 //            val result = mutableListOf<Script>()
@@ -542,23 +547,26 @@ class NetworkRepositoryImpl @Inject constructor(
 
             Result.success(result)
 
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             e.printStackTrace()
             Result.failure(e)
         }
     }
 
+    /*
+    자기소개서 직무 목록 가져오기
+     */
     override suspend fun getJobRoleList(): Result<List<String>> {
         return try {
-            val response = mainService.getJobRoleList()
+//            val response = mainService.getJobRoleList()
+//
+//            if (!response.isSuccessful) {
+//                throw Exception("자기소개서 직무 목록 네트워크 오류")
+//            }
+//
+//            val result = response.body() ?: throw Exception("자기소개서 직무 목록 네트워크 오류")
 
-            if(!response.isSuccessful) {
-                throw Exception("자기소개서 직무 목록 네트워크 오류")
-            }
-
-            val result = response.body() ?: throw Exception("자기소개서 직무 목록 네트워크 오류")
-
-//            val result = listOf("안드로이드 개발자", "자바 개발자", "시스템 엔지니어", "백엔드 개발자", "데이터 분석", "IOS 개발자", "프론트엔드 개발자")
+            val result = listOf("안드로이드 개발자", "자바 개발자", "시스템 엔지니어", "백엔드 개발자", "데이터 분석", "IOS 개발자", "프론트엔드 개발자")
 
 
             Result.success(result)
@@ -573,19 +581,19 @@ class NetworkRepositoryImpl @Inject constructor(
         return try {
 
 
-            val response = mainService.getScriptItemList()
-
-            if(!response.isSuccessful) {
-                throw Exception("자기소개서 질문 목록 네트워크 오류")
-            }
-
-            val result = response.body() ?: throw Exception("자기소개서 질문 목록 네트워크 오류")
-
-//            val result = mutableListOf<ScriptItem>()
+//            val response = mainService.getScriptItemList()
 //
-//            for(i in 0 until 10) {
-//                result.add(ScriptItem.createTestScriptItem())
+//            if (!response.isSuccessful) {
+//                throw Exception("자기소개서 질문 목록 네트워크 오류")
 //            }
+//
+//            val result = response.body() ?: throw Exception("자기소개서 질문 목록 네트워크 오류")
+
+            val result = mutableListOf<ScriptItem>()
+
+            for(i in 0 until 10) {
+                result.add(ScriptItem.createTestScriptItem())
+            }
 
 
             Result.success(result)
@@ -609,13 +617,38 @@ class NetworkRepositoryImpl @Inject constructor(
 
             val response = mainService.getMyInterviewList(hostUUID)
 
-            if(!response.isSuccessful) {
+            if (!response.isSuccessful) {
                 throw Exception("면접 결과 리스트 가져오기 네트워크 오류")
             }
 
             val result = response.body() ?: throw Exception("면접 결과 리스트 가져오기 네트워크 오류")
 
             Result.success(result)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+
+    /*
+    자기소개서 생성하기
+     */
+    override suspend fun createScript(
+        hostUUID: String,
+        script: Script
+    ): Result<Boolean> {
+        return try {
+
+            val response = mainService.createScript(hostUUID, script)
+
+            if (!response.isSuccessful) {
+                throw Exception("자기소개서 생성 실패")
+            }
+
+            val result = response.body() ?: throw Exception("자기소개서 생성 실패")
+
+            Result.success(result == 1)
         } catch (e: Exception) {
             e.printStackTrace()
             Result.failure(e)

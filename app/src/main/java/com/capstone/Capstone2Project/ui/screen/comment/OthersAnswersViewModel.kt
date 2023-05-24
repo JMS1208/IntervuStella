@@ -124,7 +124,7 @@ class OthersAnswersViewModel @Inject constructor(
         if(needLoading) {
             _state.update {
                 it.copy(
-                    dataState = DataState.Loading
+                    dataState = DataState.Loading()
                 )
             }
         }
@@ -147,7 +147,7 @@ class OthersAnswersViewModel @Inject constructor(
 
         _state.update {
             it.copy(
-                dataState = DataState.Loading
+                dataState = DataState.Loading()
             )
         }
 
@@ -188,7 +188,7 @@ class OthersAnswersViewModel @Inject constructor(
     fun fetchTodayQuestion(questionUUID: String) = viewModelScope.launch(Dispatchers.IO) {
         _state.update {
             it.copy(
-                dataState = DataState.Loading
+                dataState = DataState.Loading()
             )
         }
 
@@ -231,7 +231,7 @@ class OthersAnswersViewModel @Inject constructor(
 
     data class State(
         val totalComments: Pager<Int, TodayQuestionComment>? = null,
-        val dataState: DataState = DataState.Loading,
+        val dataState: DataState = DataState.Loading(),
         val isRefreshing: Boolean = false,
         val myComment: TodayQuestionComment? = null,
         val todayQuestion: TodayQuestion? = null,

@@ -121,8 +121,6 @@ import com.capstone.Capstone2Project.data.model.ScriptItem
 import com.capstone.Capstone2Project.data.resource.DataState
 import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.navigation.ROUTE_INTERVIEW_GUIDE
-import com.capstone.Capstone2Project.navigation.ROUTE_SCRIPT_WRITING
-import com.capstone.Capstone2Project.navigation.ROUTE_SCRIPT_WRITING_FINISH
 import com.capstone.Capstone2Project.ui.screen.error.ErrorScreen
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.composable.HighlightText
@@ -139,6 +137,7 @@ import com.capstone.Capstone2Project.utils.theme.bright_blue
 import com.capstone.Capstone2Project.utils.theme.highlight_blue
 import com.capstone.Capstone2Project.utils.theme.text_blue
 import com.capstone.Capstone2Project.utils.theme.text_red
+import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -146,7 +145,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun ScriptScreen(
     navController: NavController,
-    oriScript: Script? = null
+    oriScript: Script? = null,
+    firebaseUser: FirebaseUser
 ) {
     val viewModel: ScriptViewModel = hiltViewModel()
 
@@ -165,7 +165,7 @@ fun ScriptScreen(
             ErrorScreen()
         }
 
-        DataState.Loading -> {
+        is DataState.Loading -> {
             LoadingScreen()
         }
 
@@ -234,10 +234,14 @@ fun ScriptScreen(
 
                             ScriptViewModel.DialogState.Nothing -> Unit
                         }
-                    }
-                    else if (state.value.curPage == state.value.scriptItemList.count{it.second}+1) {
+                    } else if (state.value.curPage == state.value.scriptItemList.count { it.second } + 1) {
                         ScriptLastContent(
-                            moveToInterviewClicked = viewModel::sendScriptToServer,
+                            moveToInterviewClicked = {
+                                /*
+                                자기소개서 서버에 만들어졌으니, 이제 면접 질문지 생성 요청
+                                 */
+                                viewModel.startInterview(firebaseUser.uid, false)
+                            },
                             moveToHomeClicked = {
                                 navController.navigate(ROUTE_HOME) {
                                     popUpTo(ROUTE_HOME) {
@@ -246,8 +250,7 @@ fun ScriptScreen(
                                 }
                             }
                         )
-                    }
-                    else {
+                    } else {
 
                         val scriptIdx = state.value.curPage - 1
                         val scriptItem = state.value.scriptItemList.filter { it.second }
@@ -256,7 +259,9 @@ fun ScriptScreen(
                         ScriptWritingContent(
                             scriptItem = scriptItem.first,
                             curPage = state.value.curPage,
-                            moveNextPage = viewModel::moveNextPage,
+                            moveNextPage = {
+                                viewModel.moveNextPage(firebaseUser.uid)
+                            },
                             movePrevPage = viewModel::movePrevPage,
                             answerChanged = {
                                 viewModel.updateScriptItemAnswer(scriptItem.first, it)
@@ -279,13 +284,20 @@ fun ScriptScreen(
                             }
 
                             is ScriptViewModel.Effect.NavigateTo -> {
-                                val script = it.script
-                                navController.currentBackStackEntry?.savedStateHandle?.set(
-                                    key = "script",
-                                    value = script
-                                )
+                                val questionnaire = it.questionnaire
 
-                                navController.navigate(ROUTE_SCRIPT_WRITING_FINISH)
+                                navController.navigate(
+                                    "$ROUTE_INTERVIEW_GUIDE/{questionnaire}".replace(
+                                        oldValue = "{questionnaire}",
+                                        newValue = questionnaire.toJsonString()
+                                    )
+                                ) {
+                                    popUpTo(ROUTE_HOME) {
+                                        inclusive = true
+                                    }
+                                }
+
+
 
                             }
                         }
@@ -303,8 +315,8 @@ fun ScriptScreen(
 
 @Composable
 fun ScriptLastContent(
-    moveToInterviewClicked:()->Unit,
-    moveToHomeClicked:()->Unit
+    moveToInterviewClicked: () -> Unit,
+    moveToHomeClicked: () -> Unit
 ) {
 
     val sparkleComposition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/sparkle.json"))
