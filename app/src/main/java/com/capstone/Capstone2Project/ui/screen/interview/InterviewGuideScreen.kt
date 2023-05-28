@@ -6,6 +6,7 @@ import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -78,6 +79,14 @@ fun InterviewGuideScreen(
     val permissionState = rememberMultiplePermissionsState(permissions = permissions)
 
 
+    BackHandler {
+        navController.navigate(ROUTE_HOME) {
+            popUpTo(ROUTE_HOME) {
+                inclusive = true
+            }
+        }
+    }
+
 
     if (requestPermissionsForRecording.value) {
         RequestPermissions(permissionState = permissionState) {
@@ -113,7 +122,11 @@ fun InterviewGuideScreen(
                             contentDescription = "뒤로가기",
                             tint = Color.DarkGray,
                             modifier = Modifier.clickable {
-                                navController.popBackStack()
+                                navController.navigate(ROUTE_HOME) {
+                                    popUpTo(ROUTE_HOME) {
+                                        inclusive = true
+                                    }
+                                }
                             }
                         )
                     }
@@ -287,7 +300,7 @@ fun InterviewGuideScreen(
                             Spacer(modifier = Modifier.height(spacing.small))
 
                             Text(
-                                "웃는 모습, 목소리 크기, 자세 등 면접 도중\n피드백을 실시간으로 받아볼 수 있어요.",
+                                "얼굴 표정, 목소리 크기, 자세 등 면접 도중\n피드백을 실시간으로 받아볼 수 있어요.",
                                 style = LocalTextStyle.current.copy(
                                     color = Color.Black,
                                     fontSize = 14.sp,
@@ -304,7 +317,7 @@ fun InterviewGuideScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                "4. 면접 점수",
+                                "4. 면접 등급",
                                 style = LocalTextStyle.current.copy(
                                     color = Color.Black,
                                     fontSize = 16.sp,
@@ -316,7 +329,7 @@ fun InterviewGuideScreen(
                             Spacer(modifier = Modifier.height(spacing.small))
 
                             Text(
-                                "면접을 보고 나의 점수를 확인해보세요.\n점수는 마이페이지에 업데이트됩니다.",
+                                "면접을 보고 나의 등급를 확인해보세요.\n등급은 마이페이지에 업데이트됩니다.",
                                 style = LocalTextStyle.current.copy(
                                     color = Color.Black,
                                     fontSize = 14.sp,
@@ -337,23 +350,24 @@ fun InterviewGuideScreen(
 
                     Row(
                         horizontalArrangement = Arrangement.End,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = spacing.medium)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.clickable {
 
                                 if(permissionState.allPermissionsGranted) {
+
+                                    navController.currentBackStackEntry?.savedStateHandle?.set(
+                                        key = "questionnaire",
+                                        value = questionnaire
+                                    )
+
                                     navController.navigate(
-                                        "$ROUTE_CAMERA/{questionnaire}".replace(
-                                            oldValue = "{questionnaire}",
-                                            newValue = questionnaire.toJsonString()
-                                        )
-                                    ) {
-                                        popUpTo(ROUTE_HOME) {
-                                            inclusive = true
-                                        }
-                                    }
+                                        ROUTE_CAMERA
+                                    )
                                 } else {
                                     requestPermissionsForRecording.value = true
                                 }

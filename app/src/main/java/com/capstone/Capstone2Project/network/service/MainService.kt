@@ -261,7 +261,7 @@ interface MainService {
      */
     @POST("self_intro/script/")
     suspend fun createScript(
-        @Query("user_uuid") hostUUID: String,
+//        @Query("user_uuid") hostUUID: String,
         @Body script: Script
     ): Response<Int> //1:성공 0:실패
 

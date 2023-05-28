@@ -59,30 +59,23 @@ fun AppNavHost(
         }
 
         composable(
-            "$ROUTE_CAMERA/{questionnaire}"
+            ROUTE_CAMERA
         ) { navBackStackEntry ->
 
-            val questionnaireJson = navBackStackEntry.arguments?.getString("questionnaire")
+            val questionnaire = navController.previousBackStackEntry?.savedStateHandle?.get<Questionnaire>("questionnaire")
 
-            questionnaireJson?.let {
-                val questionnaire = Questionnaire.jsonToObject(it)
-
-                InterviewScreen(navController = navController, questionnaire = questionnaire)
-
+            questionnaire?.let {
+                InterviewScreen(navController = navController, questionnaire = it)
             }
 
         }
 
         composable(
-            "$ROUTE_INTERVIEW_GUIDE/{questionnaire}"
-        ) { navBackStackEntry ->
-            val questionnaireJson = navBackStackEntry.arguments?.getString("questionnaire")
-
-            questionnaireJson?.let {
-                val questionnaire = Questionnaire.jsonToObject(it)
-                if(questionnaire != null) {
-                    InterviewGuideScreen(navController, questionnaire)
-                }
+            ROUTE_INTERVIEW_GUIDE
+        ) {
+            val questionnaire = navController.previousBackStackEntry?.savedStateHandle?.get<Questionnaire>("questionnaire")
+            questionnaire?.let {
+                InterviewGuideScreen(navController = navController, questionnaire = it)
             }
         }
 

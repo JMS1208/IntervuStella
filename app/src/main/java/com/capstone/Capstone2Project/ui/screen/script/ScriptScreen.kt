@@ -1,5 +1,6 @@
 package com.capstone.Capstone2Project.ui.screen.script
 
+import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -152,12 +153,31 @@ fun ScriptScreen(
 
     val state = viewModel.state.collectAsStateWithLifecycle()
 
+    val effect = viewModel.effect.collectAsStateWithLifecycle(initialValue = null)
+
     val context = LocalContext.current
 
     LaunchedEffect(viewModel) {
         viewModel.setScriptAndFetchBaseData(
             oriScript //?: Script.makeTestScript()
         )
+    }
+
+    when {
+        state.value.questionnaire != null -> {
+            LaunchedEffect(state.value.questionnaire) {
+
+                navController.currentBackStackEntry?.savedStateHandle?.set(
+                    key = "questionnaire",
+                    value = state.value.questionnaire
+                )
+
+                navController.navigate(ROUTE_INTERVIEW_GUIDE)
+            }
+
+        }
+
+        else -> Unit
     }
 
     when (state.value.dataState) {
@@ -275,8 +295,10 @@ fun ScriptScreen(
                 }
 
 
+
                 LaunchedEffect(viewModel) {
                     viewModel.effect.collect {
+                        Log.e("TAG", "ScriptScreen: 이펙트 감지! $it")
                         when (it) {
                             is ScriptViewModel.Effect.ShowMessage -> {
                                 val message = it.message
@@ -286,18 +308,12 @@ fun ScriptScreen(
                             is ScriptViewModel.Effect.NavigateTo -> {
                                 val questionnaire = it.questionnaire
 
-                                navController.navigate(
-                                    "$ROUTE_INTERVIEW_GUIDE/{questionnaire}".replace(
-                                        oldValue = "{questionnaire}",
-                                        newValue = questionnaire.toJsonString()
-                                    )
-                                ) {
-                                    popUpTo(ROUTE_HOME) {
-                                        inclusive = true
-                                    }
-                                }
+                                navController.currentBackStackEntry?.savedStateHandle?.set(
+                                    key = "questionnaire",
+                                    value = questionnaire
+                                )
 
-
+                                navController.navigate(ROUTE_INTERVIEW_GUIDE)
 
                             }
                         }

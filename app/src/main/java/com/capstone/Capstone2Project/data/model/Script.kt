@@ -6,16 +6,14 @@ import com.capstone.Capstone2Project.utils.extensions.generateRandomText
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.annotations.SerializedName
-import com.squareup.moshi.JsonAdapter
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import java.util.*
 
 @kotlinx.parcelize.Parcelize
 data class Script(
     @SerializedName("script_uuid")
     val uuid: String = UUID.randomUUID().toString(), //내가 만들기
-//    val host: String,
+    @SerializedName("host_uuid")
+    val hostUUID: String,
     @SerializedName("date")
     var date: Long? = null,//
     @SerializedName("script_title")
@@ -72,23 +70,23 @@ data class Script(
 
         }
 
-        fun makeTestScript(): Script {
-
-            val items = listOf(
-                ScriptItem.createTestScriptItem(),
-                ScriptItem.createTestScriptItem(),
-                ScriptItem.createTestScriptItem(),
-                ScriptItem.createTestScriptItem(),
-            )
-
-            return Script(
-                date = System.currentTimeMillis(),
-                title = "자기소개서",
-                interviewed = false,
-                scriptItems = items,
-                jobRole = "안드로이드 개발자"
-            )
-        }
+//        fun makeTestScript(): Script {
+//
+//            val items = listOf(
+//                ScriptItem.createTestScriptItem(),
+//                ScriptItem.createTestScriptItem(),
+//                ScriptItem.createTestScriptItem(),
+//                ScriptItem.createTestScriptItem(),
+//            )
+//
+//            return Script(
+//                date = System.currentTimeMillis(),
+//                title = "자기소개서",
+//                interviewed = false,
+//                scriptItems = items,
+//                jobRole = "안드로이드 개발자"
+//            )
+//        }
     }
 
 

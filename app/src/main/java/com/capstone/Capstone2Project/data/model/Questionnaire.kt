@@ -1,15 +1,18 @@
 package com.capstone.Capstone2Project.data.model
 
+import android.os.Parcelable
 import com.google.gson.GsonBuilder
 import com.google.gson.annotations.SerializedName
+import kotlinx.parcelize.Parcelize
 import java.util.UUID
 
+@Parcelize
 data class Questionnaire(
     @SerializedName("questionnaire_uuid")
     val uuid: String,
     @SerializedName("questions")
     val questions: List<QuestionItem>
-) {
+): Parcelable {
     fun toJsonString(): String {
         val gson = GsonBuilder().setLenient().create()
 

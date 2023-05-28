@@ -39,16 +39,16 @@ class NetworkRepositoryImpl @Inject constructor(
             reuse 1이면 재사용, 0이면 재사용 x
              */
             //TODO("아래 주석 풀어야함")
-//            val response = mainService.getQuestionnaire(hostUUID, scriptUUID, jobRole, if(reuse) 1 else 0)
-//
-//            if(!response.isSuccessful) {
-//                throw Exception("면접 질문지 생성 오류")
-//            }
-//
-//            val result = response.body() ?: throw Exception("면접 질문지 생성 오류")
+            val response = mainService.getQuestionnaire(hostUUID, scriptUUID, jobRole, if(reuse) 1 else 0)
+
+            if(!response.isSuccessful) {
+                throw Exception("면접 질문지 생성 오류")
+            }
+
+            val result = response.body() ?: throw Exception("면접 질문지 생성 오류")
 
 
-            val result = Questionnaire.createTestQuestionnaire()
+//            val result = Questionnaire.createTestQuestionnaire()
 
             Result.success(result)
 
@@ -558,15 +558,15 @@ class NetworkRepositoryImpl @Inject constructor(
      */
     override suspend fun getJobRoleList(): Result<List<String>> {
         return try {
-//            val response = mainService.getJobRoleList()
-//
-//            if (!response.isSuccessful) {
-//                throw Exception("자기소개서 직무 목록 네트워크 오류")
-//            }
-//
-//            val result = response.body() ?: throw Exception("자기소개서 직무 목록 네트워크 오류")
+            val response = mainService.getJobRoleList()
 
-            val result = listOf("안드로이드 개발자", "자바 개발자", "시스템 엔지니어", "백엔드 개발자", "데이터 분석", "IOS 개발자", "프론트엔드 개발자")
+            if (!response.isSuccessful) {
+                throw Exception("자기소개서 직무 목록 네트워크 오류")
+            }
+
+            val result = response.body() ?: throw Exception("자기소개서 직무 목록 네트워크 오류")
+
+//            val result = listOf("안드로이드 개발자", "자바 개발자", "시스템 엔지니어", "백엔드 개발자", "데이터 분석", "IOS 개발자", "프론트엔드 개발자")
 
 
             Result.success(result)
@@ -580,20 +580,19 @@ class NetworkRepositoryImpl @Inject constructor(
     override suspend fun getScriptItemList(): Result<List<ScriptItem>> {
         return try {
 
+            val response = mainService.getScriptItemList()
 
-//            val response = mainService.getScriptItemList()
-//
-//            if (!response.isSuccessful) {
-//                throw Exception("자기소개서 질문 목록 네트워크 오류")
-//            }
-//
-//            val result = response.body() ?: throw Exception("자기소개서 질문 목록 네트워크 오류")
-
-            val result = mutableListOf<ScriptItem>()
-
-            for(i in 0 until 10) {
-                result.add(ScriptItem.createTestScriptItem())
+            if (!response.isSuccessful) {
+                throw Exception("자기소개서 질문 목록 네트워크 오류")
             }
+
+            val result = response.body() ?: throw Exception("자기소개서 질문 목록 네트워크 오류")
+
+//            val result = mutableListOf<ScriptItem>()
+//
+//            for(i in 0 until 10) {
+//                result.add(ScriptItem.createTestScriptItem())
+//            }
 
 
             Result.success(result)
@@ -640,7 +639,10 @@ class NetworkRepositoryImpl @Inject constructor(
     ): Result<Boolean> {
         return try {
 
-            val response = mainService.createScript(hostUUID, script)
+            val response = mainService.createScript(
+//                hostUUID,
+                script
+            )
 
             if (!response.isSuccessful) {
                 throw Exception("자기소개서 생성 실패")

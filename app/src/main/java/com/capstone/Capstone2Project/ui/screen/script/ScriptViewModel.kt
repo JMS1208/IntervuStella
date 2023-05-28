@@ -1,5 +1,6 @@
 package com.capstone.Capstone2Project.ui.screen.script
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capstone.Capstone2Project.data.model.Questionnaire
@@ -291,7 +292,8 @@ class ScriptViewModel @Inject constructor(
             date = System.currentTimeMillis(),
             title = state.value.title,
             scriptItems = state.value.scriptItemList.filter{it.second}.map{it.first},
-            jobRole = state.value.jobRoleList.first{it.second}.first
+            jobRole = state.value.jobRoleList.first{it.second}.first,
+            hostUUID = hostUUID
         )
 
         val result = repository.createScript(hostUUID, script)
@@ -355,7 +357,7 @@ class ScriptViewModel @Inject constructor(
         }
 
     }
-
+    
     fun movePrevPage() = viewModelScope.launch {
         val curPage = state.value.curPage
 
@@ -387,22 +389,34 @@ class ScriptViewModel @Inject constructor(
 
             val jobRole = state.value.jobRoleList.first{it.second}.first
 
-            val scriptUUID = state.value.uuid
+            //TODO 주석 풀어야함
+//            val scriptUUID = state.value.uuid
+
+            val scriptUUID = "00001"
 
             /*
             여기서는 재사용 X
              */
             val result = repository.getQuestionnaire(hostUUID, scriptUUID, jobRole, reuse)
 
+
+
             if(result.isFailure) {
                 throw Exception(result.exceptionOrNull())
             }
 
             val questionnaire = result.getOrNull()?: throw Exception()
+            Log.e("TAG", "설문지 만들어진거: $questionnaire ", )
 
-            _effect.emit(
-                Effect.NavigateTo(questionnaire)
-            )
+//            _effect.emit(
+//                Effect.NavigateTo(questionnaire)
+//            )
+
+            _state.update {
+                it.copy(
+                    questionnaire = questionnaire
+                )
+            }
 
         } catch(e: Exception) {
             e.printStackTrace()
@@ -422,7 +436,8 @@ class ScriptViewModel @Inject constructor(
         var interviewed: Boolean = false,
         var title: String = "",
         var dialogState: DialogState = DialogState.Nothing,
-        var curPage: Int = 0
+        var curPage: Int = 0,
+        var questionnaire: Questionnaire? = null
     )
 
 
