@@ -11,6 +11,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -80,6 +81,7 @@ import com.capstone.Capstone2Project.data.model.LogLine
 import com.capstone.Capstone2Project.data.model.Questionnaire
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.data.resource.Resource
+import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.navigation.ROUTE_INTERVIEW_FINISHED
 import com.capstone.Capstone2Project.ui.screen.animation.NewLogContent
 import com.capstone.Capstone2Project.ui.screen.animation.OldLogContent
@@ -131,6 +133,31 @@ fun InterviewScreen(
         RequestPermissions(permissionState)
     } else {
         InterviewUIScreenContent(navController = navController, questionnaire = questionnaire)
+    }
+
+    var backPressCnt by remember {
+        mutableStateOf(0)
+    }
+
+    LaunchedEffect(backPressCnt) {
+        if(backPressCnt > 0) {
+            delay(1000)
+            backPressCnt -= 1
+        }
+    }
+
+    BackHandler {
+        if(backPressCnt == 1) {
+            navController.navigate(ROUTE_HOME) {
+                popUpTo(ROUTE_HOME) {
+                    inclusive = true
+                }
+            }
+        } else {
+            backPressCnt += 1
+            AlertUtils.showToast(context, "한번 더 누르면 홈화면으로 이동해요")
+        }
+
     }
 
     LaunchedEffect(interviewViewModel) {
@@ -206,24 +233,16 @@ fun InterviewScreen(
 
             is InterviewViewModel.InterviewState.Finished -> {
                 LaunchedEffect(Unit) {
-                    val interviewUUID =
-                        (it.interviewState as InterviewViewModel.InterviewState.Finished).interviewUUID
+                    val interviewResult =
+                        (it.interviewState as InterviewViewModel.InterviewState.Finished).interviewResult
+
+
                     navController.navigate(
-                        "$ROUTE_INTERVIEW_FINISHED/{interviewUUID}".replace(
-                            oldValue = "{interviewUUID}",
-                            newValue = interviewUUID
+                        "$ROUTE_INTERVIEW_FINISHED?interview_result={interview_result}".replace(
+                            oldValue = "{interview_result}",
+                            newValue = interviewResult.toJsonString()
                         )
-                    ) {
-
-                        launchSingleTop = true
-
-                        navController.currentDestination?.route?.let { route ->
-                            popUpTo(route) {
-                                inclusive = true
-                            }
-                        }
-
-                    }
+                    )
 
                 }
 
@@ -812,7 +831,6 @@ private fun InterviewCameraPreview(
                             )
                         } catch (e: Exception) {
                             e.printStackTrace()
-                            Log.e("TAG", "InterviewCameraPreview:${e.message} ")
                         } finally {
                             readyToDetectFace = false
                             completeDetection()
@@ -1765,290 +1783,6 @@ private fun BeforeSendingAnswerDialog(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
-@Composable
-fun InterviewMemoDialog(
-    dismissClick: () -> Unit,
-    interviewUUID: String
-) {
-
-    //인터뷰가 종료된 후 메모를 남기는 다이얼로그
-
-    val composition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/circle_rocket.json"))
-    val progress by animateLottieCompositionAsState(
-        composition,
-        iterations = LottieConstants.IterateForever
-    )
-
-    val spacing = LocalSpacing.current
-
-    //재시작인지도 파악하기
-
-    val context = LocalContext.current
-
-    val interviewResultViewModel: InterviewResultViewModel = hiltViewModel()
-
-    val memoFlow = interviewResultViewModel.writingMemoResultFlow.collectAsStateWithLifecycle()
-
-    DisposableEffect(Unit) {
-        onDispose {
-            interviewResultViewModel.initMemoState()
-        }
-    }
-
-    val memo = remember(memoFlow.value) {
-        mutableStateOf((memoFlow.value as? Resource.Success)?.data ?: "")
-    }
-
-    //TODO (나중에 바꿔야함 메모 남기기 클릭시 이전에 썼던 메모 올라가있게해야함)
-    memoFlow.value?.let {
-        when (it) {
-            is Resource.Error -> {
-                dismissClick()
-                AlertUtils.showToast(context, "다음에 다시 시도해주세요")
-            }
-            Resource.Loading -> {
-                LoadingScreen()
-            }
-            is Resource.Success -> {
-                dismissClick()
-                memo.value = it.data
-                AlertUtils.showToast(context, "메모를 저장했어요")
-            }
-        }
-    }
-
-    val bringIntoViewRequester = remember {
-        BringIntoViewRequester()
-    }
-
-    val coroutineScope = rememberCoroutineScope()
-
-    val focusRequester = remember { FocusRequester() }
-
-    val focusManager = LocalFocusManager.current
-
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    val textFieldFocused = remember {
-        mutableStateOf(false)
-    }
-
-
-    val simpleDateFormat = remember {
-        SimpleDateFormat("yyyy.MM.dd (E) hh:mm", Locale.getDefault())
-    }
-    CompositionLocalProvider(
-        LocalTextStyle provides TextStyle(
-            fontFamily = nexonFont
-        )
-    ) {
-
-
-        Dialog(
-            onDismissRequest = {},
-            properties = DialogProperties(
-                dismissOnBackPress = false,
-                dismissOnClickOutside = false,
-                usePlatformDefaultWidth = false
-            )
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickableWithoutRipple {
-                        focusManager.clearFocus()
-                        keyboardController?.hide()
-                    }
-                    .padding(spacing.medium)
-                    .padding(bottom = 60.dp)
-            ) {
-
-                Column(
-                    modifier = Modifier
-                        .offset(y = 60.dp)
-                        .shadow(
-                            5.dp,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        .background(
-                            color = White,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                ) {
-                    Spacer(modifier = Modifier.height(60.dp))
-
-                    Text(
-                        text = "면접 일기",
-                        style = LocalTextStyle.current.copy(
-                            color = Black,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            textAlign = TextAlign.Start
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.medium)
-                    )
-
-                    Spacer(modifier = Modifier.height(spacing.small))
-
-                    Text(
-                        text = "이번 면접에 대한 생각을 남겨 기록해보세요 !",
-                        style = LocalTextStyle.current.copy(
-                            color = Gray,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Normal,
-                            textAlign = TextAlign.Start
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.medium)
-                    )
-
-                    Spacer(modifier = Modifier.height(spacing.medium))
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(
-                                1.dp,
-                                color = LightGray
-                            )
-                            .background(
-                                color = bg_grey
-                            )
-                            .verticalScroll(rememberScrollState())
-                            .padding(spacing.medium)
-
-                    ) {
-
-
-                        Text(
-                            simpleDateFormat.format(Date(System.currentTimeMillis())),
-                            style = LocalTextStyle.current.copy(
-                                color = Black,
-                                fontSize = 12.sp,
-                                fontFamily = nexonFont,
-                                textAlign = TextAlign.End
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(modifier = Modifier.height(spacing.small))
-
-                        TextField(
-                            value = memo.value,
-                            onValueChange = {
-                                memo.value = it
-                            },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Text,
-                                imeAction = ImeAction.Done
-                            ),
-                            placeholder = {
-                                Text(
-                                    "이곳에 입력하세요",
-                                    style = LocalTextStyle.current.copy(
-                                        color = text_blue,
-                                        fontSize = 14.sp,
-                                        fontFamily = nexonFont
-                                    )
-                                )
-                            },
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    focusManager.clearFocus()
-                                    keyboardController?.hide()
-                                }
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(100.dp, 250.dp)
-                                .focusRequester(focusRequester)
-                                .bringIntoViewRequester(bringIntoViewRequester)
-                                .onFocusEvent { focusState ->
-                                    if (focusState.isFocused) {
-                                        coroutineScope.launch {
-                                            bringIntoViewRequester.bringIntoView()
-                                        }
-                                    }
-                                }
-                                .onFocusChanged { focusState ->
-                                    textFieldFocused.value = focusState.isFocused
-                                }
-                                .drawBehind {
-                                    drawRoundRect(
-                                        color = Color.Gray,
-                                        style = Stroke(
-                                            width = 1f,
-                                            pathEffect = PathEffect.dashPathEffect(
-                                                floatArrayOf(10f, 10f), 0f
-                                            )
-                                        )
-                                    )
-                                },
-                            colors = TextFieldDefaults.textFieldColors(
-                                textColor = Black,
-                                disabledTextColor = Black,
-                                backgroundColor = Transparent,
-                                cursorColor = LightGray,
-                                errorCursorColor = text_red,
-                                focusedIndicatorColor = Transparent,
-                                unfocusedIndicatorColor = Transparent
-                            ),
-                            textStyle = LocalTextStyle.current.copy(
-                                color = Black,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Normal,
-                                textAlign = TextAlign.Start
-                            )
-                        )
-
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(spacing.medium),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.End
-                    ) {
-
-                        Text(
-                            text = "작성완료",
-                            modifier = Modifier
-                                .clickable {
-                                    memo.value.let {
-                                        interviewResultViewModel.writeMemo(interviewUUID, it)
-
-                                    }
-                                },
-                            style = LocalTextStyle.current.copy(
-                                color = text_blue,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                textAlign = TextAlign.End
-                            )
-                        )
-                    }
-
-                }
-
-                LottieAnimation(
-                    composition = composition,
-                    progress = { progress },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .size(180.dp)
-                        .padding(spacing.medium)
-                )
-
-            }
-        }
-    }
-}
-
 
 @Preview(showBackground = true)
 @Composable
@@ -2066,7 +1800,6 @@ private fun DialogPreview() {
 fun InterviewPreparedDialog(
     dismissClick: () -> Unit,
     backButtonClick: () -> Unit
-
 ) {
     val composition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/circle_rocket.json"))
     val progress by animateLottieCompositionAsState(

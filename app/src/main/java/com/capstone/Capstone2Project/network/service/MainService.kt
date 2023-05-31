@@ -1,5 +1,6 @@
 package com.capstone.Capstone2Project.network.service
 
+import com.capstone.Capstone2Project.data.model.InterviewData
 import com.capstone.Capstone2Project.data.model.Questionnaire
 import com.capstone.Capstone2Project.data.model.InterviewResult
 import com.capstone.Capstone2Project.data.model.Script
@@ -275,4 +276,21 @@ interface MainService {
         @Query("role") jobRole: String,
         @Query("reuse") reuse: Int
     ): Response<Questionnaire>
+
+    /*
+    사용자 면접 데이터 보내고 면접 결과 가져오기
+     */
+    @POST("interview/make_interview_result/")
+    suspend fun getInterviewFeedback(
+        @Body interviewData: InterviewData
+    ): Response<InterviewResult>
+
+    /*
+    자기소개서 삭제하기 성공시 true
+     */
+    @DELETE("self_intro/script/")
+    suspend fun deleteScript(
+        @Query("script_uuid") scriptUUID: String,
+        @Query("user_uuid") hostUUID: String
+    ): Response<Boolean>
 }

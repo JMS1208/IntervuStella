@@ -11,9 +11,12 @@ import com.capstone.Capstone2Project.data.resource.DataState
 //import com.capstone.Capstone2Project.data.model.TodayQuestion
 import com.capstone.Capstone2Project.repository.AppDatabaseRepository
 import com.capstone.Capstone2Project.repository.NetworkRepository
+import com.capstone.Capstone2Project.ui.screen.home.HomeViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -27,6 +30,9 @@ class MyPageViewModel @Inject constructor(
 
     private var _state: MutableStateFlow<State> = MutableStateFlow(State())
     val state: StateFlow<State> = _state
+
+    private var _effect: MutableSharedFlow<Effect> = MutableSharedFlow()
+    val effect: SharedFlow<Effect> = _effect
 
     fun fetchMyScripts(hostUUID: String) = viewModelScope.launch {
 
@@ -206,6 +212,44 @@ class MyPageViewModel @Inject constructor(
         }
     }
 
+    fun scriptClicked(script: Script) = viewModelScope.launch {
+        _state.update {
+            it.copy(
+                dialogState = DialogState.ScriptDialog(script)
+            )
+        }
+    }
+
+    fun deleteScript(script: Script) = viewModelScope.launch {
+
+        /*
+        삭제 제대로 됐으면 다이얼로그 닫고 메시지 띄우고, state.myScripts에서 제거
+        삭제 제대로 안 됐으면 다이얼로그 유지하고 메시지 띄우기
+         */
+        val result = repository.deleteScript(script.uuid, script.hostUUID)
+
+        if(result.isFailure) {
+            _effect.emit(
+                Effect.ShowMessage(result.exceptionOrNull()?.message ?:"잠시 후 다시 시도해주세요")
+            )
+        } else {
+
+            val newScripts = state.value.myScripts.filter {
+                it.uuid != script.uuid
+            }
+
+            _effect.emit(
+                Effect.ShowMessage("삭제 되었습니다")
+            )
+            _state.update {
+                it.copy(
+                    dialogState = DialogState.Nothing,
+                    myScripts = newScripts
+                )
+            }
+        }
+    }
+
     data class State(
         var dialogState: DialogState = DialogState.Nothing,
         var dataState: DataState = DataState.Loading(),
@@ -216,6 +260,10 @@ class MyPageViewModel @Inject constructor(
         var myInterviewRecords: List<InterviewResult> = emptyList()
     )
 
+    sealed class Effect {
+        data class ShowMessage(val message: String) : Effect()
+    }
+
 
     sealed class DialogState {
         object MemoDialog : DialogState()
@@ -224,6 +272,8 @@ class MyPageViewModel @Inject constructor(
         object KeywordAddingDialog : DialogState()
 
         object GitLinkDialog : DialogState()
+
+        data class ScriptDialog(val script: Script): DialogState()
 
     }
 }

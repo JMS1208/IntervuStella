@@ -4,12 +4,14 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavArgument
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.capstone.Capstone2Project.data.model.InterviewResult
 import com.capstone.Capstone2Project.data.model.Questionnaire
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
@@ -58,50 +60,94 @@ fun AppNavHost(
             TopicScreen(navController)
         }
 
-        composable(
-            ROUTE_CAMERA
-        ) { navBackStackEntry ->
 
-            val questionnaire = navController.previousBackStackEntry?.savedStateHandle?.get<Questionnaire>("questionnaire")
+        composable(
+            "$ROUTE_CAMERA?questionnaire={questionnaire}",
+            arguments = listOf(
+                navArgument(
+                    "questionnaire"
+                ) {
+                    defaultValue = null
+                    type = NavType.StringType
+                    nullable = true
+                }
+            )
+        ) {
+            navBackStackEntry ->
+
+            val questionnaireJson = navBackStackEntry.arguments?.getString("questionnaire")
+
+            val questionnaire = if(questionnaireJson == null) null else Questionnaire.jsonToObject(questionnaireJson)
 
             questionnaire?.let {
                 InterviewScreen(navController = navController, questionnaire = it)
             }
-
         }
 
+
         composable(
-            ROUTE_INTERVIEW_GUIDE
+            "$ROUTE_INTERVIEW_GUIDE?questionnaire={questionnaire}",
+            arguments = listOf(
+                navArgument(
+                    "questionnaire"
+                ) {
+                    defaultValue = null
+                    type = NavType.StringType
+                    nullable = true
+                }
+            )
         ) {
-            val questionnaire = navController.previousBackStackEntry?.savedStateHandle?.get<Questionnaire>("questionnaire")
+                navBackStackEntry ->
+
+            val questionnaireJson = navBackStackEntry.arguments?.getString("questionnaire")
+
+            val questionnaire = if(questionnaireJson == null) null else Questionnaire.jsonToObject(questionnaireJson)
+
             questionnaire?.let {
                 InterviewGuideScreen(navController = navController, questionnaire = it)
             }
         }
 
         composable(
-            "$ROUTE_INTERVIEW_FINISHED/{interviewUUID}"
-        ) { navBackStackEntry ->
+            "$ROUTE_INTERVIEW_FINISHED?interview_result={interview_result}",
+            arguments = listOf(
+                navArgument("interview_result") {
+                    defaultValue = null
+                    type = NavType.StringType
+                    nullable = true
+                }
+            )
+        ) { navBackStackEntry->
+            val interviewResultJson = navBackStackEntry.arguments?.getString("interview_result")
 
-            val interviewUUID = navBackStackEntry.arguments?.getString("interviewUUID")
+            val interviewResult = if(interviewResultJson == null) null else InterviewResult.jsonStringToInterviewResult(interviewResultJson)
 
-            interviewUUID?.let {
-                InterviewFinishScreen(interviewUUID = it, navController = navController)
+            interviewResult?.let {
+                InterviewFinishScreen(interviewResult = it, navController = navController)
             }
         }
+
+
 
         composable(
-            "$ROUTE_INTERVIEW_RESULT/{interviewUUID}"
+            "$ROUTE_INTERVIEW_RESULT?interview_result={interview_result}",
+            arguments = listOf(
+                navArgument("interview_result") {
+                    defaultValue = null
+                    type = NavType.StringType
+                    nullable = true
+                }
+            )
         ) { navBackStackEntry ->
 
-            val interviewUUID = navBackStackEntry.arguments?.getString("interviewUUID")
+            val interviewResultJson = navBackStackEntry.arguments?.getString("interview_result")
 
-            interviewUUID?.let {
-                InterviewResultScreen(interviewUUID = it, navController = navController)
+            val interviewResult = if(interviewResultJson == null) null else InterviewResult.jsonStringToInterviewResult(interviewResultJson)
+
+            interviewResult?.let {
+                InterviewResultScreen(interviewResult = it, navController = navController)
             }
-
         }
-
 
         composable("$ROUTE_SCRIPT_WRITING?script={script}",
             arguments = listOf(
@@ -119,7 +165,11 @@ fun AppNavHost(
             val authViewModel: AuthViewModel = hiltViewModel()
 
             authViewModel.currentUser?.let { firebaseUser ->
-                ScriptScreen(navController = navController, oriScript = script, firebaseUser = firebaseUser)
+                ScriptScreen(
+                    navController = navController,
+                    oriScript = script,
+                    firebaseUser = firebaseUser
+                )
             }
 
         }

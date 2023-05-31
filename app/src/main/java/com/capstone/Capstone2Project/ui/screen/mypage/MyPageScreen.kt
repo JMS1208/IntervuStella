@@ -83,10 +83,12 @@ import com.capstone.Capstone2Project.utils.etc.AlertUtils
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
 import com.capstone.Capstone2Project.utils.etc.invokeVibration
 import com.capstone.Capstone2Project.utils.extensions.clickableWithoutRipple
+import com.capstone.Capstone2Project.utils.extensions.toFormatString
 import com.capstone.Capstone2Project.utils.theme.*
 import com.google.accompanist.flowlayout.FlowMainAxisAlignment
 import com.google.accompanist.flowlayout.FlowRow
 import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -164,6 +166,17 @@ private fun MyPageContent(
         firebaseUser.email ?: "(이메일 미지정)"
     }
 
+    val context = LocalContext.current
+
+    LaunchedEffect(viewModel) {
+        viewModel.effect.collectLatest {
+            when(it) {
+                is MyPageViewModel.Effect.ShowMessage -> {
+                    AlertUtils.showToast(context, it.message)
+                }
+            }
+        }
+    }
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -200,13 +213,15 @@ private fun MyPageContent(
                 )
             }
         ) { innerPadding ->
-            when(stateFlow.value.dataState) {
+            when (stateFlow.value.dataState) {
                 is DataState.Error -> {
                     ErrorScreen((stateFlow.value.dataState as DataState.Error).message)
                 }
+
                 is DataState.Loading -> {
                     LoadingScreen()
                 }
+
                 DataState.Normal -> {
                     Column(
                         modifier = Modifier
@@ -235,7 +250,11 @@ private fun MyPageContent(
                                     shape = RoundedCornerShape(5.dp)
                                 )
                         ) {
-                            val composition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/astronaut.json"))
+                            val composition by rememberLottieComposition(
+                                LottieCompositionSpec.Asset(
+                                    "lottie/astronaut.json"
+                                )
+                            )
                             val progress by animateLottieCompositionAsState(
                                 composition,
                                 iterations = LottieConstants.IterateForever
@@ -481,23 +500,42 @@ private fun MyPageContent(
 
                         Spacer(modifier = Modifier.height(spacing.small))
 
-                        MyTodayQuestionMemo(navController, firebaseUser = firebaseUser, stateFlow.value.todayQuestionsMemo)
+                        MyTodayQuestionMemo(
+                            navController,
+                            firebaseUser = firebaseUser,
+                            stateFlow.value.todayQuestionsMemo
+                        )
 
                         Spacer(modifier = Modifier.height(spacing.large))
 
                         Spacer(modifier = Modifier.height(spacing.small))
 
-                        MyScriptList(navController, firebaseUser = firebaseUser, stateFlow.value.myScripts)
+                        MyScriptList(
+                            navController,
+                            firebaseUser = firebaseUser,
+                            myScripts = stateFlow.value.myScripts,
+                            scriptClicked = {
+                                viewModel.scriptClicked(it)
+                            }
+                        )
 
                         Spacer(modifier = Modifier.height(spacing.large))
 
                         Spacer(modifier = Modifier.height(spacing.small))
 
-                        MyInterviewRecords(navController, firebaseUser, stateFlow.value.myInterviewRecords)
+                        MyInterviewRecords(
+                            navController,
+                            firebaseUser,
+                            stateFlow.value.myInterviewRecords
+                        )
 
                         Spacer(modifier = Modifier.height(spacing.small))
 
-                        MyInterviewScores(navController, firebaseUser, stateFlow.value.myRankRecords)
+                        MyInterviewScores(
+                            navController,
+                            firebaseUser,
+                            stateFlow.value.myRankRecords
+                        )
 
                         Spacer(modifier = Modifier.height(spacing.small))
 
@@ -532,6 +570,251 @@ private fun MyPageContent(
                 }
 
                 MyPageViewModel.DialogState.Nothing -> Unit
+
+                is MyPageViewModel.DialogState.ScriptDialog -> {
+                    val script =
+                        (stateFlow.value.dialogState as MyPageViewModel.DialogState.ScriptDialog).script
+
+                    ScriptInfoDialog(
+                        script = script,
+                        onDismissRequest = viewModel::closeDialog,
+                        deleteScriptRequest = {
+                            viewModel.deleteScript(script)
+                        },
+                        moveScriptRequest = {
+                            viewModel.closeDialog()
+                            navController.navigate(
+                                "$ROUTE_SCRIPT_WRITING?script={script}".replace(
+                                    oldValue = "{script}",
+                                    newValue = script.toJsonString()
+                                )
+                            )
+                        })
+
+                }
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ScriptDialogPreview() {
+    ScriptInfoDialog(
+        script = Script.createTestingScript(),
+        onDismissRequest = { },
+        deleteScriptRequest = { }) {
+
+    }
+}
+
+@Composable
+private fun ScriptInfoDialog(
+    script: Script,
+    onDismissRequest: () -> Unit,
+    deleteScriptRequest: () -> Unit,
+    moveScriptRequest: () -> Unit
+) {
+
+    val spacing = LocalSpacing.current
+
+    val composition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/profil.json"))
+    val progress by animateLottieCompositionAsState(
+        composition,
+        iterations = LottieConstants.IterateForever
+    )
+
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .verticalScroll(rememberScrollState())
+                .background(
+                    color = White,
+                    shape = RoundedCornerShape(spacing.medium)
+                )
+                .padding(
+                    vertical = spacing.large,
+                    horizontal = spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(
+                spacing.large,
+                Alignment.CenterVertically
+            ),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(
+                    "수정",
+                    color = text_blue,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    fontFamily = nexonFont,
+                    modifier = Modifier.clickable {
+                        moveScriptRequest()
+                    }
+                )
+
+                Spacer(modifier = Modifier.width(spacing.medium))
+
+                Text(
+                    "삭제",
+                    color = text_blue,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    fontFamily = nexonFont,
+                    modifier = Modifier.clickable {
+                        deleteScriptRequest()
+                    }
+                )
+
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
+                    spacing.medium,
+                    Alignment.CenterHorizontally
+                ),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                LottieAnimation(
+                    composition = composition,
+                    progress = { progress }
+                )
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(spacing.small),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        script.title,
+                        color = Black,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp,
+                        fontFamily = nexonFont
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small, Alignment.Start)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = bright_pink,
+                                    shape = RoundedCornerShape(50)
+                                )
+                                .padding(
+                                    vertical = spacing.small,
+                                    horizontal = spacing.medium
+                                )
+                        ) {
+                            Text(
+                                script.jobRole,
+                                color = White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                                fontFamily = nexonFont
+                            )
+                        }
+
+                        if (script.interviewed) {
+                            Box(
+                                modifier = Modifier
+                                    .background(
+                                        color = orange_yellow,
+                                        shape = RoundedCornerShape(50)
+                                    )
+                                    .padding(
+                                        vertical = spacing.small,
+                                        horizontal = spacing.medium
+                                    )
+                            ) {
+                                Text(
+                                    "면접기록 있음",
+                                    color = White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                    fontFamily = nexonFont
+                                )
+                            }
+                        }
+                    }
+
+                    if (script.date != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Text(
+                                "작성일: ${script.date!!.toFormatString("yyyy.MM.dd")}",
+                                color = Gray,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 12.sp,
+                                fontFamily = nexonFont
+                            )
+                        }
+                    }
+
+                }
+            }
+
+            script.scriptItems.forEachIndexed { index, scriptItem ->
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(
+                        spacing.small,
+                        Alignment.CenterVertically
+                    ),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        "${index+1}. ${scriptItem.question} (${scriptItem.maxLength})",
+                        color = Black,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        fontFamily = nexonFont
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = bg_mono_grey
+                            )
+                            .padding(vertical = spacing.medium, horizontal = spacing.small),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            modifier = Modifier.fillMaxWidth(),
+                            text = scriptItem.answer,
+                            color = DarkGray,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 13.sp,
+                            fontFamily = nexonFont,
+                            textAlign = TextAlign.Start
+                        )
+                    }
+                }
+
             }
         }
     }
@@ -1010,24 +1293,13 @@ private fun GitLinkDialog(
 @Composable
 fun MyTodayQuestionMemo(
     navController: NavController,
-//    authViewModel: AuthViewModel,
     firebaseUser: FirebaseUser,
     todayQuestionsMemo: List<TodayQuestionMemo> = emptyList()
 ) {
 
-    val viewModel: MyPageViewModel = hiltViewModel()
-
-//    val stateFlow = viewModel.state.collectAsStateWithLifecycle()
 
     val spacing = LocalSpacing.current
 
-//    LaunchedEffect(authViewModel) {
-//        authViewModel.currentUser?.uid?.let {
-//            with(viewModel) {
-//                fetchMyTodayQuestions(it)
-//            }
-//        }
-//    }
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -1105,52 +1377,6 @@ fun MyTodayQuestionMemo(
                         .align(Alignment.CenterEnd)
                         .padding(spacing.small)
                 )
-//                stateFlow.value.todayQuestionsMemo.let {
-//                    when (it) {
-//                        is Resource.Error -> {
-//                            Text("${it.error}")
-//                        }
-//
-//                        Resource.Loading -> {
-//                            CircularProgressIndicator(
-//                                color = bright_blue
-//                            )
-//                        }
-//
-//                        is Resource.Success -> {
-//
-//                            val lazyListState = rememberLazyListState()
-//
-//                            LazyRow(
-//                                state = lazyListState,
-//                                modifier = Modifier.fillMaxWidth(),
-//                                contentPadding = PaddingValues(end = 50.dp),
-//                                horizontalArrangement = Arrangement.spacedBy(spacing.medium)
-//                            ) {
-//                                item {
-//                                    MyTodayQuestionsFirstItem(count = it.data.size)
-//                                }
-//
-//                                items(it.data.size) { idx ->
-//                                    val todayQuestion = it.data[idx]
-//                                    MyTodayQuestionsItem(todayQuestion, onItemClick = {
-//                                        //TODO
-//                                    })
-//                                }
-//
-//                            }
-//
-//                            ScrollToLeftButton(
-//                                lazyListState = lazyListState,
-//                                threshold = 0,
-//                                modifier = Modifier
-//                                    .size(60.dp)
-//                                    .align(Alignment.CenterEnd)
-//                                    .padding(spacing.small)
-//                            )
-//                        }
-//                    }
-//                }
             }
 
         }
@@ -1561,7 +1787,8 @@ fun MyInterviewLogFirstItem(count: Int) {
 private fun MyScriptList(
     navController: NavController,
     firebaseUser: FirebaseUser,
-    myScripts: List<Script> = emptyList()
+    myScripts: List<Script> = emptyList(),
+    scriptClicked: (Script) -> Unit
 ) {
 
     val spacing = LocalSpacing.current
@@ -1641,7 +1868,9 @@ private fun MyScriptList(
 
                     items(myScripts.size) { idx ->
                         val script = myScripts[idx]
-                        MyScriptItem(script)
+                        MyScriptItem(script) {
+                            scriptClicked(script)
+                        }
                     }
 
                 }
@@ -1665,7 +1894,8 @@ private fun MyScriptList(
 
 @Composable
 private fun MyScriptItem(
-    script: Script
+    script: Script,
+    clicked: () -> Unit
 ) {
 
     val spacing = LocalSpacing.current
@@ -1691,7 +1921,10 @@ private fun MyScriptItem(
                     color = White,
                     shape = RoundedCornerShape(5.dp)
                 )
-                .padding(spacing.small),
+                .padding(spacing.small)
+                .clickable {
+                    clicked()
+                },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {

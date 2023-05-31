@@ -182,8 +182,6 @@ fun TodayQuestionCard(
                                         .fillMaxWidth()
                                         .height(200.dp)
                                         .clickable {
-                                            Log.e("TAG", "TodayQuestionCard: $isPresentToday")
-
                                             if (!isPresentToday) {
                                                 authViewModel.currentUser?.uid?.let { uid ->
                                                     viewModel.checkAttendance(uid)

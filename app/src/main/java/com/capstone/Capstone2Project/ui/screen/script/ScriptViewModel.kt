@@ -357,7 +357,7 @@ class ScriptViewModel @Inject constructor(
         }
 
     }
-    
+
     fun movePrevPage() = viewModelScope.launch {
         val curPage = state.value.curPage
 
@@ -389,10 +389,10 @@ class ScriptViewModel @Inject constructor(
 
             val jobRole = state.value.jobRoleList.first{it.second}.first
 
-            //TODO 주석 풀어야함
-//            val scriptUUID = state.value.uuid
 
-            val scriptUUID = "00001"
+            //TODO 주석 풀어야함
+            val scriptUUID = state.value.uuid
+
 
             /*
             여기서는 재사용 X
@@ -406,12 +406,6 @@ class ScriptViewModel @Inject constructor(
             }
 
             val questionnaire = result.getOrNull()?: throw Exception()
-            Log.e("TAG", "설문지 만들어진거: $questionnaire ", )
-
-//            _effect.emit(
-//                Effect.NavigateTo(questionnaire)
-//            )
-
             _state.update {
                 it.copy(
                     questionnaire = questionnaire

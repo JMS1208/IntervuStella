@@ -1,9 +1,13 @@
 package com.capstone.Capstone2Project.data.model
 
+import android.os.Parcelable
+import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
+import kotlinx.parcelize.Parcelize
 import java.util.*
 
 //인터뷰 결과를 조회하는 용
+@Parcelize
 data class InterviewResult(
     @SerializedName("interviewUUID")
     val interviewUUID: String,
@@ -19,9 +23,11 @@ data class InterviewResult(
     val totalDuration: Long,
     @SerializedName("feedbackList")
     val feedbackList: List<FeedbackItem>
-) {
+): Parcelable {
 
-
+    fun toJsonString(): String {
+        return Gson().toJson(this)
+    }
     fun badPosesToString(): String {
         val poses = listOf("자세 불안정", "얼굴 만짐")
         var result = ""
@@ -97,9 +103,24 @@ data class InterviewResult(
                 feedbackList = feedbackList
             )
         }
+
+        fun jsonStringToInterviewResult(interviewResultJson: String): InterviewResult? {
+            return try {
+
+                val gson = Gson()
+
+                gson.fromJson<InterviewResult>(interviewResultJson, InterviewResult::class.java)
+
+            } catch (e:Exception) {
+                e.printStackTrace()
+                null
+            }
+
+        }
     }
 }
 
+@Parcelize
 data class FeedbackItem(
     @SerializedName("question")
     val question: String,
@@ -111,7 +132,7 @@ data class FeedbackItem(
     val duration: Long,
     @SerializedName("durationWarning")
     val durationWarning: String
-) {
+): Parcelable {
     fun durationToString(): String {
         val minute = duration / 60
         val second = duration % 60

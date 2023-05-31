@@ -24,5 +24,7 @@ data class AnswerItem(
     @SerializedName("questionUUID")
     val questionUUID: String,
     @SerializedName("answer")
-    var answer: String = ""
+    var answer: String = "",
+    @SerializedName("question")
+    var question: String
 )

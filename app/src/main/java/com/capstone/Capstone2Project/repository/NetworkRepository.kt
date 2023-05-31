@@ -13,7 +13,7 @@ import com.capstone.Capstone2Project.data.resource.Resource
 import retrofit2.Response
 
 interface NetworkRepository {
-    //    suspend fun getScripts(hostUUID: String): Result<List<Script>>
+
     suspend fun getQuestionnaire(
         hostUUID: String,
         scriptUUID: String,
@@ -21,16 +21,10 @@ interface NetworkRepository {
         reuse: Boolean
     ): Result<Questionnaire>
 
-    //    suspend fun createEmptyScript(hostUUID: String): Resource<Script>
-//    suspend fun getInterviewRecords(hostUUID: String): Result<List<InterviewResult>>
     suspend fun getInterviewScore(hostUUID: String): Result<InterviewScore>
     suspend fun getMyTodayQuestionsMemo(hostUUID: String): Result<List<TodayQuestionMemo>>
 
-    suspend fun sendInterviewData(interviewData: InterviewData): InterviewDataResponse
 
-    suspend fun writeMemo(interviewUUID: String, memo: String): Resource<String> //성공여부 알려줘야함
-
-    suspend fun getInterviewResult(interviewUUID: String): Resource<InterviewResult>
 
 
     suspend fun checkAttendance(hostUUID: String): Resource<Boolean>
@@ -115,13 +109,7 @@ interface NetworkRepository {
     suspend fun getScriptItemList(
     ): Result<List<ScriptItem>>
 
-    suspend fun createNewScript(
-        script: Script
-    ): Result<Boolean>
 
-    suspend fun updateScript(
-        script: Script
-    ): Result<Boolean>
 
     suspend fun getMyInterviewResultList(
         hostUUID: String
@@ -130,5 +118,14 @@ interface NetworkRepository {
     suspend fun createScript(
         hostUUID: String,
         script: Script
+    ): Result<Boolean>
+
+    suspend fun getInterviewFeedback(
+        interviewData: InterviewData
+    ): Result<InterviewResult>
+
+    suspend fun deleteScript(
+        scriptUUID: String,
+        hostUUID: String
     ): Result<Boolean>
 }

@@ -6,7 +6,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -54,6 +56,7 @@ import com.capstone.Capstone2Project.utils.composable.HighlightText
 import com.capstone.Capstone2Project.utils.etc.AlertUtils
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
 import com.capstone.Capstone2Project.utils.extensions.shimmerEffect
+import com.capstone.Capstone2Project.utils.extensions.toFormatString
 import com.capstone.Capstone2Project.utils.theme.*
 import com.google.accompanist.pager.*
 import com.webtoonscorp.android.readmore.foundation.ToggleArea
@@ -109,8 +112,15 @@ fun InterviewIntroDialog(
 
                     is Resource.Success -> {
                         SelectScriptContent(
-                            navController = navController, scripts = it.data
-                        )
+                            navController = navController,
+                            scripts = it.data,
+                            scriptSelected = { selectedScript, page->
+                                viewModel.fetchQuestionnaire(selectedScript, page)
+                            },
+                            reuseChecked = { page, isChecked->
+                                viewModel.reuseCheck(page, isChecked)
+                            }
+                        ) 
                     }
                 }
             }
@@ -125,7 +135,10 @@ fun InterviewIntroDialog(
 @OptIn(ExperimentalPagerApi::class, ExperimentalTextApi::class)
 @Composable
 private fun SelectScriptContent(
-    navController: NavController, scripts: List<Script>
+    navController: NavController,
+    scripts: List<Script>,
+    scriptSelected: (Script, Int) -> Unit,
+    reuseChecked: (Int, Boolean)->Unit
 ) {
 
 
@@ -183,15 +196,19 @@ private fun SelectScriptContent(
         ) { page ->
             val script = scripts[page]
             val pageOffset = calculateCurrentOffsetForPage(page).absoluteValue
-            PagerContent(pageOffset = pageOffset, page = page, script = script)
+            PagerContent(pageOffset = pageOffset, page = page, script = script) {
+                reuseChecked(page, it)
+            }
         }
+
+        Spacer(modifier = Modifier.height(spacing.large))
 
         BottomButtons(
             navController = navController,
             onClickWriteNewScript = {
                 navController.navigate(ROUTE_SCRIPT_WRITING) {
                     popUpTo(ROUTE_HOME) {
-
+            
                     }
                 }
             },
@@ -201,18 +218,7 @@ private fun SelectScriptContent(
 
                 val script = scripts[currentPage]
 
-                navController.navigate(
-                    "$ROUTE_INTERVIEW_GUIDE/{script}".replace(
-                        oldValue = "{script}",
-                        newValue = script.toJsonString()
-                    )
-                ) {
-//                    launchSingleTop = true
-//                    popUpTo(ROUTE_HOME) {
-//                        inclusive = true
-//
-//                    }
-                }
+                scriptSelected(script, currentPage)
 
 
             },
@@ -422,7 +428,7 @@ private fun ExplainsContent(
 
 @Composable
 private fun PagerContent(
-    pageOffset: Float, page: Int, script: Script
+    pageOffset: Float, page: Int, script: Script, checked: (Boolean)->Unit
 ) {
 
     val dateFormat = SimpleDateFormat("yyyy.MM.dd (E) hh:mm", Locale.getDefault())
@@ -433,6 +439,13 @@ private fun PagerContent(
     val isChecked = remember {
         mutableStateOf(false)
     }
+
+    val composition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/profil.json"))
+    val progress by animateLottieCompositionAsState(
+        composition,
+        iterations = LottieConstants.IterateForever
+    )
+
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -473,68 +486,164 @@ private fun PagerContent(
                     }
 
             ) {
-
-
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxWidth(0.9f)
+                        .verticalScroll(rememberScrollState())
+                        .background(
+                            color = White,
+                            shape = RoundedCornerShape(spacing.medium)
+                        )
                         .padding(
-                            vertical = spacing.large, horizontal = spacing.medium
-                        ),
+                            vertical = spacing.large,
+                            horizontal = spacing.medium),
                     verticalArrangement = Arrangement.spacedBy(
-                        spacing.small, Alignment.CenterVertically
+                        spacing.large,
+                        Alignment.CenterVertically
                     ),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
-
-                    Text(
-                        text = script.title, style = LocalTextStyle.current.copy(
-                            color = DarkGray,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight(550),
-                            textDecoration = TextDecoration.Underline
-                        ), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(spacing.medium))
-
-
-
-
-                    Text(
-                        text = "${dateFormat.format(script.date)} 저장",
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.End,
-                        color = text_red,
-                        fontSize = 11.sp
-                    )
-
-                    LazyColumn(
+                    Row(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .background(color = White, shape = RoundedCornerShape(5.dp)),
-                        verticalArrangement = Arrangement.spacedBy(spacing.medium),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        contentPadding = PaddingValues(
-                            horizontal = spacing.small,
-                            vertical = spacing.medium
-                        )
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(
+                            spacing.medium,
+                            Alignment.CenterHorizontally
+                        ),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        items(script.scriptItems.size) { idx ->
-                            ScriptItemContent(
-                                idx, script.scriptItems[idx]
+
+                        LottieAnimation(
+                            composition = composition,
+                            progress = { progress }
+                        )
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(spacing.small),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                script.title,
+                                color = Black,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 18.sp,
+                                fontFamily = nexonFont
                             )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(spacing.small, Alignment.Start)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(
+                                            color = bright_pink,
+                                            shape = RoundedCornerShape(50)
+                                        )
+                                        .padding(
+                                            vertical = spacing.small,
+                                            horizontal = spacing.medium
+                                        )
+                                ) {
+                                    Text(
+                                        script.jobRole,
+                                        color = White,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp,
+                                        fontFamily = nexonFont
+                                    )
+                                }
+
+                                if (script.interviewed) {
+                                    Box(
+                                        modifier = Modifier
+                                            .background(
+                                                color = orange_yellow,
+                                                shape = RoundedCornerShape(50)
+                                            )
+                                            .padding(
+                                                vertical = spacing.small,
+                                                horizontal = spacing.medium
+                                            )
+                                    ) {
+                                        Text(
+                                            "면접기록 있음",
+                                            color = White,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 12.sp,
+                                            fontFamily = nexonFont
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (script.date != null) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    Text(
+                                        "작성일: ${script.date!!.toFormatString("yyyy.MM.dd")}",
+                                        color = Gray,
+                                        fontWeight = FontWeight.Normal,
+                                        fontSize = 12.sp,
+                                        fontFamily = nexonFont
+                                    )
+                                }
+                            }
+
                         }
                     }
 
+                    script.scriptItems.forEachIndexed { index, scriptItem ->
 
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(
+                                spacing.small,
+                                Alignment.CenterVertically
+                            ),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                "${index+1}. ${scriptItem.question} (${scriptItem.maxLength})",
+                                color = Black,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp,
+                                fontFamily = nexonFont
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        color = bg_mono_grey
+                                    )
+                                    .padding(vertical = spacing.medium, horizontal = spacing.small),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    text = scriptItem.answer,
+                                    color = DarkGray,
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = 13.sp,
+                                    fontFamily = nexonFont,
+                                    textAlign = TextAlign.Start
+                                )
+                            }
+                        }
+
+                    }
                 }
 
 
             }
 
-            if(script.interviewed) {
+            if (script.interviewed) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End,
@@ -546,6 +655,7 @@ private fun PagerContent(
                         checked = isChecked.value,
                         onCheckedChange = {
                             isChecked.value = it
+                            checked(it)
                         },
                         colors = CheckboxDefaults.colors(
                             checkedColor = bright_blue,
@@ -554,7 +664,12 @@ private fun PagerContent(
                         )
                     )
 
-                    Text("이전에 시도한 면접 진행", color = White, fontSize = 14.sp, fontWeight = FontWeight(550))
+                    Text(
+                        "이전에 시도한 면접 진행",
+                        color = White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight(550)
+                    )
 
                 }
             }

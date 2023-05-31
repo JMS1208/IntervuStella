@@ -25,21 +25,7 @@ import kotlin.math.roundToInt
 @Preview(showBackground = true)
 @Composable
 private fun Preview() {
-//    Canvas(
-////        modifier = Modifier.size(100.dp)
-////    ) {
-////        val roundedCornerPath = createPocketBookPath(10.dp.value, size = Size(100f, 100f))
-////
-////        val circlePath = createCirclePath(Size(10f, 10f))
-////
-////        val punchHolesPath = createPunchHoles(size = Size(500f,200f), circleSize = Size(10f,10f))
-////
-////        clipPath(punchHolesPath, clipOp = ClipOp.Difference) {
-////            drawPath(roundedCornerPath, color = Black)
-////        }
-////
-//////        drawPath(punchHolesPath, color = Black)
-////    }
+
 
     Box(
         modifier = Modifier

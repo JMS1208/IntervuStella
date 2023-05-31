@@ -532,36 +532,13 @@ private fun AnimatedItem(
 @Composable
 private fun AnimateScreen() {
 
-    val TAG = ""
     val coroutine = rememberCoroutineScope()
 
     val offsetState = remember {
         mutableStateOf(Offset.Zero)
     }
 
-    val pointerInputModifier = Modifier.pointerInput(Unit) {
-        detectTapGestures(
-            onTap = { offset: Offset ->
-                Log.e(TAG, "OnTap: $offset")
-                offsetState.value = offset
-            },
-            onDoubleTap = { offset: Offset ->
-                Log.e(TAG, "onDoubleTap: $offset")
-                offsetState.value = offset
-            },
-            onPress = { offset: Offset ->
-                coroutine.launch {
-                    Log.e(TAG, "onPress: $offset")
-                    offsetState.value = offset
-                }
-            },
-            onLongPress = { offset: Offset ->
 
-                Log.e(TAG, "onLongPress: $offset")
-                offsetState.value = offset
-            }
-        )
-    }
 
     val dragDelta = remember {
         mutableStateOf("")

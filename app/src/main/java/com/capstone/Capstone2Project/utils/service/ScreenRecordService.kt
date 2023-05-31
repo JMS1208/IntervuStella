@@ -110,7 +110,6 @@ class ScreenRecordService: Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.e("TAG", "onStartCommand: $intent")
         intent ?: throw IllegalStateException("Intent missing")
 
         Toast.makeText(this, "Starting recording service", Toast.LENGTH_SHORT).show()

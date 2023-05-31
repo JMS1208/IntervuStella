@@ -167,12 +167,20 @@ fun ScriptScreen(
         state.value.questionnaire != null -> {
             LaunchedEffect(state.value.questionnaire) {
 
-                navController.currentBackStackEntry?.savedStateHandle?.set(
-                    key = "questionnaire",
-                    value = state.value.questionnaire
-                )
+//                navController.currentBackStackEntry?.savedStateHandle?.set(
+//                    key = "questionnaire",
+//                    value = state.value.questionnaire
+//                )
+//
+//                navController.navigate(ROUTE_INTERVIEW_GUIDE)
 
-                navController.navigate(ROUTE_INTERVIEW_GUIDE)
+                navController.navigate(
+                    "$ROUTE_INTERVIEW_GUIDE?questionnaire={questionnaire}"
+                        .replace(
+                            oldValue = "{questionnaire}",
+                            newValue = state.value.questionnaire!!.toJsonString()
+                        )
+                )
             }
 
         }
@@ -298,7 +306,6 @@ fun ScriptScreen(
 
                 LaunchedEffect(viewModel) {
                     viewModel.effect.collect {
-                        Log.e("TAG", "ScriptScreen: 이펙트 감지! $it")
                         when (it) {
                             is ScriptViewModel.Effect.ShowMessage -> {
                                 val message = it.message
@@ -308,12 +315,20 @@ fun ScriptScreen(
                             is ScriptViewModel.Effect.NavigateTo -> {
                                 val questionnaire = it.questionnaire
 
-                                navController.currentBackStackEntry?.savedStateHandle?.set(
-                                    key = "questionnaire",
-                                    value = questionnaire
-                                )
+//                                navController.currentBackStackEntry?.savedStateHandle?.set(
+//                                    key = "questionnaire",
+//                                    value = questionnaire
+//                                )
+//
+//                                navController.navigate(ROUTE_INTERVIEW_GUIDE)
 
-                                navController.navigate(ROUTE_INTERVIEW_GUIDE)
+                                navController.navigate(
+                                    "$ROUTE_INTERVIEW_GUIDE?questionnaire={questionnaire}"
+                                        .replace(
+                                            oldValue = "{questionnaire}",
+                                            newValue = questionnaire.toJsonString()
+                                        )
+                                )
 
                             }
                         }
@@ -834,7 +849,7 @@ private fun DialogPreview() {
 
     CheckRemoveDialog(
         scriptItem = ScriptItem.createTestScriptItem(),
-        onDismiss = { /*TODO*/ },
+        onDismiss = {   },
         removeClicked = {})
 
 }

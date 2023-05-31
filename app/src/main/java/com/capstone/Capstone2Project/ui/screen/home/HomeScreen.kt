@@ -616,7 +616,6 @@ private fun AttendanceCheck(
                         items(weekAttendanceInfo.data.weekAttendance) {weekItem->
                             weekItem?.let{
                                 ItemAttendance(weekItem = it)
-                                Log.e("TAG", "AttendanceCheck: $it", )
                             }
                         }
                     }

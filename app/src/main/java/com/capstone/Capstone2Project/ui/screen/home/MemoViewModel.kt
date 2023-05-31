@@ -39,8 +39,6 @@ class MemoViewModel @Inject constructor(
             question
         )
 
-        Log.e("TAG", "loadMemo: $result", )
-
         val showDialog = result !is Resource.Error
 
         _memoFlow.update {

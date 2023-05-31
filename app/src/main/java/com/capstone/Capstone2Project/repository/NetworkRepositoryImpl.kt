@@ -38,7 +38,7 @@ class NetworkRepositoryImpl @Inject constructor(
             /*
             reuse 1이면 재사용, 0이면 재사용 x
              */
-            //TODO("아래 주석 풀어야함")
+
             val response = mainService.getQuestionnaire(hostUUID, scriptUUID, jobRole, if(reuse) 1 else 0)
 
             if(!response.isSuccessful) {
@@ -104,37 +104,6 @@ class NetworkRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
 
-    }
-
-    override suspend fun sendInterviewData(interviewData: InterviewData): InterviewDataResponse {
-        //TODO(interviewData 보내기)
-
-        return InterviewDataResponse("성공")
-    }
-
-    override suspend fun writeMemo(interviewUUID: String, memo: String): Resource<String> {
-        //TODO(Memo 보내기)
-        return Resource.Success(memo)
-
-    }
-
-    override suspend fun getInterviewResult(interviewUUID: String): Resource<InterviewResult> {
-
-        val newAchievements = mutableListOf<Achievement>()
-
-        for (i in 0 until 10) {
-            newAchievements.add(
-                Achievement(
-                    date = System.currentTimeMillis(),
-                    text = "업적 예시 $i",
-                    type = (0..3).random()
-                )
-            )
-        }
-
-        val interviewResult = InterviewResult.createTestInterviewResult()
-
-        return Resource.Success(interviewResult)
     }
 
 
@@ -603,13 +572,6 @@ class NetworkRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun createNewScript(script: Script): Result<Boolean> {
-        TODO("Not yet implemented")
-    }
-
-    override suspend fun updateScript(script: Script): Result<Boolean> {
-        TODO("Not yet implemented")
-    }
 
     override suspend fun getMyInterviewResultList(hostUUID: String): Result<List<InterviewResult>> {
         return try {
@@ -651,6 +613,48 @@ class NetworkRepositoryImpl @Inject constructor(
             val result = response.body() ?: throw Exception("자기소개서 생성 실패")
 
             Result.success(result == 1)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /*
+    면접 피드백 받기
+     */
+    override suspend fun getInterviewFeedback(interviewData: InterviewData): Result<InterviewResult> {
+        return try {
+            val response = mainService.getInterviewFeedback(
+                interviewData
+            )
+
+            if(!response.isSuccessful) {
+                throw Exception("면접 결과 네트워크 오류")
+            }
+
+            val result = response.body() ?: throw Exception("면접 결과 네트워크 오류")
+
+//            val result = InterviewResult.createTestInterviewResult()
+
+            Result.success(result)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteScript(scriptUUID: String, hostUUID: String): Result<Boolean> {
+        return try {
+            val response = mainService.deleteScript(scriptUUID, hostUUID)
+
+            if(!response.isSuccessful) {
+                throw Exception("자기소개서 삭제 오류")
+            }
+
+            val result = response.body() ?: throw Exception("자기소개서 삭제 오류")
+
+            Result.success(result)
+
         } catch (e: Exception) {
             e.printStackTrace()
             Result.failure(e)

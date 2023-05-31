@@ -317,18 +317,28 @@ class InterviewViewModel @Inject constructor(
                     questionnaireUUID = questionnaire?.uuid!!
                 )
 
-                val result = repository.sendInterviewData(interviewData)
+                val result = repository.getInterviewFeedback(interviewData)
 
-                if(result.result == "성공") {
-                    _state.update {
-                        it.copy(
-                            interviewState = InterviewState.Finished(interviewUUID)
-                        )
-                    }
-
-                } else {
-                    throw Exception("네트워크 오류")
+                if(result.isFailure) {
+                    _effect.emit(
+                        Effect.ShowMessage("네트워크 오류")
+                    )
+                    return@launch
                 }
+
+                val interviewResult = result.getOrNull() ?: run {
+                    _effect.emit(
+                        Effect.ShowMessage("네트워크 오류")
+                    )
+                    return@launch
+                }
+
+                _state.update {
+                    it.copy(
+                        interviewState = InterviewState.Finished(interviewResult)
+                    )
+                }
+
             }
         }
     }
@@ -425,7 +435,8 @@ class InterviewViewModel @Inject constructor(
                 AnswerItem(
                     answerUUID = UUID.randomUUID().toString(),
                     questionUUID = it.uuid,
-                    answer = ""
+                    answer = "",
+                    question = it.question
                 )
             )
         }
@@ -480,7 +491,8 @@ class InterviewViewModel @Inject constructor(
             val qnA: QnA
         ): InterviewState()
         data class Finished(
-            val interviewUUID: String
+//            val interviewUUID: String
+            val interviewResult: InterviewResult
         ): InterviewState()
         data class Error( //오류
             val message: String
@@ -490,6 +502,7 @@ class InterviewViewModel @Inject constructor(
 
     sealed class Effect {
         data class ShowMessage(val message: String) : Effect()
+//        data class NavigateTo(val route: String): Effect()
     }
 
     data class LogState(

@@ -22,7 +22,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import java.util.*
 
-  @OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 @Preview(showBackground = true)
 fun RecognitionScreen() {
@@ -189,19 +189,6 @@ fun RecognitionContent() {
 
     }
 
-//    LaunchedEffect(speechFinished.value) {
-//        Log.d("TAG", "리스너 테스트: ${speechFinished.value} ")
-//        if(speechFinished.value) {
-//            speechRecognizer.apply {
-//                stopListening()
-////                destroy()
-////                cancel()
-////                setRecognitionListener(listener)
-//                startListening(intent)
-//            }
-//            speechFinished.value = false
-//        }
-//    }
 
     Column(
         modifier = Modifier.fillMaxSize(),

@@ -360,13 +360,11 @@ fun InterviewGuideScreen(
 
                                 if(permissionState.allPermissionsGranted) {
 
-                                    navController.currentBackStackEntry?.savedStateHandle?.set(
-                                        key = "questionnaire",
-                                        value = questionnaire
-                                    )
-
                                     navController.navigate(
-                                        ROUTE_CAMERA
+                                        "$ROUTE_CAMERA?questionnaire={questionnaire}".replace(
+                                            oldValue = "{questionnaire}",
+                                            newValue = questionnaire.toJsonString()
+                                        )
                                     )
                                 } else {
                                     requestPermissionsForRecording.value = true

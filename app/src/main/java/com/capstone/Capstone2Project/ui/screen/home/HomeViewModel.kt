@@ -76,7 +76,7 @@ class HomeViewModel @Inject constructor(
     fun getWeekAttendanceInfo(hostUUID: String) = viewModelScope.launch(Dispatchers.IO) {
         _state.update {
             val result = repository.getWeekAttendanceInfo(hostUUID)
-            Log.e("TAG", "getWeekAttendanceInfo: $result", )
+
             it?.copy(
                 weekAttendanceInfo = result
             )
@@ -118,26 +118,10 @@ class HomeViewModel @Inject constructor(
         }
 
 
-//    fun getTodayQuestionMemo(hostUUID: String, questionUUID: String, question: String) =
-//        viewModelScope.launch(Dispatchers.IO) {
-//
-//            _state.update {
-//
-//                val result = repository.getTodayQuestionMemo(hostUUID, questionUUID, question)
-//
-//                it?.copy(
-//                    todayQuestionMemo = result
-//                )
-//            }
-//        }
-
-//
-
     data class State(
         var topics: Resource<List<Topic>> = Resource.Loading,
         var todayAttendanceQuiz: Resource<TodayAttendanceQuiz> = Resource.Loading,
-        var weekAttendanceInfo: Resource<WeekAttendanceInfo> = Resource.Loading,
-//        var todayQuestionMemo: Resource<TodayQuestionMemo> = Resource.Loading
+        var weekAttendanceInfo: Resource<WeekAttendanceInfo> = Resource.Loading
     )
     /*
     필요한 정보가
