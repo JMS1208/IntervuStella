@@ -8,7 +8,6 @@ import com.capstone.Capstone2Project.data.model.fornetwork.Topics
 import com.capstone.Capstone2Project.data.model.inapp.TodayAttendanceQuiz
 import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
 import com.capstone.Capstone2Project.data.model.inapp.WeekAttendanceInfo
-import com.capstone.Capstone2Project.data.model.response.InterviewDataResponse
 import com.capstone.Capstone2Project.data.resource.Resource
 import retrofit2.Response
 

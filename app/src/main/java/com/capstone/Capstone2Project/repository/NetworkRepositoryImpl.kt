@@ -12,7 +12,6 @@ import com.capstone.Capstone2Project.data.model.inapp.TodayAttendanceQuiz
 import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
 import com.capstone.Capstone2Project.data.model.inapp.WeekAttendanceInfo
 import com.capstone.Capstone2Project.data.model.inapp.WeekItem
-import com.capstone.Capstone2Project.data.model.response.InterviewDataResponse
 import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.network.service.MainService
 import com.capstone.Capstone2Project.ui.screen.comment.CommentPagingSource
