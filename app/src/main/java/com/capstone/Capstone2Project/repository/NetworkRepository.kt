@@ -17,7 +17,7 @@ interface NetworkRepository {
     suspend fun getQuestionnaire(
         hostUUID: String,
         scriptUUID: String,
-        jobRole: String,
+        //jobRole: String,
         reuse: Boolean
     ): Result<Questionnaire>
 
@@ -128,4 +128,8 @@ interface NetworkRepository {
         scriptUUID: String,
         hostUUID: String
     ): Result<Boolean>
+
+/*    suspend fun getInterviewList(
+        hostUUID: String
+    ): Result<List<InterviewResult>>*/
 }

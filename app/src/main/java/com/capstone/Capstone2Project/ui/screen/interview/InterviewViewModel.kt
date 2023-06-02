@@ -38,9 +38,8 @@ class InterviewViewModel @Inject constructor(
 
     private var logState: InterviewViewModel.LogState = InterviewViewModel.LogState(false, null)
 
-
-    private var _decibelFlow: MutableStateFlow<Int?> = MutableStateFlow(null)
-    val decibelFlow: StateFlow<Int?> = _decibelFlow
+//    private var _decibelFlow: MutableStateFlow<Int?> = MutableStateFlow(null)
+//    val decibelFlow: StateFlow<Int?> = _decibelFlow
 
     init {
         viewModelScope.launch {
@@ -81,7 +80,8 @@ class InterviewViewModel @Inject constructor(
             if (state.value.interviewState == InterviewState.InProgress) {
                 logLock(newInterviewLogLine.logLine) {
                     if (newInterviewLogLine.logLine.message
-                            == newInterviewLogLineFlow.value?.logLine?.message) {
+                        == newInterviewLogLineFlow.value?.logLine?.message
+                    ) {
                         return@logLock
                     }
 
@@ -94,18 +94,20 @@ class InterviewViewModel @Inject constructor(
                         val badPose = it.badPose.toMutableList()
 
                         with(newInterviewLogLine.logLine) {
-                            when(type) {
+                            when (type) {
                                 LogLine.Type.Camera -> {
-                                    index?.let { idx->
+                                    index?.let { idx ->
                                         badExpressions[idx] += 1
                                     }
                                 }
+
                                 LogLine.Type.Pose -> {
-                                    index?.let { idx->
+                                    index?.let { idx ->
                                         badPose[idx] += 1
                                     }
                                 }
-                                else-> Unit
+
+                                else -> Unit
                             }
                         }
 
@@ -239,7 +241,7 @@ class InterviewViewModel @Inject constructor(
                     questionItem = questionItem
                 )
 
-                _state.update {_->
+                _state.update { _ ->
                     it.copy(
                         interviewState = InterviewState.EditAnswer(
                             qna
@@ -247,7 +249,6 @@ class InterviewViewModel @Inject constructor(
                     )
                 }
             }
-
 
 
         }
@@ -277,12 +278,18 @@ class InterviewViewModel @Inject constructor(
     private fun finishInterview() = viewModelScope.launch {
         handleStateException {
 
+//            _state.update {
+//                it.copy(
+//                    interviewState = InterviewState.Loading
+//                )
+//            }
+
             val durations = state.value.durations ?: return@launch
 
             val currentPage = state.value.currentPage ?: return@launch
 
 
-            _state.update{
+            _state.update {
 
                 val newCumDurations = durations.mapIndexed { index, duration ->
                     if (index == currentPage) {
@@ -292,8 +299,8 @@ class InterviewViewModel @Inject constructor(
                     }
                 }.toMutableList()
 
-                for (i in newCumDurations.size-1 downTo 0) {
-                    val beforeDuration = if (i-1 < 0) 0 else newCumDurations[i-1]
+                for (i in newCumDurations.size - 1 downTo 0) {
+                    val beforeDuration = if (i - 1 < 0) 0 else newCumDurations[i - 1]
                     newCumDurations[i] -= beforeDuration
                 }
 
@@ -307,7 +314,6 @@ class InterviewViewModel @Inject constructor(
 
             with(state.value) {
 
-                val interviewUUID = UUID.randomUUID().toString()
                 val interviewData = InterviewData(
                     answers = answers!!,
                     badExpressions = badExpressions,
@@ -319,7 +325,7 @@ class InterviewViewModel @Inject constructor(
 
                 val result = repository.getInterviewFeedback(interviewData)
 
-                if(result.isFailure) {
+                if (result.isFailure) {
                     _effect.emit(
                         Effect.ShowMessage("네트워크 오류")
                     )
@@ -357,7 +363,7 @@ class InterviewViewModel @Inject constructor(
     }
 
     fun restartInterview() = viewModelScope.launch {
-        if (state.value.interviewState == InterviewState.Paused
+        if (state.value.interviewState == InterviewState.Paused || state.value.interviewState is InterviewState.EditAnswer
         ) {
             _state.update {
                 it.copy(
@@ -386,8 +392,13 @@ class InterviewViewModel @Inject constructor(
     }
 
     fun updateDecibel(decibel: Int) = viewModelScope.launch {
-        _decibelFlow.update {
-            decibel
+//        _decibelFlow.update {
+//            decibel
+//        }
+        _state.update {
+            it.copy(
+                decibel = decibel
+            )
         }
     }
 
@@ -410,7 +421,7 @@ class InterviewViewModel @Inject constructor(
     맨처음 면접 질문지 초기화하기
      */
     fun initQuestionnaire(questionnaire: Questionnaire?) = viewModelScope.launch {
-        if(questionnaire == null) {
+        if (questionnaire == null) {
             val message = "잠시 후 다시 시도해주세요"
             _effect.emit(
                 Effect.ShowMessage(message)
@@ -449,7 +460,7 @@ class InterviewViewModel @Inject constructor(
                 currentPage = 0,
                 interviewDate = System.currentTimeMillis(),
                 progress = 0,
-                durations = List(answers.size) {0}
+                durations = List(answers.size) { 0 }
             )
         }
 
@@ -459,14 +470,15 @@ class InterviewViewModel @Inject constructor(
         var interviewState: InterviewState = InterviewState.Ready,
         var progress: Long = 0,
 //        val logs: List<InterviewLogLine> = emptyList(),
-        val badExpressions :List<Int> = List(4) { 0 },
+        val badExpressions: List<Int> = List(4) { 0 },
         var badPose: List<Int> = List(2) { 0 },
         var currentPage: Int? = null,
         val questionnaire: Questionnaire? = null,
         val answers: List<AnswerItem>? = null,
         var interviewDate: Long? = null,
         var recognizerState: RecognizerState = RecognizerState.Stopped,
-        val durations: List<Long>? = null
+        val durations: List<Long>? = null,
+        var decibel: Int? = null
     )
 
     data class QnA(
@@ -486,18 +498,22 @@ class InterviewViewModel @Inject constructor(
         object Prepared : InterviewState() //패치후
         object InProgress : InterviewState() //진행중
         object Paused : InterviewState() //일시중지
+
         //object WritingMemo : InterviewState() //메모적기
         data class EditAnswer(
             val qnA: QnA
-        ): InterviewState()
+        ) : InterviewState()
+
         data class Finished(
 //            val interviewUUID: String
             val interviewResult: InterviewResult
-        ): InterviewState()
+        ) : InterviewState()
+
         data class Error( //오류
             val message: String
         ) : InterviewState()
-        object Loading: InterviewState()
+
+        object Loading : InterviewState()
     }
 
     sealed class Effect {

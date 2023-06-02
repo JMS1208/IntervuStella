@@ -4,11 +4,6 @@ import com.google.gson.annotations.SerializedName
 import com.madrapps.plot.line.DataPoint
 
 data class InterviewScore(
-//    val scriptUUID: String,
-//    val hostUUID: String,
-//    val interviewUUID: String,
-//    val date: Long,
-//    val score: Int
     @SerializedName("max_score")
     val maxRank: String,
     @SerializedName("min_score")
@@ -49,10 +44,5 @@ data class Rank(
             else -> 5f
         }
     }
-//    fun toDataPoint(): DataPoint {
-//        return DataPoint(
-//            x = date.toFloat(),
-//            y = rankToDataPointY()
-//        )
-//    }
+
 }

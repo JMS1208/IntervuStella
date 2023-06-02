@@ -258,7 +258,10 @@ fun InterviewScreen(
                             //showAnswerDialog.value = false
                         },
                         question = this.questionItem.question,
-                        answer = this.answerItem.answer
+                        answer = this.answerItem.answer,
+                        closeDialog = {
+                            interviewViewModel.restartInterview()
+                        }
                     )
                 }
 
@@ -1081,7 +1084,7 @@ private fun BottomButtons(
 
     val state = interviewViewModel.state.collectAsStateWithLifecycle()
 
-    val decibelFlow = interviewViewModel.decibelFlow.collectAsStateWithLifecycle()
+//    val decibelFlow = interviewViewModel.decibelFlow.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
 
@@ -1298,7 +1301,7 @@ private fun BottomButtons(
             )
 
             Text(
-                "${(decibelFlow.value ?: 0f).toInt()}dB",
+                "${(state.value.decibel ?: 0f).toInt()}dB",
                 style = LocalTextStyle.current.copy(
                     shadow = Shadow(
                         color = Color.DarkGray,
@@ -1408,7 +1411,7 @@ private fun QuestionAnswerContents(
     val question = remember(state.value.currentPage) {
         derivedStateOf {
             with(state.value) {
-                if (questionnaire?.questions != null && currentPage != null) {
+                if (questionnaire?.questions != null && questionnaire.questions.isNotEmpty() && currentPage != null) {
                     questionnaire.questions[currentPage!!].question
                 } else {
                     ""
@@ -1539,7 +1542,8 @@ private fun String.splitToCodePoints(): List<String> {
 private fun BeforeSendingAnswerDialog(
     dismissClick: (String) -> Unit,
     question: String,
-    answer: String
+    answer: String,
+    closeDialog: ()->Unit
 ) {
     val composition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/circle_rocket.json"))
     val progress by animateLottieCompositionAsState(
@@ -1726,7 +1730,9 @@ private fun BeforeSendingAnswerDialog(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         Row(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).clickable {
+                                closeDialog()
+                            },
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(
                                 10.dp,
@@ -1784,17 +1790,6 @@ private fun BeforeSendingAnswerDialog(
 }
 
 
-@Preview(showBackground = true)
-@Composable
-private fun DialogPreview() {
-    BeforeSendingAnswerDialog(
-        dismissClick = {
-
-        },
-        question = "프로세스와 스레드의 차이는 무엇인가요?",
-        answer = ""
-    )
-}
 
 @Composable
 fun InterviewPreparedDialog(

@@ -31,7 +31,7 @@ class NetworkRepositoryImpl @Inject constructor(
     override suspend fun getQuestionnaire(
         hostUUID: String,
         scriptUUID: String,
-        jobRole: String,
+        //jobRole: String,
         reuse: Boolean
     ): Result<Questionnaire> {
         return try {
@@ -39,7 +39,7 @@ class NetworkRepositoryImpl @Inject constructor(
             reuse 1이면 재사용, 0이면 재사용 x
              */
 
-            val response = mainService.getQuestionnaire(hostUUID, scriptUUID, jobRole, if(reuse) 1 else 0)
+            val response = mainService.getQuestionnaire(hostUUID, scriptUUID, if(reuse) 1 else 0)
 
             if(!response.isSuccessful) {
                 throw Exception("면접 질문지 생성 오류")
@@ -660,4 +660,22 @@ class NetworkRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+//    override suspend fun getInterviewList(hostUUID: String): Result<List<InterviewResult>> {
+//        return try {
+//
+//            val response = mainService.getInterviewList(hostUUID)
+//
+//            if(!response.isSuccessful) {
+//                throw Exception("면접 기록 조회 오류")
+//            }
+//
+//            val result = response.body() ?: throw Exception("면접 기록 조회 오류")
+//
+//            Result.success(result)
+//        } catch(e: Exception) {
+//            e.printStackTrace()
+//            Result.failure(e)
+//        }
+//    }
 }

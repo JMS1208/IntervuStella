@@ -288,12 +288,18 @@ class ScriptViewModel @Inject constructor(
     }
 
     private fun sendScriptToServer(hostUUID: String) = viewModelScope.launch(Dispatchers.IO) {
+        _state.update {
+            it.copy(
+                dataState = DataState.Loading()
+            )
+        }
         val script = Script(
             date = System.currentTimeMillis(),
             title = state.value.title,
             scriptItems = state.value.scriptItemList.filter{it.second}.map{it.first},
             jobRole = state.value.jobRoleList.first{it.second}.first,
-            hostUUID = hostUUID
+            hostUUID = hostUUID,
+            uuid = state.value.uuid
         )
 
         val result = repository.createScript(hostUUID, script)
@@ -302,10 +308,22 @@ class ScriptViewModel @Inject constructor(
             _effect.emit(
                 Effect.ShowMessage(result.exceptionOrNull()?.message?:"자기소개서 생성 실패")
             )
+            _state.update{
+                it.copy(
+                    dataState = DataState.Error(Exception("자기소개서 생성 실패"))
+                )
+            }
         } else {
             _effect.emit(
                 Effect.ShowMessage("자기소개서 생성 완료")
             )
+            val curPage = state.value.curPage
+            _state.update {
+                it.copy(
+                    dataState = DataState.Normal,
+                    curPage = curPage+1
+                )
+            }
         }
     }
 
@@ -341,16 +359,16 @@ class ScriptViewModel @Inject constructor(
         val curPage = state.value.curPage
         val totalPage = state.value.scriptItemList.count { it.second }
 
-        if (curPage <= totalPage) {
+        if (curPage < totalPage) {
             _state.update {
                 it.copy(
                     curPage = curPage + 1
                 )
             }
-            if(curPage == totalPage) {
-                sendScriptToServer(hostUUID)
-            }
-        } else {
+
+        } else if(curPage == totalPage) {
+            sendScriptToServer(hostUUID)
+        }else {
             _effect.emit(
                 Effect.ShowMessage("페이지를 넘어갈 수 없어요")
             )
@@ -397,7 +415,8 @@ class ScriptViewModel @Inject constructor(
             /*
             여기서는 재사용 X
              */
-            val result = repository.getQuestionnaire(hostUUID, scriptUUID, jobRole, reuse)
+            val result = repository.getQuestionnaire(hostUUID, scriptUUID,
+                reuse)
 
 
 

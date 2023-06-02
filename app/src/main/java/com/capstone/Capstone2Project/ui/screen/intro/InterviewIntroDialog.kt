@@ -29,13 +29,16 @@ import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.layout.lerp
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -61,6 +64,7 @@ import com.capstone.Capstone2Project.utils.theme.*
 import com.google.accompanist.pager.*
 import com.webtoonscorp.android.readmore.foundation.ToggleArea
 import com.webtoonscorp.android.readmore.material.ReadMoreText
+import kotlinx.coroutines.flow.collectLatest
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.absoluteValue
@@ -83,8 +87,27 @@ fun InterviewIntroDialog(
 
     val scriptsFlow = viewModel.scriptsFlow.collectAsStateWithLifecycle()
 
-
     val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchScripts()
+    }
+
+    LaunchedEffect(viewModel) {
+
+        viewModel.effect.collectLatest {
+            when(it) {
+                is InterviewIntroViewModel.Effect.NavigateTo -> {
+                    val route = it.route
+                    navController.navigate(route)
+                }
+                is InterviewIntroViewModel.Effect.ShowMessage -> {
+                    val message = it.message
+                    AlertUtils.showToast(context, message)
+                }
+            }
+        }
+    }
 
 
     CompositionLocalProvider(
@@ -114,13 +137,13 @@ fun InterviewIntroDialog(
                         SelectScriptContent(
                             navController = navController,
                             scripts = it.data,
-                            scriptSelected = { selectedScript, page->
+                            scriptSelected = { selectedScript, page ->
                                 viewModel.fetchQuestionnaire(selectedScript, page)
                             },
-                            reuseChecked = { page, isChecked->
+                            reuseChecked = { page, isChecked ->
                                 viewModel.reuseCheck(page, isChecked)
                             }
-                        ) 
+                        )
                     }
                 }
             }
@@ -138,17 +161,12 @@ private fun SelectScriptContent(
     navController: NavController,
     scripts: List<Script>,
     scriptSelected: (Script, Int) -> Unit,
-    reuseChecked: (Int, Boolean)->Unit
+    reuseChecked: (Int, Boolean) -> Unit
 ) {
 
 
     val context = LocalContext.current
 
-//    val composition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/spaceship.json"))
-//
-//    val progress by animateLottieCompositionAsState(
-//        composition, iterations = LottieConstants.IterateForever
-//    )
 
     val spacing = LocalSpacing.current
 
@@ -158,15 +176,10 @@ private fun SelectScriptContent(
         verticalArrangement = Arrangement.Center
     ) {
 
-
-//        Spacer(modifier = Modifier.height(spacing.small))
-
         Box(
             modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter
         ) {
-//            LottieAnimation(
-//                composition = composition, progress = { progress }, modifier = Modifier.size(180.dp)
-//            )
+
             ExplainsContent(
                 modifier = Modifier
             )
@@ -208,7 +221,7 @@ private fun SelectScriptContent(
             onClickWriteNewScript = {
                 navController.navigate(ROUTE_SCRIPT_WRITING) {
                     popUpTo(ROUTE_HOME) {
-            
+
                     }
                 }
             },
@@ -428,7 +441,7 @@ private fun ExplainsContent(
 
 @Composable
 private fun PagerContent(
-    pageOffset: Float, page: Int, script: Script, checked: (Boolean)->Unit
+    pageOffset: Float, page: Int, script: Script, checked: (Boolean) -> Unit
 ) {
 
     val dateFormat = SimpleDateFormat("yyyy.MM.dd (E) hh:mm", Locale.getDefault())
@@ -488,7 +501,6 @@ private fun PagerContent(
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth(0.9f)
                         .verticalScroll(rememberScrollState())
                         .background(
                             color = White,
@@ -496,7 +508,8 @@ private fun PagerContent(
                         )
                         .padding(
                             vertical = spacing.large,
-                            horizontal = spacing.medium),
+                            horizontal = spacing.medium
+                        ),
                     verticalArrangement = Arrangement.spacedBy(
                         spacing.large,
                         Alignment.CenterVertically
@@ -532,13 +545,23 @@ private fun PagerContent(
                                 fontFamily = nexonFont
                             )
 
+                            /*
+                            아래 Row의 사이즈 측정해서 자식 Box 크기 정할때 씀
+                             */
+
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(spacing.small, Alignment.Start)
+                                horizontalArrangement = Arrangement.spacedBy(
+                                    spacing.small,
+                                    Alignment.Start
+                                )
                             ) {
+
                                 Box(
                                     modifier = Modifier
+                                        .weight(0.5f)
                                         .background(
                                             color = bright_pink,
                                             shape = RoundedCornerShape(50)
@@ -553,31 +576,38 @@ private fun PagerContent(
                                         color = White,
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 12.sp,
-                                        fontFamily = nexonFont
+                                        fontFamily = nexonFont,
+                                        overflow = TextOverflow.Ellipsis,
+                                        maxLines = 1,
+                                        textAlign = TextAlign.Center
                                     )
                                 }
 
-                                if (script.interviewed) {
-                                    Box(
-                                        modifier = Modifier
-                                            .background(
-                                                color = orange_yellow,
-                                                shape = RoundedCornerShape(50)
-                                            )
-                                            .padding(
-                                                vertical = spacing.small,
-                                                horizontal = spacing.medium
-                                            )
-                                    ) {
-                                        Text(
-                                            "면접기록 있음",
-                                            color = White,
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 12.sp,
-                                            fontFamily = nexonFont
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(0.5f)
+                                        .background(
+                                            color = orange_yellow,
+                                            shape = RoundedCornerShape(50)
                                         )
-                                    }
+                                        .padding(
+                                            vertical = spacing.small,
+                                            horizontal = spacing.medium
+                                        )
+                                ) {
+                                    Text(
+                                        if (script.interviewed) "면접기록 있음" else "면접기록 없음",
+                                        color = White,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp,
+                                        fontFamily = nexonFont,
+                                        overflow = TextOverflow.Ellipsis,
+                                        maxLines = 1,
+                                        textAlign = TextAlign.Center
+                                    )
                                 }
+
                             }
 
                             if (script.date != null) {
@@ -609,7 +639,7 @@ private fun PagerContent(
                             horizontalAlignment = Alignment.Start
                         ) {
                             Text(
-                                "${index+1}. ${scriptItem.question} (${scriptItem.maxLength})",
+                                "${index + 1}. ${scriptItem.question} (${scriptItem.maxLength})",
                                 color = Black,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 16.sp,
@@ -665,7 +695,7 @@ private fun PagerContent(
                     )
 
                     Text(
-                        "이전에 시도한 면접 진행",
+                        "면접 재시도",
                         color = White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight(550)

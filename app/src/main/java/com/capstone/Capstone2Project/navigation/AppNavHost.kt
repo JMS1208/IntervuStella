@@ -165,6 +165,7 @@ fun AppNavHost(
             val authViewModel: AuthViewModel = hiltViewModel()
 
             authViewModel.currentUser?.let { firebaseUser ->
+
                 ScriptScreen(
                     navController = navController,
                     oriScript = script,

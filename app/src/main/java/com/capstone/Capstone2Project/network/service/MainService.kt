@@ -9,7 +9,6 @@ import com.capstone.Capstone2Project.data.model.Topic
 import com.capstone.Capstone2Project.data.model.fornetwork.Topics
 import com.capstone.Capstone2Project.data.model.UserInfo
 import com.capstone.Capstone2Project.data.model.fornetwork.Comment
-import com.capstone.Capstone2Project.data.model.fornetwork.MemoForQuestion
 import com.capstone.Capstone2Project.data.model.fornetwork.Memo
 import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestion
 import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestionComment
@@ -80,26 +79,7 @@ interface MainService {
     ): Response<TodayQuestion>
 
 
-    /*
-    오늘의 질문 자신이 단 댓글 보기
-    null 이면 단 댓글이 없는 거
-     */
-    @GET("user/common_ques_memo/")
-    suspend fun getMyMemoAboutQuestion(
-        @Query("user_uuid") hostUUID: String,
-        @Query("common_ques_uuid") questionUUID: String
-    ): Response<MemoForQuestion?>
 
-//    /*
-//    오늘의 질문에 자신의 메모 달기
-//    성공시 1 실패시 0 반환
-//     */
-//    @POST("user/common_ques_memo/")
-//    suspend fun postMyMemoAboutQuestion(
-//        @Query("user_uuid") hostUUID: String,
-//        @Query("common_ques_uuid") questionUUID: String,
-//        @Body memo: Memo
-//    ): Response<Int>
 
     /*
     오늘의 질문 자신의 메모 수정하기
@@ -120,14 +100,6 @@ interface MainService {
         @Query("user_uuid") hostUUID: String,
     ):Response<Int>
 
-    /*
-    내가쓴 오늘의 질문 댓글들 리스트 보기
-    없으면 빈 리스트 반환
-     */
-    @GET("user/memo_list/{user_uuid}")
-    suspend fun getMyMemoList(
-        @Path("user_uuid") hostUUID: String
-    ): Response<List<MemoForQuestion>>
 
     /*
     연속 출석일 수 가져오기
@@ -273,7 +245,7 @@ interface MainService {
     suspend fun getQuestionnaire(
         @Query("user_uuid") hostUUID: String,
         @Query("script_uuid") scriptUUID: String,
-        @Query("role") jobRole: String,
+        //@Query("role") jobRole: String,
         @Query("reuse") reuse: Int
     ): Response<Questionnaire>
 
@@ -293,4 +265,6 @@ interface MainService {
         @Query("script_uuid") scriptUUID: String,
         @Query("user_uuid") hostUUID: String
     ): Response<Boolean>
+
+
 }

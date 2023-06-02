@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.capstone.Capstone2Project.data.model.Questionnaire
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.data.resource.Resource
+import com.capstone.Capstone2Project.navigation.ROUTE_INTERVIEW_GUIDE
 import com.capstone.Capstone2Project.repository.AuthRepository
 import com.capstone.Capstone2Project.repository.NetworkRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,9 +33,9 @@ class InterviewIntroViewModel @Inject constructor(
     private val _state: MutableStateFlow<State> = MutableStateFlow(State())
     val state: StateFlow<State> = _state
 
-    init {
-        fetchScripts()
-    }
+//    init {
+//        fetchScripts()
+//    }
 
     fun fetchScripts() = viewModelScope.launch {
         _scriptsFlow.value = Resource.Loading
@@ -74,7 +75,6 @@ class InterviewIntroViewModel @Inject constructor(
             val result = repository.getQuestionnaire(
                 hostUUID = script.hostUUID,
                 scriptUUID = script.uuid,
-                jobRole = script.jobRole,
                 reuse = reuse
             )
 
@@ -85,11 +85,29 @@ class InterviewIntroViewModel @Inject constructor(
                 return@launch
             }
 
-            _state.update {
-                it.copy(
-                    questionnaire = result.getOrNull()
-                )
+//            _state.update {
+//                it.copy(
+//                    questionnaire = result.getOrNull()
+//                )
+//            }
+
+            result.getOrNull()?: throw Exception("네트워크 오류가 발생했어요:(")
+
+            if(result.getOrNull()?.questions?.isEmpty() == true) {
+                throw Exception("잠시 후 다시 시도해주세요")
             }
+
+            val questionnaireJsonString = result.getOrNull()?.toJsonString() ?: throw Exception("형식이 올바르지 않습니다")
+
+            val route = "$ROUTE_INTERVIEW_GUIDE?questionnaire={questionnaire}".replace(
+                oldValue = "{questionnaire}",
+                newValue = questionnaireJsonString
+            )
+
+            _effect.emit(
+                Effect.NavigateTo(route)
+            )
+
         } catch (e: Exception) {
             e.printStackTrace()
             _effect.emit(
@@ -121,6 +139,7 @@ class InterviewIntroViewModel @Inject constructor(
     sealed class Effect {
         data class ShowMessage(val message: String): Effect()
 
+        data class NavigateTo(val route: String): Effect()
     }
 
 }

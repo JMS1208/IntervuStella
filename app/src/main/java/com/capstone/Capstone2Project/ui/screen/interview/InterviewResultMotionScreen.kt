@@ -503,7 +503,8 @@ fun FeedbackItemContent(
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = CustomFont.nexonFont,
-                        fontSize = 15.sp
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.End
                     )
                 )
 
@@ -540,7 +541,8 @@ fun FeedbackItemContent(
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = CustomFont.nexonFont,
-                        fontSize = 15.sp
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.End
                     )
                 )
 

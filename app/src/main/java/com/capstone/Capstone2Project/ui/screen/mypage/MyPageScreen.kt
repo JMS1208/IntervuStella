@@ -112,6 +112,7 @@ fun MyPageScreen(
     val firebaseUser = authViewModel.currentUser
 
     if (firebaseUser == null) {
+
         LaunchedEffect(Unit) {
             navController.navigate(ROUTE_LOGIN) {
                 popUpTo(ROUTE_LOGIN) {
@@ -125,11 +126,7 @@ fun MyPageScreen(
         LaunchedEffect(authViewModel) {
             firebaseUser.uid.let {
                 with(viewModel) {
-                    fetchMyInspiringKeywords(it)
-                    fetchMyInterviewRecords(it)
-                    fetchMyInterviewScores(it)
-                    fetchMyScripts(it)
-                    fetchMyTodayQuestionsMemo(it)
+                    fetchMyData(it)
                 }
             }
         }

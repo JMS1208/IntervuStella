@@ -34,7 +34,15 @@ class MyPageViewModel @Inject constructor(
     private var _effect: MutableSharedFlow<Effect> = MutableSharedFlow()
     val effect: SharedFlow<Effect> = _effect
 
-    fun fetchMyScripts(hostUUID: String) = viewModelScope.launch {
+    fun fetchMyData(hostUUID: String) = viewModelScope.launch {
+        fetchMyInspiringKeywords(hostUUID)
+        fetchMyInterviewRecords(hostUUID)
+        fetchMyInterviewScores(hostUUID)
+        fetchMyScripts(hostUUID)
+        fetchMyTodayQuestionsMemo(hostUUID)
+    }
+
+    private fun fetchMyScripts(hostUUID: String) = viewModelScope.launch {
 
         _state.update {
             it.copy(
@@ -63,7 +71,7 @@ class MyPageViewModel @Inject constructor(
         }
     }
 
-    fun fetchMyInterviewRecords(hostUUID: String) = viewModelScope.launch {
+    private fun fetchMyInterviewRecords(hostUUID: String) = viewModelScope.launch {
         _state.update {
             it.copy(
                 dataState = DataState.Loading()
@@ -91,7 +99,9 @@ class MyPageViewModel @Inject constructor(
         }
     }
 
-    fun fetchMyInterviewScores(hostUUID: String) = viewModelScope.launch {
+
+
+    private fun fetchMyInterviewScores(hostUUID: String) = viewModelScope.launch {
         _state.update {
             it.copy(
                 dataState = DataState.Loading()
@@ -120,7 +130,7 @@ class MyPageViewModel @Inject constructor(
 
     }
 
-    fun fetchMyTodayQuestionsMemo(hostUUID: String) = viewModelScope.launch {
+    private fun fetchMyTodayQuestionsMemo(hostUUID: String) = viewModelScope.launch {
 
         _state.update {
             it.copy(

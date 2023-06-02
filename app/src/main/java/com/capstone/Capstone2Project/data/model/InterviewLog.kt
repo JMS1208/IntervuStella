@@ -1,14 +1,7 @@
 package com.capstone.Capstone2Project.data.model
 
 
-data class InterviewLog(
-    val hostUUID: String,
-    val scriptUUID: String,
-    val scriptName: String, //마이 페이지에서 쓰기 위함
-    val interviewUUID: String,
-    val logLines: List<InterviewLogLine>,
-    val date: Long
-)
+
 
 
 data class InterviewLogLine(

@@ -11,10 +11,7 @@ data class TodayQuestionMemo(
     @SerializedName("question_uuid")
     val questionUUID: String,
     @SerializedName("saved_date")
-    var savedDate: Long,
-//    @SerializedName("ignore_field")
-//    @Transient
-//    val isNew: Boolean = false
+    var savedDate: Long
 ) {
     companion object {
         fun createTestTodayQuestionMemo(): TodayQuestionMemo {

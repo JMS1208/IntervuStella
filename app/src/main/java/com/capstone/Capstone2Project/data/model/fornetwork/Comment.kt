@@ -2,6 +2,9 @@ package com.capstone.Capstone2Project.data.model.fornetwork
 
 import com.google.gson.annotations.SerializedName
 
+/*
+작성용
+ */
 data class Comment(
     @SerializedName("ques_uuid")
     val questionUUID: String,

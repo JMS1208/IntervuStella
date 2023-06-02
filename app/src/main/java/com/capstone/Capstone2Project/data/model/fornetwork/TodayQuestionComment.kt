@@ -3,6 +3,9 @@ package com.capstone.Capstone2Project.data.model.fornetwork
 
 import com.google.gson.annotations.SerializedName
 
+/*
+조회용
+ */
 data class TodayQuestionComment(
     @SerializedName("cc_uuid")
     val commentUUID: String,
