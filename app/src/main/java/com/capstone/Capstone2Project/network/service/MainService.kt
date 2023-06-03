@@ -1,8 +1,10 @@
 package com.capstone.Capstone2Project.network.service
 
+import com.capstone.Capstone2Project.data.model.GitLanguage
 import com.capstone.Capstone2Project.data.model.InterviewData
 import com.capstone.Capstone2Project.data.model.Questionnaire
 import com.capstone.Capstone2Project.data.model.InterviewResult
+import com.capstone.Capstone2Project.data.model.InterviewScore
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.data.model.ScriptItem
 import com.capstone.Capstone2Project.data.model.Topic
@@ -266,5 +268,38 @@ interface MainService {
         @Query("user_uuid") hostUUID: String
     ): Response<Boolean>
 
+    /*
+    사용자의 깃허브 정보 가져오기
+     */
+    @GET("user/git_nick/")
+    suspend fun getGitNickName(
+        @Query("user_uuid") hostUUID: String
+    ): Response<String>
+
+    /*
+    사용자의 깃허브 계정 연결하기
+     */
+    @PUT("user/git_nick/")
+    suspend fun updateGitNickName(
+        @Query("user_uuid") hostUUID: String,
+        @Query("git_nick") nickName: String
+    ): Response<Boolean>
+
+    /*
+    사용자 사용언어 가져오기
+     */
+    @GET("user/git_lang/")
+    suspend fun getGitLanguage(
+        @Query("num") num: Int = 3,
+        @Query("uuid") hostUUID: String
+    ): Response<List<GitLanguage>>
+
+    /*
+    유저 최근 최저 최고 기록 가져오기
+     */
+    @GET("interview/user_score_list/")
+    suspend fun getRankList(
+        @Query("user_uuid") hostUUID: String
+    ): Response<InterviewScore>
 
 }

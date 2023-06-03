@@ -70,6 +70,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -523,9 +524,11 @@ private fun ScriptWritingContent(
 
     val spacing = LocalSpacing.current
 
-    val tipPage = remember {
+    var tipPage by remember {
         mutableStateOf(0)
     }
+
+
 
     val focusManager = LocalFocusManager.current
 
@@ -563,15 +566,16 @@ private fun ScriptWritingContent(
     }
 
     LaunchedEffect(scriptItem) {
+        if(scriptItem.tips.isNotEmpty()) {
+            tipPage = 0
 
-        tipPage.value = 0
-
-        while (true) {
-            delay(5000)
-            if (tipPage.value < scriptItem.tips.size - 1) {
-                tipPage.value += 1
-            } else {
-                tipPage.value = 0
+            while (true) {
+                delay(5000)
+                if (tipPage < scriptItem.tips.size - 1) {
+                    tipPage += 1
+                } else {
+                    tipPage = 0
+                }
             }
         }
     }
@@ -667,36 +671,39 @@ private fun ScriptWritingContent(
 
                     Spacer(modifier = Modifier.height(spacing.extraSmall))
 
-                    AnimatedContent(
-                        targetState = scriptItem.tips[tipPage.value],
-                        transitionSpec = {
-                            fadeIn(
-                                animationSpec = tween(220, 90),
-                                initialAlpha = 0f
-                            ) + slideInVertically {
-                                it * 2
-                            } with fadeOut(
-                                animationSpec = tween(220, 90),
-                                targetAlpha = 0f
-                            ) + slideOutVertically {
-                                -it * 2
+                    if(scriptItem.tips.isNotEmpty()) {
+                        AnimatedContent(
+                            targetState = scriptItem.tips[tipPage],
+                            transitionSpec = {
+                                fadeIn(
+                                    animationSpec = tween(220, 90),
+                                    initialAlpha = 0f
+                                ) + slideInVertically {
+                                    it * 2
+                                } with fadeOut(
+                                    animationSpec = tween(220, 90),
+                                    targetAlpha = 0f
+                                ) + slideOutVertically {
+                                    -it * 2
+                                }
                             }
-                        }
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
                         ) {
-                            HighlightText(
-                                text = "\" $it \"",
-                                fontWeight = FontWeight.Medium,
-                                offset = 8.dp,
-                                fontSize = 15.sp,
-                                color = Black
-                            )
-                        }
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                HighlightText(
+                                    text = "\" $it \"",
+                                    fontWeight = FontWeight.Medium,
+                                    offset = 8.dp,
+                                    fontSize = 15.sp,
+                                    color = Black
+                                )
+                            }
 
+                        }
                     }
+
 
                 }
 

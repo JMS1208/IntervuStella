@@ -62,21 +62,15 @@ class NetworkRepositoryImpl @Inject constructor(
     override suspend fun getInterviewScore(hostUUID: String): Result<InterviewScore> {
         return try {
 
-            val ranks = mutableListOf<Rank>()
+            val response = mainService.getRankList(hostUUID)
 
-            for (i in 0 until 10) {
-                ranks.add(Rank.makeTestRank())
+            if(!response.isSuccessful) {
+                throw Exception("최근 면접 기록 가져오기 오류")
             }
 
-            val interviewScore = InterviewScore(
-                maxRank = "S",
-                minRank = "D",
-                recentlyDate = System.currentTimeMillis(),
-                ranks = ranks
-            )
+            val result = response.body() ?: throw Exception("최근 면접 기록 가져오기 오류")
 
-            Result.success(interviewScore)
-
+            Result.success(result)
         } catch (e: Exception) {
             e.printStackTrace()
             Result.failure(e)
@@ -660,21 +654,59 @@ class NetworkRepositoryImpl @Inject constructor(
         }
     }
 
-//    override suspend fun getInterviewList(hostUUID: String): Result<List<InterviewResult>> {
-//        return try {
-//
-//            val response = mainService.getInterviewList(hostUUID)
-//
-//            if(!response.isSuccessful) {
-//                throw Exception("면접 기록 조회 오류")
-//            }
-//
-//            val result = response.body() ?: throw Exception("면접 기록 조회 오류")
-//
-//            Result.success(result)
-//        } catch(e: Exception) {
-//            e.printStackTrace()
-//            Result.failure(e)
-//        }
-//    }
+    override suspend fun getGitNickName(hostUUID: String): Result<String?> {
+        return try {
+
+            val response = mainService.getGitNickName(hostUUID)
+
+            if(!response.isSuccessful) {
+                throw Exception("깃허브 닉네임 가져오기 네트워크 오류")
+            }
+
+            val result = response.body()
+
+            Result.success(result)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateGitNickName(hostUUID: String, nickName: String): Result<Boolean> {
+        return try {
+
+            val response = mainService.updateGitNickName(hostUUID, nickName)
+
+            if(!response.isSuccessful) {
+                throw Exception("깃허브 닉네임 설정 오류")
+            }
+
+            val result = response.body() ?: throw Exception("깃허브 닉네임 설정 오류")
+
+            Result.success(result)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getGitLanguage(hostUUID: String): Result<List<GitLanguage>> {
+        return try {
+
+            val response = mainService.getGitLanguage(hostUUID = hostUUID)
+
+            if(!response.isSuccessful) {
+                throw Exception("깃허브 사용언어 가져오기 오류")
+            }
+
+            val result = response.body() ?: emptyList()
+
+            Result.success(result)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
 }

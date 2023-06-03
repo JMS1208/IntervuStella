@@ -41,7 +41,7 @@ data class Rank(
             "C"-> 1f
             "D"-> 0f
             "S"-> 4f
-            else -> 5f
+            else -> 0f
         }
     }
 

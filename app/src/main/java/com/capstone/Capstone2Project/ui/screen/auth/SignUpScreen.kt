@@ -3,6 +3,7 @@ package com.capstone.Capstone2Project.ui.screen.auth
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -46,6 +47,7 @@ import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.etc.AlertUtils
 import com.capstone.Capstone2Project.utils.etc.CustomFont
 import com.capstone.Capstone2Project.utils.extensions.onTouchKeyBoardFocusDismiss
+import com.capstone.Capstone2Project.utils.theme.bg_grey
 import com.capstone.Capstone2Project.utils.theme.bright_blue
 import com.capstone.Capstone2Project.utils.theme.spacing
 
@@ -181,8 +183,11 @@ fun SignUpScreen(
             Column(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .padding(spacing.medium)
                     .fillMaxSize()
+                    .background(
+                        color = bg_grey
+                    )
+                    .padding(spacing.medium)
                     .onTouchKeyBoardFocusDismiss(),
                 verticalArrangement = Arrangement.spacedBy(spacing.medium, Alignment.CenterVertically),
                 horizontalAlignment = Alignment.CenterHorizontally,

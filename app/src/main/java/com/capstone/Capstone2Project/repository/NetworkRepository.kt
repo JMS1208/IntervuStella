@@ -131,4 +131,20 @@ interface NetworkRepository {
 /*    suspend fun getInterviewList(
         hostUUID: String
     ): Result<List<InterviewResult>>*/
+
+    suspend fun getGitNickName(
+        hostUUID: String
+    ): Result<String?>
+
+    suspend fun updateGitNickName(
+        hostUUID: String,
+        nickName: String
+    ): Result<Boolean>
+
+    suspend fun getGitLanguage(
+        hostUUID: String
+    ): Result<List<GitLanguage>>
+
+
+
 }

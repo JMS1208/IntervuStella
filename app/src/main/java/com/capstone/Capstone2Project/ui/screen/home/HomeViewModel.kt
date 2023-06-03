@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.capstone.Capstone2Project.data.model.GitLanguage
 import com.capstone.Capstone2Project.data.model.Topic
 import com.capstone.Capstone2Project.data.model.inapp.TodayAttendanceQuiz
 import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
@@ -91,6 +92,25 @@ class HomeViewModel @Inject constructor(
         getTodayQuestionAttendance(hostUUID, null)
         getUserTopics(hostUUID)
         getWeekAttendanceInfo(hostUUID)
+        getGitLanguage(hostUUID)
+    }
+
+    private fun getGitLanguage(hostUUID: String) = viewModelScope.launch {
+
+        val result = repository.getGitLanguage(hostUUID)
+
+        if(result.isFailure) {
+            _effect.emit(
+                Effect.ShowMessage(result.exceptionOrNull()?.message?:"깃허브 사용언어 가져오기 실패", type = Effect.ShowMessage.MessageType.Error)
+            )
+            return@launch
+        }
+
+        _state.update {
+            it?.copy(
+                gitLanguage = result.getOrNull() ?: emptyList()
+            )
+        }
     }
 
     fun getUserTopics(hostUUID: String) = viewModelScope.launch(Dispatchers.IO) {
@@ -121,7 +141,8 @@ class HomeViewModel @Inject constructor(
     data class State(
         var topics: Resource<List<Topic>> = Resource.Loading,
         var todayAttendanceQuiz: Resource<TodayAttendanceQuiz> = Resource.Loading,
-        var weekAttendanceInfo: Resource<WeekAttendanceInfo> = Resource.Loading
+        var weekAttendanceInfo: Resource<WeekAttendanceInfo> = Resource.Loading,
+        var gitLanguage: List<GitLanguage> = emptyList()
     )
     /*
     필요한 정보가

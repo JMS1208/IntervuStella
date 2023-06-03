@@ -1,5 +1,6 @@
 package com.capstone.Capstone2Project.ui.screen.mypage
 
+import androidx.compose.runtime.MutableState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capstone.Capstone2Project.data.model.InspiringKeyword
@@ -40,6 +41,21 @@ class MyPageViewModel @Inject constructor(
         fetchMyInterviewScores(hostUUID)
         fetchMyScripts(hostUUID)
         fetchMyTodayQuestionsMemo(hostUUID)
+        fetchMyGitNickName(hostUUID)
+    }
+
+    private fun fetchMyGitNickName(hostUUID: String) = viewModelScope.launch {
+
+        val result = repository.getGitNickName(hostUUID)
+
+        if(result.isSuccess) {
+            _state.update {
+                it.copy(
+                    gitNickName = result.getOrNull() ?: "깃허브 닉네임 설정"
+                )
+            }
+        }
+
     }
 
     private fun fetchMyScripts(hostUUID: String) = viewModelScope.launch {
@@ -260,6 +276,26 @@ class MyPageViewModel @Inject constructor(
         }
     }
 
+    fun updateGitNickName(hostUUID: String, nickname: String) = viewModelScope.launch {
+
+        val result = repository.updateGitNickName(hostUUID, nickName = nickname)
+
+        if(result.isFailure) {
+            _effect.emit(
+                Effect.ShowMessage(result.exceptionOrNull()?.message ?:"잠시 후 다시 시도해주세요")
+            )
+        } else {
+            _effect.emit(
+                Effect.ShowMessage("업데이트 되었습니다")
+            )
+            _state.update {
+                it.copy(
+                    gitNickName = nickname
+                )
+            }
+        }
+    }
+
     data class State(
         var dialogState: DialogState = DialogState.Nothing,
         var dataState: DataState = DataState.Loading(),
@@ -267,7 +303,9 @@ class MyPageViewModel @Inject constructor(
         var todayQuestionsMemo: List<TodayQuestionMemo> = emptyList(),
         var myScripts: List<Script> = emptyList(),
         var myRankRecords: InterviewScore? = null,
-        var myInterviewRecords: List<InterviewResult> = emptyList()
+        var myInterviewRecords: List<InterviewResult> = emptyList(),
+        var gitNickName: String = "",
+
     )
 
     sealed class Effect {

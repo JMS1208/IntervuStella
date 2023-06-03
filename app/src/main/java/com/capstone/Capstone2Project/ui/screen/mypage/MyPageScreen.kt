@@ -360,7 +360,7 @@ private fun MyPageContent(
                                         )
                                         Spacer(modifier = Modifier.width(spacing.small))
                                         Text(
-                                            userName,
+                                            "깃허브 닉네임",
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = DarkGray
@@ -368,7 +368,7 @@ private fun MyPageContent(
                                     }
                                     Spacer(modifier = Modifier.height(spacing.small))
                                     Text(
-                                        "깃허브 닉네임",
+                                        stateFlow.value.gitNickName,
                                         color = text_blue,
                                         textDecoration = TextDecoration.Underline,
                                         fontSize = 14.sp
@@ -1082,7 +1082,7 @@ private fun GitLinkDialog(
     onDismissRequest: () -> Unit
 ) {
 
-    val keyword = remember {
+    val nickname = remember {
         mutableStateOf("")
     }
 
@@ -1103,16 +1103,7 @@ private fun GitLinkDialog(
 
     val context = LocalContext.current
 
-    fun insertKeyword() {
-        if (keyword.value.isNotBlank()) {
-            firebaseUser.uid.let { hostUUID ->
-                //ViewModel에 추가하기
 
-            }
-        } else {
-            AlertUtils.showToast(context, "아무것도 입력하지 않았습니다.")
-        }
-    }
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -1189,9 +1180,9 @@ private fun GitLinkDialog(
 
 
                             TextField(
-                                value = keyword.value,
+                                value = nickname.value,
                                 onValueChange = {
-                                    keyword.value = it
+                                    nickname.value = it
                                 },
                                 placeholder = {
                                     Text(
@@ -1205,7 +1196,7 @@ private fun GitLinkDialog(
                                 },
                                 keyboardActions = KeyboardActions(
                                     onDone = {
-                                        insertKeyword()
+                                        viewModel.updateGitNickName(firebaseUser.uid, nickname.value)
                                     }
                                 ),
                                 keyboardOptions = KeyboardOptions(
@@ -1239,7 +1230,7 @@ private fun GitLinkDialog(
 
                             IconButton(
                                 onClick = {
-                                    insertKeyword()
+                                    viewModel.updateGitNickName(firebaseUser.uid, nickname.value)
                                 }
                             ) {
                                 Row(

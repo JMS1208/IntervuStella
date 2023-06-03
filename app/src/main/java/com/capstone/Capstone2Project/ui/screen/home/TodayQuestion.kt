@@ -351,7 +351,8 @@ fun ContentOfTodayQuestion(
             Text(
                 question,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Normal
+                fontWeight = FontWeight.Normal,
+                textAlign = TextAlign.Center
             )
 
 

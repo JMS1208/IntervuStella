@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.capstone.Capstone2Project.R
+import com.capstone.Capstone2Project.data.model.GitLanguage
 import com.capstone.Capstone2Project.data.model.Topic
 import com.capstone.Capstone2Project.data.model.inapp.TodayAttendanceQuiz
 import com.capstone.Capstone2Project.data.model.inapp.WeekAttendanceInfo
@@ -64,10 +65,12 @@ import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.core.daysOfWeek
 import com.kizitonwose.calendar.core.firstDayOfWeekFromLocale
+import java.lang.Math.round
 import java.text.SimpleDateFormat
 import java.time.DayOfWeek
 import java.time.YearMonth
 import java.util.*
+import kotlin.math.roundToInt
 
 
 @Preview(showBackground = true)
@@ -168,7 +171,8 @@ private fun HomeScreenContent(
 
             ScriptAndInfoContent(
                 modifier = Modifier.fillMaxWidth(),
-                navController
+                navController,
+                gitLangList = state.gitLanguage
             )
 
 
@@ -566,7 +570,8 @@ private fun ItemAttendance(weekItem: WeekItem) {
 @Composable
 private fun ScriptAndInfoContent(
     modifier: Modifier = Modifier,
-    navController: NavController
+    navController: NavController,
+    gitLangList: List<GitLanguage>
 ) {
 
     val spacing = LocalSpacing.current
@@ -684,7 +689,7 @@ private fun ScriptAndInfoContent(
                     color = White
                 )
                 GitLanguageAnalysis(
-
+                    gitLangList = gitLangList
                 )
             }
 
@@ -713,7 +718,8 @@ private fun ScriptAndInfoContent(
 
 @Composable
 private fun GitLanguageAnalysis(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    gitLangList: List<GitLanguage>
 ) {
 
     CompositionLocalProvider(
@@ -727,13 +733,17 @@ private fun GitLanguageAnalysis(
             verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.Start
         ) {
-            Text("Kotlin 40%")
-            Text("그 외 60%")
-            Text(
-                "주 언어",
-                textAlign = TextAlign.End,
-                modifier = Modifier.fillMaxWidth()
-            )
+            gitLangList.sortedBy { it.ratio }.forEach {
+                Text("${it.name} ${(it.ratio * 100).roundToInt()}%")
+            }
+
+//            Text("Kotlin 40%")
+//            Text("그 외 60%")
+//            Text(
+//                "주 언어",
+//                textAlign = TextAlign.End,
+//                modifier = Modifier.fillMaxWidth()
+//            )
         }
     }
 
