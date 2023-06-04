@@ -322,7 +322,7 @@ fun ContentOfTodayQuestion(
         modifier = modifier
             .shadow(elevation, shape = RoundedCornerShape(cornerRadius))
             .background(
-                color = bright_blue,
+                color = bg_darker_gray,
                 shape = RoundedCornerShape(cornerRadius)
             )
             .clickable(canClickContent) {

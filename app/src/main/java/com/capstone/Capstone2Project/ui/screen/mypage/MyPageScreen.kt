@@ -83,6 +83,7 @@ import com.capstone.Capstone2Project.utils.etc.AlertUtils
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
 import com.capstone.Capstone2Project.utils.etc.invokeVibration
 import com.capstone.Capstone2Project.utils.extensions.clickableWithoutRipple
+import com.capstone.Capstone2Project.utils.extensions.progressToString
 import com.capstone.Capstone2Project.utils.extensions.toFormatString
 import com.capstone.Capstone2Project.utils.theme.*
 import com.google.accompanist.flowlayout.FlowMainAxisAlignment
@@ -93,11 +94,6 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-@Preview(showBackground = true)
-@Composable
-private fun Preview() {
-    MyPageScreen(navController = rememberNavController())
-}
 
 @Composable
 fun MyPageScreen(
@@ -167,7 +163,7 @@ private fun MyPageContent(
 
     LaunchedEffect(viewModel) {
         viewModel.effect.collectLatest {
-            when(it) {
+            when (it) {
                 is MyPageViewModel.Effect.ShowMessage -> {
                     AlertUtils.showToast(context, it.message)
                 }
@@ -594,16 +590,6 @@ private fun MyPageContent(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-private fun ScriptDialogPreview() {
-    ScriptInfoDialog(
-        script = Script.createTestingScript(),
-        onDismissRequest = { },
-        deleteScriptRequest = { }) {
-
-    }
-}
 
 @Composable
 private fun ScriptInfoDialog(
@@ -639,7 +625,8 @@ private fun ScriptInfoDialog(
                 )
                 .padding(
                     vertical = spacing.large,
-                    horizontal = spacing.medium),
+                    horizontal = spacing.medium
+                ),
             verticalArrangement = Arrangement.spacedBy(
                 spacing.large,
                 Alignment.CenterVertically
@@ -784,7 +771,7 @@ private fun ScriptInfoDialog(
                     horizontalAlignment = Alignment.Start
                 ) {
                     Text(
-                        "${index+1}. ${scriptItem.question} (${scriptItem.maxLength})",
+                        "${index + 1}. ${scriptItem.question} (${scriptItem.maxLength})",
                         color = Black,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp,
@@ -847,11 +834,6 @@ fun LogOutText(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-private fun DialogPreview() {
-//    KeywordAddingDialog(onKeywordInput = {})
-}
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -1196,7 +1178,10 @@ private fun GitLinkDialog(
                                 },
                                 keyboardActions = KeyboardActions(
                                     onDone = {
-                                        viewModel.updateGitNickName(firebaseUser.uid, nickname.value)
+                                        viewModel.updateGitNickName(
+                                            firebaseUser.uid,
+                                            nickname.value
+                                        )
                                     }
                                 ),
                                 keyboardOptions = KeyboardOptions(
@@ -1402,27 +1387,70 @@ private fun MyTodayQuestionsItem(
                     onItemClick(todayQuestion)
                 },
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(spacing.small, Alignment.CenterVertically)
         ) {
 
-            Text(
-                "Q. ${todayQuestion.question}",
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = text_blue
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Text(
+                    "질문",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = White,
+                    modifier = Modifier
+                        .background(
+                            color = bright_violet,
+                            shape = RoundedCornerShape(50)
+                        )
+                        .padding(
+                            vertical = spacing.extraSmall,
+                            horizontal = spacing.small
+                        )
+                )
+                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                Text(
+                    todayQuestion.question,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = text_blue
+                )
+            }
 
-            Spacer(modifier = Modifier.height(spacing.small))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Text(
+                    "메모",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = White,
+                    modifier = Modifier
+                        .background(
+                            color = bright_sky_blue,
+                            shape = RoundedCornerShape(50)
+                        )
+                        .padding(
+                            vertical = spacing.extraSmall,
+                            horizontal = spacing.small
+                        )
+                )
+                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                Text(
+                    todayQuestion.memo,
+                    fontSize = 14.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
 
-            //TODO(아래 나중에 바꿔줘야함)
-            Text(
-                "A. ",
-                fontSize = 14.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+
         }
     }
 }
@@ -1567,7 +1595,7 @@ fun MyInterviewRecords(
                                 fontWeight = FontWeight.SemiBold
                             )
                         ) {
-                            append("님의 인터뷰 연습 기록")
+                            append("님의 면접 연습 기록")
                         }
                     }
                 )
@@ -1657,6 +1685,12 @@ private fun ScrollToLeftButton(
     }
 }
 
+@Preview(showBackground = true)
+@Composable
+private fun RecordItemPreview() {
+    MyInterviewRecordItem(interviewRecord = InterviewResult.createTestInterviewResult())
+}
+
 @Composable
 fun MyInterviewRecordItem(interviewRecord: InterviewResult) {
     val spacing = LocalSpacing.current
@@ -1687,13 +1721,42 @@ fun MyInterviewRecordItem(interviewRecord: InterviewResult) {
             verticalArrangement = Arrangement.Center
         ) {
 
-            Text(
-                interviewRecord.interviewUUID,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Text(
+                    "${interviewRecord.rank} 등급",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = White,
+                    modifier = Modifier
+                        .background(
+                            color = highlight_green,
+                            shape = RoundedCornerShape(50)
+                        )
+                        .padding(vertical = spacing.extraSmall, horizontal = spacing.small)
+                )
+                Spacer(modifier = Modifier.width(spacing.small))
+                Text(
+                    "${interviewRecord.totalDurationToString()} 소요",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = White,
+                    modifier = Modifier
+                        .background(
+                            color = dim_sky_blue,
+                            shape = RoundedCornerShape(50)
+                        )
+                        .padding(vertical = spacing.extraSmall, horizontal = spacing.small)
+                )
+            }
+
 
             Spacer(modifier = Modifier.height(spacing.small))
 
@@ -1927,11 +1990,66 @@ private fun MyScriptItem(
 
             Spacer(modifier = Modifier.height(spacing.small))
 
+
             script.date?.let {
                 Text(
                     simpleDateFormat.format(Date(it)),
                     fontSize = 14.sp
                 )
+            }
+            Spacer(modifier = Modifier.height(spacing.small))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(
+                            color = bright_pink,
+                            shape = RoundedCornerShape(50)
+                        )
+                        .padding(horizontal = spacing.small, vertical = spacing.extraSmall)
+                        .wrapContentHeight(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        script.jobRole,
+                        color = White,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(spacing.small))
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(
+                            color = seed,
+                            shape = RoundedCornerShape(50)
+                        )
+                        .padding(horizontal = spacing.small, vertical = spacing.extraSmall)
+                        .wrapContentHeight(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val interviewedText = if (script.interviewed) "면접 O" else "면접 X"
+                    Text(
+                        interviewedText,
+                        color = White,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
         }

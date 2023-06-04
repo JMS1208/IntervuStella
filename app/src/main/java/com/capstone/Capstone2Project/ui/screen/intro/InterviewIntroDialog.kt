@@ -85,7 +85,9 @@ fun InterviewIntroDialog(
 
     val viewModel: InterviewIntroViewModel = hiltViewModel()
 
-    val scriptsFlow = viewModel.scriptsFlow.collectAsStateWithLifecycle()
+    val scriptsFlow = viewModel.scriptsFlow.collectAsState()
+
+    val state = viewModel.state.collectAsState()
 
     val context = LocalContext.current
 
@@ -134,16 +136,33 @@ fun InterviewIntroDialog(
                     }
 
                     is Resource.Success -> {
-                        SelectScriptContent(
-                            navController = navController,
-                            scripts = it.data,
-                            scriptSelected = { selectedScript, page ->
-                                viewModel.fetchQuestionnaire(selectedScript, page)
-                            },
-                            reuseChecked = { page, isChecked ->
-                                viewModel.reuseCheck(page, isChecked)
+                        when(state.value.networkState) {
+                            is InterviewIntroViewModel.NetworkState.Error -> {
+                                val message = (state.value.networkState as InterviewIntroViewModel.NetworkState.Error).message
+                                LaunchedEffect(message) {
+                                    AlertUtils.showToast(context, message)
+                                }
                             }
-                        )
+                            is InterviewIntroViewModel.NetworkState.Loading -> {
+                                val message = (state.value.networkState as InterviewIntroViewModel.NetworkState.Loading).message
+                                LoadingScreen(message)
+                            }
+                            InterviewIntroViewModel.NetworkState.Normal -> {
+                                SelectScriptContent(
+                                    navController = navController,
+                                    scripts = it.data,
+                                    scriptSelected = { selectedScript, page ->
+                                        viewModel.fetchQuestionnaire(selectedScript, page)
+                                    },
+                                    reuseChecked = { page, isChecked ->
+                                        viewModel.reuseCheck(page, isChecked)
+                                    }
+                                )
+                            }
+
+                            else -> Unit
+                        }
+
                     }
                 }
             }

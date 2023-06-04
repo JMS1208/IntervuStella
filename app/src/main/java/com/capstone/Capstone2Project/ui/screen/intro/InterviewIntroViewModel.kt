@@ -70,6 +70,11 @@ class InterviewIntroViewModel @Inject constructor(
     ) = viewModelScope.launch(Dispatchers.IO) {
 
         try {
+            _state.update {
+                it.copy(
+                    networkState = NetworkState.Loading("질문지를 생성하고 있어요 :)")
+                )
+            }
             val reuse = state.value.reuseCheckList[page]
 
             val result = repository.getQuestionnaire(
@@ -85,12 +90,6 @@ class InterviewIntroViewModel @Inject constructor(
                 return@launch
             }
 
-//            _state.update {
-//                it.copy(
-//                    questionnaire = result.getOrNull()
-//                )
-//            }
-
             result.getOrNull()?: throw Exception("네트워크 오류가 발생했어요:(")
 
             if(result.getOrNull()?.questions?.isEmpty() == true) {
@@ -98,6 +97,12 @@ class InterviewIntroViewModel @Inject constructor(
             }
 
             val questionnaireJsonString = result.getOrNull()?.toJsonString() ?: throw Exception("형식이 올바르지 않습니다")
+
+            _state.update {
+                it.copy(
+                    networkState = NetworkState.Nothing
+                )
+            }
 
             val route = "$ROUTE_INTERVIEW_GUIDE?questionnaire={questionnaire}".replace(
                 oldValue = "{questionnaire}",
@@ -133,8 +138,19 @@ class InterviewIntroViewModel @Inject constructor(
 
     data class State (
         var questionnaire: Questionnaire? = null,
-        var reuseCheckList: List<Boolean> = emptyList()
+        var reuseCheckList: List<Boolean> = emptyList(),
+        var networkState: NetworkState = NetworkState.Normal
     )
+
+    sealed class NetworkState {
+        //Normal일때는 다이얼로그 띄워줌
+        object Normal: NetworkState()
+
+        //Nothing 일때는 다이얼로그 안 띄워줌
+        object Nothing: NetworkState()
+        data class Loading(val message: String): NetworkState()
+        data class Error(val message: String): NetworkState()
+    }
 
     sealed class Effect {
         data class ShowMessage(val message: String): Effect()
