@@ -88,25 +88,18 @@ import kotlinx.coroutines.launch
 @Composable
 fun CommunityScreen(
     questionUUID: String,
-    navController: NavController
+    navController: NavController,
+    firebaseUser: FirebaseUser
 ) {
 
     val viewModel: OthersAnswersViewModel = hiltViewModel()
 
-    val authViewModel: AuthViewModel = hiltViewModel()
-
-//    val dataFlow = viewModel.othersAnswersData.collectAsStateWithLifecycle()
-
     val state = viewModel.state.collectAsState()
 
-    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        viewModel.fetchMyComment(questionUUID, firebaseUser.uid)
+        viewModel.fetchOthersComment(questionUUID, firebaseUser.uid)
 
-    LaunchedEffect(viewModel) {
-
-        authViewModel.currentUser?.uid?.let {
-            viewModel.fetchMyComment(questionUUID, it)
-            viewModel.fetchOthersComment(questionUUID, it)
-        }
         viewModel.fetchTodayQuestion(questionUUID)
     }
 
@@ -164,13 +157,10 @@ fun CommunityScreen(
                             totalComments,
                             myComment,
                             todayQuestion,
-                            authViewModel.currentUser,
+                            firebaseUser,
                             isRefreshing,
                             requestRefreshData = { questionUUID ->
-                                authViewModel.currentUser?.uid?.let { hostUUID ->
-                                    viewModel.refreshOthersAnswersData(questionUUID, hostUUID)
-                                }
-
+                                viewModel.refreshOthersAnswersData(questionUUID, firebaseUser.uid)
                             })
                     }
 

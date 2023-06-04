@@ -2,8 +2,6 @@ package com.capstone.Capstone2Project.data.model
 
 
 
-
-
 data class InterviewLogLine(
     val date: Long = System.currentTimeMillis(),
     val progress: Long,

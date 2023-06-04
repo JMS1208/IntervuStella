@@ -34,10 +34,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.capstone.Capstone2Project.data.model.Topic
+import com.capstone.Capstone2Project.data.resource.DataState
 import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.navigation.ROUTE_TOPIC
 import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
+import com.capstone.Capstone2Project.ui.screen.error.ErrorScreen
 import com.capstone.Capstone2Project.ui.screen.home.HomeViewModel
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.composable.HighlightText
@@ -49,6 +51,7 @@ import com.capstone.Capstone2Project.utils.theme.*
 import com.google.accompanist.flowlayout.FlowMainAxisAlignment
 import com.google.accompanist.flowlayout.FlowRow
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 @Preview(showBackground = true)
@@ -69,34 +72,45 @@ fun TopicScreen(
 
     val topicViewModel: TopicViewModel = hiltViewModel()
 
+    val context = LocalContext.current
+
     LaunchedEffect(authViewModel.currentUser) {
         authViewModel.currentUser?.uid?.let {
             topicViewModel.fetchUserTopics(it)
         }
     }
 
-    val context = LocalContext.current
-
-    val userTopics = topicViewModel.userTopicsFlow.collectAsStateWithLifecycle()
-
-    userTopics.value?.let {
-        when (it) {
-            is Resource.Error -> {
-                it.error?.message?.let { message ->
-                    AlertUtils.showToast(context, message, Toast.LENGTH_LONG)
+    LaunchedEffect(topicViewModel) {
+        topicViewModel.effect.collectLatest {
+            when(it) {
+                is TopicViewModel.Effect.NavigateTo -> {
+                    navController.navigate(it.route, it.builder)
+                }
+                is TopicViewModel.Effect.ShowMessage -> {
+                    AlertUtils.showToast(context, it.message)
                 }
             }
-            Resource.Loading -> {
-                LoadingScreen()
-            }
-            is Resource.Success -> {
-                InterestingTopicContent(
-                    navController = navController,
-                    topicList = it.data
-                )
-            }
         }
+    }
 
+
+
+    val state = topicViewModel.state.collectAsStateWithLifecycle()
+
+    when(state.value.dataState) {
+        is DataState.Error -> {
+            val message = (state.value.dataState as DataState.Error).message
+            ErrorScreen(message)
+        }
+        is DataState.Loading -> {
+            LoadingScreen()
+        }
+        DataState.Normal -> {
+            InterestingTopicContent(
+                navController = navController,
+                topicList = state.value.topics
+            )
+        }
     }
 
 

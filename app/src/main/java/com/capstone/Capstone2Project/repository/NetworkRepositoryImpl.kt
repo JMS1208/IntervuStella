@@ -16,7 +16,10 @@ import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.network.service.MainService
 import com.capstone.Capstone2Project.ui.screen.comment.CommentPagingSource
 import com.capstone.Capstone2Project.ui.screen.comment.CommentPagingSource.Companion.PAGING_SIZE
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import retrofit2.Response
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -100,7 +103,7 @@ class NetworkRepositoryImpl @Inject constructor(
     }
 
 
-    override suspend fun checkAttendance(hostUUID: String): Resource<Boolean> {
+    override suspend fun checkAttendance(hostUUID: String): Result<Boolean> {
         return try {
 
             val response = mainService.requestAttendanceToday(hostUUID)
@@ -112,14 +115,14 @@ class NetworkRepositoryImpl @Inject constructor(
             val result = response.body() ?: throw Exception("네트워크 통신 오류-AttendanceCheck")
 
             //1이면 성공, 0이면 실패
-            Resource.Success(result == 1)
+            Result.success(result == 1)
         } catch (e: Exception) {
             e.printStackTrace()
-            Resource.Error(e)
+            Result.failure(e)
         }
     }
 
-    override suspend fun getUserTopics(hostUUID: String): Resource<List<Topic>> {
+    override suspend fun getUserTopics(hostUUID: String): Result<List<Topic>> {
 
         return try {
 
@@ -132,11 +135,11 @@ class NetworkRepositoryImpl @Inject constructor(
 
             val topics = result.body() ?: throw Exception("네트워크 오류")
 
-            Resource.Success(topics)
+            Result.success(topics)
 
         } catch (e: Exception) {
             e.printStackTrace()
-            Resource.Error(e)
+            Result.failure(e)
         }
 
     }
@@ -155,18 +158,32 @@ class NetworkRepositoryImpl @Inject constructor(
     override suspend fun postTopics(
         hostUUID: String,
         topics: Topics
-    ): Response<Int> {
-        return mainService.postInterestingField(
-            hostUUID,
-            topics
-        )
+    ): Result<Boolean> {
+        return try {
+
+            val response = mainService.postInterestingField(
+                hostUUID,
+                topics
+            )
+
+            if(!response.isSuccessful) {
+                throw Exception("관심주제 업데이트 오류")
+            }
+
+            val result = response.body() == 1
+
+            Result.success(result)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
 
     }
 
     override suspend fun getTodayQuestionAttendance(
         hostUUID: String,
         currentQuestionUUID: String?
-    ): Resource<TodayAttendanceQuiz> {
+    ): Result<TodayAttendanceQuiz> {
         return try {
             val isPresentTodayResponse = mainService.isPresentToday(hostUUID)
 
@@ -191,7 +208,7 @@ class NetworkRepositoryImpl @Inject constructor(
                 todayQuestionResponse.body() ?: throw Exception("서버 오류-today_question null")
 
 
-            Resource.Success(
+            Result.success(
                 TodayAttendanceQuiz(
                     isPresentToday = isPresentToday == 1, //1일때 출석함 0일때 출석 안함
                     question = todayQuestion.question,
@@ -202,12 +219,12 @@ class NetworkRepositoryImpl @Inject constructor(
 
         } catch (e: Exception) {
             e.printStackTrace()
-            Resource.Error(e)
+            Result.failure(e)
         }
     }
 
     override suspend fun getWeekAttendanceInfo(hostUUID: String)
-            : Resource<WeekAttendanceInfo> {
+            : Result<WeekAttendanceInfo> {
         return try {
             val continuousCountResponse = mainService.getContinuousAttendance(hostUUID)
 
@@ -255,13 +272,13 @@ class NetworkRepositoryImpl @Inject constructor(
                 weekAttendance = weekItemList
             )
 
-            Resource.Success(
+            Result.success(
                 weekAttendanceInfo
             )
 
         } catch (e: Exception) {
             e.printStackTrace()
-            Resource.Error(e)
+            Result.failure(e)
         }
     }
 
@@ -583,7 +600,6 @@ class NetworkRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
-
 
     /*
     자기소개서 생성하기

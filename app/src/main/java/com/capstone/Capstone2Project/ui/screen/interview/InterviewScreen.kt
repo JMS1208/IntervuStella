@@ -1,5 +1,3 @@
-package com.capstone.Capstone2Project.ui.screen.interview
-
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -21,7 +19,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
@@ -31,9 +28,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
@@ -41,55 +36,74 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.onFocusEvent
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.graphics.Color.Companion.DarkGray
 import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.graphics.Color.Companion.LightGray
 import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.compose.ui.graphics.Color.Companion.White
-import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.LocalTextStyle
+import androidx.compose.material.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.DarkGray
+import androidx.compose.ui.graphics.Color.Companion.Red
+import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.constraintlayout.compose.Dimension
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.capstone.Capstone2Project.data.model.InterviewLogLine
+import com.capstone.Capstone2Project.data.model.LogLine
+import com.capstone.Capstone2Project.data.model.QuestionItem
+import com.capstone.Capstone2Project.utils.etc.CustomFont
+import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
+import com.capstone.Capstone2Project.utils.theme.LocalSpacing
+import kotlinx.coroutines.delay
+import java.util.*
+import kotlin.random.Random
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle.Event.*
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.airbnb.lottie.compose.*
 import com.capstone.Capstone2Project.R
-import com.capstone.Capstone2Project.data.model.LogLine
 import com.capstone.Capstone2Project.data.model.Questionnaire
-import com.capstone.Capstone2Project.data.model.Script
-import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.navigation.ROUTE_INTERVIEW_FINISHED
-import com.capstone.Capstone2Project.ui.screen.animation.NewLogContent
-import com.capstone.Capstone2Project.ui.screen.animation.OldLogContent
+import com.capstone.Capstone2Project.ui.screen.interview.InterviewViewModel
+import com.capstone.Capstone2Project.ui.screen.interview.isServiceRunning
+import com.capstone.Capstone2Project.ui.screen.interview.startRecordingService
+import com.capstone.Capstone2Project.ui.screen.interview.stopRecordingService
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.*
 import com.capstone.Capstone2Project.utils.composable.ComposableLifecycle
 import com.capstone.Capstone2Project.utils.etc.*
-import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
 import com.capstone.Capstone2Project.utils.extensions.clickableWithoutRipple
 import com.capstone.Capstone2Project.utils.extensions.progressToString
 import com.capstone.Capstone2Project.utils.service.ScreenRecordService
@@ -102,12 +116,17 @@ import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseDetection
+import com.google.mlkit.vision.pose.PoseLandmark
 import com.google.mlkit.vision.pose.accurate.AccuratePoseDetectorOptions
+import kotlinx.coroutines.NonDisposableHandle.parent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
+import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import kotlin.streams.toList
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -119,7 +138,7 @@ fun InterviewScreen(
 
     val interviewViewModel: InterviewViewModel = hiltViewModel()
 
-    val state = interviewViewModel.state.collectAsStateWithLifecycle()
+    val state = interviewViewModel.state.collectAsState()
 
     val context = LocalContext.current
 
@@ -331,7 +350,7 @@ private fun InterviewCountDownDialog(
                         fontSize = if (count > 0) 150.sp else 100.sp,
                         fontFamily = nexonFont,
                         fontWeight = FontWeight.Bold,
-                        color = White,
+                        color = Color.White,
                         shadow = Shadow(
                             offset = Offset(1f, 1f),
                             color = Black,
@@ -350,7 +369,7 @@ private fun InterviewCountDownDialog(
                         fontSize = 30.sp,
                         fontFamily = nexonFont,
                         fontWeight = FontWeight.Bold,
-                        color = White,
+                        color = Color.White,
                         shadow = Shadow(
                             offset = Offset(1f, 1f),
                             color = Black,
@@ -606,12 +625,12 @@ fun RecordButton(buttonClicked: () -> Unit, isRecording: Boolean) {
         Text(
             text = if (isRecording) "녹화중" else "녹화시작",
             style = LocalTextStyle.current.copy(
-                color = White,
+                color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Normal,
                 shadow = Shadow(
                     offset = Offset(1f, 1f),
-                    color = DarkGray,
+                    color = Color.DarkGray,
                     blurRadius = 4f
                 )
             )
@@ -666,7 +685,7 @@ private fun MoreInfoScreen(
                 Icon(
                     painter = painterResource(id = R.drawable.ic_live),
                     contentDescription = null,
-                    tint = White,
+                    tint = Color.White,
                     modifier = Modifier.size(30.dp)
                 )
 
@@ -675,11 +694,11 @@ private fun MoreInfoScreen(
                 Text(
                     text = if (showFeedback.value) "피드백 끄기" else "피드백 켜기",
                     style = LocalTextStyle.current.copy(
-                        color = White,
+                        color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         shadow = Shadow(
-                            color = DarkGray,
+                            color = Color.DarkGray,
                             offset = Offset(1f, 1f),
                             blurRadius = 4f
                         )
@@ -700,17 +719,17 @@ private fun MoreInfoScreen(
                 Icon(
                     painter = painterResource(id = if (showPreview.value) R.drawable.ic_camera_alt_24 else R.drawable.ic_camera_off),
                     contentDescription = null,
-                    tint = White,
+                    tint = Color.White,
                     modifier = Modifier.size(30.dp)
                 )
                 Text(
                     text = if (showPreview.value) "카메라 끄기" else "카메라 켜기",
                     style = LocalTextStyle.current.copy(
-                        color = White,
+                        color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         shadow = Shadow(
-                            color = DarkGray,
+                            color = Color.DarkGray,
                             offset = Offset(1f, 1f),
                             blurRadius = 4f
                         )
@@ -729,17 +748,17 @@ private fun MoreInfoScreen(
                 Icon(
                     painter = painterResource(id = R.drawable.ic_exit),
                     contentDescription = null,
-                    tint = White,
+                    tint = Color.White,
                     modifier = Modifier.size(30.dp)
                 )
                 Text(
                     text = "나가기",
                     style = LocalTextStyle.current.copy(
-                        color = White,
+                        color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         shadow = Shadow(
-                            color = DarkGray,
+                            color = Color.DarkGray,
                             offset = Offset(1f, 1f),
                             blurRadius = 4f
                         )
@@ -982,7 +1001,163 @@ private fun processPoseDetectionResult(pose: Pose?, viewModel: InterviewViewMode
     }
 
 }
+fun Face.toLogLine(): LogLine? {
 
+    val type: LogLine.Type = LogLine.Type.Camera
+
+    val message: String
+
+    when {
+        headEulerAngleX in -10.0f..10.0f -> Unit
+
+        headEulerAngleX > 10.0f -> {
+            message = "고개를 살짝 내려주세요"
+
+            return LogLine(
+                type = type,
+                message = message
+            )
+        }
+        headEulerAngleX < -10.0f -> {
+            message = "고개를 살짝 들어주세요"
+
+            return LogLine(
+                type = type,
+                message = message
+            )
+        }
+    }
+
+    when {
+        headEulerAngleY in -15.0f..15.0f -> Unit
+
+        headEulerAngleY > 15.0f -> {
+            message = "얼굴을 오른쪽으로 살짝 돌려주세요"
+
+            return LogLine(
+                type = type,
+                message = message
+            )
+        }
+        headEulerAngleY < -15.0f -> {
+            message = "얼굴을 왼쪽으로 살짝 돌려주세요"
+
+            return LogLine(
+                type = type,
+                message = message
+            )
+        }
+    }
+
+    when {
+        headEulerAngleZ in -10.0f..10.0f -> Unit
+
+        headEulerAngleZ > 15.0f -> {
+            message = "얼굴을 반시계 방향으로 살짝 돌려주세요"
+
+            return LogLine(
+                type = type,
+                message = message
+            )
+        }
+        headEulerAngleZ < -15.0f -> {
+            message = "얼굴을 시계 방향으로 살짝 돌려주세요"
+
+            return LogLine(
+                type = type,
+                message = message
+            )
+        }
+    }
+
+
+//    smilingProbability?.let {
+//        when {
+//            it < 0.001f -> {
+//                message = "살짝 미소를 띄워볼까요?"
+//
+//                return LogLine(
+//                    type = type,
+//                    message = message
+//                )
+//            }
+//
+//            it > 0.8f -> {
+//                message = "크게 웃는 모습 좋아요"
+//
+//                return LogLine(
+//                    type = type,
+//                    message = message
+//                )
+//            }
+//            else -> Unit
+//        }
+//    }
+
+    return null
+}
+
+fun Pose.toLogLine(): LogLine? {
+
+    val type = LogLine.Type.Pose
+
+    val leftShoulderPosition = getPoseLandmark(PoseLandmark.LEFT_SHOULDER)?.position
+
+    val rightShoulderPosition = getPoseLandmark(PoseLandmark.RIGHT_SHOULDER)?.position
+
+    if (leftShoulderPosition != null && rightShoulderPosition != null) {
+        val diff = abs(leftShoulderPosition.y - rightShoulderPosition.y)
+
+        if(diff > 30.0f) {
+            return LogLine(
+                type = type,
+                message = "자세를 교정해주세요",
+                index = 0
+            )
+        }
+
+    }
+
+    val nosePosition3D = getPoseLandmark(PoseLandmark.NOSE)?.position3D
+
+    val leftHandPosition3D = getPoseLandmark(PoseLandmark.LEFT_INDEX)?.position3D
+
+    val rightHandPosition3D = getPoseLandmark(PoseLandmark.RIGHT_INDEX)?.position3D
+
+    if(nosePosition3D != null && leftHandPosition3D != null) {
+        val xSquare = (nosePosition3D.x - leftHandPosition3D.x).pow(2)
+        val ySquare = (nosePosition3D.y - leftHandPosition3D.y).pow(2)
+
+        val diff = sqrt(xSquare+ySquare)
+
+        if(diff < 200.0f) {
+            return LogLine(
+                type = type,
+                message = "긴장을 풀어주세요",
+                index = 1
+            )
+        }
+
+    }
+
+    if(nosePosition3D != null && rightHandPosition3D != null) {
+        val xSquare = (nosePosition3D.x - rightHandPosition3D.x).pow(2)
+        val ySquare = (nosePosition3D.y - rightHandPosition3D.y).pow(2)
+
+        val diff = sqrt(xSquare+ySquare)
+
+        if(diff < 200.0f) {
+            return LogLine(
+                type = type,
+                message = "긴장을 풀어주세요",
+                index = 1
+            )
+        }
+    }
+
+
+    return null
+}
 
 private fun processFaceDetectionResult(
     faces: List<Face>,
@@ -1609,7 +1784,7 @@ private fun BeforeSendingAnswerDialog(
                             shape = RoundedCornerShape(10.dp)
                         )
                         .background(
-                            color = White,
+                            color = Color.White,
                             shape = RoundedCornerShape(10.dp)
                         )
                 ) {
@@ -1836,7 +2011,7 @@ fun InterviewPreparedDialog(
                             shape = RoundedCornerShape(10.dp)
                         )
                         .background(
-                            color = White,
+                            color = Color.White,
                             shape = RoundedCornerShape(10.dp)
                         )
                 ) {
@@ -2071,4 +2246,205 @@ fun InterviewPreparedDialog(
 
         }
     }
+}
+
+@Composable
+private fun ItemContent(
+    modifier: Modifier = Modifier,
+    interviewLogLine: InterviewLogLine,
+    fontSize: TextUnit,
+    maxLines: Int = Int.MAX_VALUE,
+    isNew: Boolean
+) {
+
+    val progressText = remember {
+        interviewLogLine.progressToString()
+    }
+
+    val message = remember {
+        interviewLogLine.logLine.message
+    }
+
+    val spacing = LocalSpacing.current
+
+
+    CompositionLocalProvider(
+        LocalTextStyle provides TextStyle(
+            fontFamily = CustomFont.nexonFont,
+            color = Color.White,
+            shadow = Shadow(
+                Color.Black,
+                offset = Offset(1f, 1f),
+                blurRadius = 4f
+            ),
+            fontSize = fontSize
+        )
+    ) {
+
+        ConstraintLayout(
+            modifier = modifier.padding(horizontal = spacing.small)
+        ) {
+
+            val (progressRef, messageRef, newRef) = createRefs()
+
+
+            Text(
+                progressText,
+                modifier = Modifier
+                    .constrainAs(progressRef) {
+                        end.linkTo(messageRef.start, margin = spacing.extraSmall)
+                        bottom.linkTo(messageRef.bottom)
+                    },
+                style = LocalTextStyle.current.copy(
+                    fontSize = fontSize.div(3).times(2),
+                    color = Color.White,
+                    fontWeight = FontWeight(550),
+                    shadow = Shadow(
+                        color = Color.DarkGray,
+                        offset = Offset(1f, 1f),
+                        blurRadius = 4f
+                    )
+                )
+            )
+
+
+
+            Text(
+                message,
+                maxLines = maxLines,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .constrainAs(messageRef) {
+                        end.linkTo(parent.end)
+                        bottom.linkTo(parent.bottom)
+
+                        width = Dimension.percent(if (isNew) 0.9f else 0.8f)
+                    }
+                    .background(
+                        color = Color(0x66000000),
+                        shape = RoundedCornerShape(5.dp)
+                    )
+                    .padding(horizontal = spacing.medium, vertical = spacing.small),
+                style = LocalTextStyle.current.copy(
+                    color = Color.White,
+                    fontSize = fontSize,
+                    fontWeight = FontWeight.Medium,
+                    shadow = Shadow(
+                        color = Color.DarkGray,
+                        offset = Offset(1f, 1f),
+                        blurRadius = 4f
+                    )
+                )
+            )
+
+            if (isNew) {
+                Text(
+                    "New",
+                    style = TextStyle(
+                        fontFamily = nexonFont,
+                        fontSize = 10.sp,
+                        color = Color.White,
+                        shadow = Shadow(
+                            color = Color.DarkGray,
+                            offset = Offset(1f, 1f),
+                            blurRadius = 4f
+                        )
+                    ),
+                    modifier = Modifier
+                        .constrainAs(newRef) {
+                            end.linkTo(messageRef.start)
+                            top.linkTo(messageRef.top)
+                            width = Dimension.wrapContent
+                        }
+                        .offset(x = spacing.small, y = spacing.extraSmall)
+                        .background(
+                            color = Red,
+                            shape = RoundedCornerShape(5.dp)
+                        )
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+
+                )
+            }
+
+
+        }
+
+
+    }
+
+
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun NewLogContent(
+    modifier: Modifier = Modifier,
+    interviewLogLine: InterviewLogLine
+) {
+
+    val oldInterviewLog by rememberUpdatedState(newValue = interviewLogLine)
+
+    AnimatedContent(
+        targetState = oldInterviewLog,
+        transitionSpec = {
+            slideInVertically {
+                it
+            } + fadeIn(
+                initialAlpha = 0f
+            ) with fadeOut(
+                targetAlpha = 0f
+            ) + slideOutVertically {
+                -it
+            }
+        },
+        modifier = modifier
+    ) { il ->
+        ItemContent(
+            interviewLogLine = il,
+            fontSize = 16.sp,
+            isNew = true,
+            maxLines = 2
+        )
+    }
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun OldLogContent(
+    modifier: Modifier = Modifier,
+    interviewLogLine: InterviewLogLine
+) {
+
+    val oldInterviewLog by rememberUpdatedState(newValue = interviewLogLine)
+
+    AnimatedContent(
+        targetState = oldInterviewLog,
+        transitionSpec = {
+            slideInVertically {
+                it
+            } + fadeIn(
+                initialAlpha = 0f
+            ) with fadeOut(
+                targetAlpha = 0f
+            ) + slideOutVertically {
+                -it
+            }
+        },
+        modifier = modifier.alpha(0.5f)
+    ) { il ->
+        ItemContent(
+            interviewLogLine = il,
+            fontSize = 14.sp,
+            maxLines = 1,
+            isNew = false
+        )
+    }
+}
+
+
+private fun generateRandomText(): String {
+    val charset = "ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz0123456789"
+    return (1..100)
+        .map { charset.random() }
+        .joinToString("")
 }

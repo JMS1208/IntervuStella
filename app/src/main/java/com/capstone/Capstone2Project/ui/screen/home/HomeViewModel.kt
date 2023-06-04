@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavOptionsBuilder
 import com.capstone.Capstone2Project.data.model.GitLanguage
 import com.capstone.Capstone2Project.data.model.Topic
 import com.capstone.Capstone2Project.data.model.inapp.TodayAttendanceQuiz
@@ -23,65 +24,54 @@ class HomeViewModel @Inject constructor(
     private val repository: NetworkRepository
 ) : ViewModel() {
 
-    private var _state: MutableStateFlow<State?> = MutableStateFlow(null)
-    val state: StateFlow<State?> = _state
+    private var _state: MutableStateFlow<State> = MutableStateFlow(State())
+    val state: StateFlow<State> = _state
 
     private val _effect = MutableSharedFlow<Effect>()
     val effect: SharedFlow<Effect> = _effect
 
-    private val _event = MutableSharedFlow<Event>()
-    val event: SharedFlow<Event> = _event
-
-
 
     fun checkAttendance(hostUUID: String) = viewModelScope.launch(Dispatchers.IO) {
         val result = repository.checkAttendance(hostUUID)
-        when (result) {
-            is Resource.Error -> {
-                _effect.emit(
-                    Effect.ShowMessage(
-                        result.error?.message ?: "알 수 없는 오류가 발생했습니다",
-                        type = Effect.ShowMessage.MessageType.Error
-                    )
+
+        if(result.isFailure || result.getOrNull() == null) {
+            _effect.emit(
+                Effect.ShowMessage(result.exceptionOrNull()?.message ?: "잠시 후 다시 시도해주세요")
+            )
+            return@launch
+        }
+
+        _state.update {
+            it.copy(
+                todayAttendanceQuiz = it.todayAttendanceQuiz.copy(
+                    isPresentToday = result.getOrNull()!!
                 )
-            }
-            Resource.Loading -> {
-                _effect.emit(
-                    Effect.ShowMessage(
-                        "알 수 없는 오류가 발생했습니다",
-                        type = Effect.ShowMessage.MessageType.Error
-                    )
-                )
-            }
-            is Resource.Success -> {
-                _state.update {
-
-                    it?.copy(
-                        todayAttendanceQuiz = it.todayAttendanceQuiz.successOrNull()?.let { taq ->
-                            Resource.Success(
-                                taq.copy(
-                                    isPresentToday = result.data
-                                )
-                            )
-                        } ?: Resource.Error(Exception("오류 발생"))
-                    )
-
-
-                }
-            }
+            )
         }
 
     }
 
 
-    fun getWeekAttendanceInfo(hostUUID: String) = viewModelScope.launch(Dispatchers.IO) {
-        _state.update {
-            val result = repository.getWeekAttendanceInfo(hostUUID)
+    private fun getWeekAttendanceInfo(hostUUID: String) = viewModelScope.launch(Dispatchers.IO) {
 
-            it?.copy(
-                weekAttendanceInfo = result
+        val result = repository.getWeekAttendanceInfo(hostUUID)
+
+        if(result.isFailure) {
+            _effect.emit(
+                Effect.ShowMessage(result.exceptionOrNull()?.message ?:"주간 출석 정보 가져오기 실패")
             )
+            return@launch
         }
+
+        result.getOrNull()?.let { weekAttendanceInfo ->
+            _state.update {
+                it.copy(
+                    weekAttendanceInfo = weekAttendanceInfo
+                )
+            }
+        }
+
+
     }
 
 
@@ -101,23 +91,34 @@ class HomeViewModel @Inject constructor(
 
         if(result.isFailure) {
             _effect.emit(
-                Effect.ShowMessage(result.exceptionOrNull()?.message?:"깃허브 사용언어 가져오기 실패", type = Effect.ShowMessage.MessageType.Error)
+                Effect.ShowMessage(result.exceptionOrNull()?.message?:"깃허브 사용언어 가져오기 실패")
             )
             return@launch
         }
 
         _state.update {
-            it?.copy(
+            it.copy(
                 gitLanguage = result.getOrNull() ?: emptyList()
             )
         }
     }
 
-    fun getUserTopics(hostUUID: String) = viewModelScope.launch(Dispatchers.IO) {
+    private fun getUserTopics(hostUUID: String) = viewModelScope.launch(Dispatchers.IO) {
+
+        val result = repository.getUserTopics(hostUUID)
+
+        if(result.isFailure || result.getOrNull() == null) {
+
+            _effect.emit(
+                Effect.ShowMessage(result.exceptionOrNull()?.message ?: "관심주제에 대한 정보를 가져오지 못했어요")
+            )
+
+            return@launch
+        }
+
         _state.update {
-            val result = repository.getUserTopics(hostUUID)
-            it?.copy(
-                topics = result
+            it.copy(
+                topics = result.getOrNull()!!
             )
         }
     }
@@ -125,23 +126,28 @@ class HomeViewModel @Inject constructor(
     fun getTodayQuestionAttendance(hostUUID: String, currentQuestionUUID: String?) =
         viewModelScope.launch(Dispatchers.IO) {
 
-            _state.update {
+            val result = repository.getTodayQuestionAttendance(hostUUID, currentQuestionUUID)
 
-                val result = repository.getTodayQuestionAttendance(hostUUID, currentQuestionUUID)
-
-                it?.copy(
-                    todayAttendanceQuiz = result
+            if(result.isFailure || result.getOrNull() == null) {
+                _effect.emit(
+                    Effect.ShowMessage(result.exceptionOrNull()?.message ?: "오늘의 질문에 대한 정보를 가져오지 못했어요")
                 )
+                return@launch
+            }
 
+            _state.update {
+                it.copy(
+                    todayAttendanceQuiz = result.getOrNull()!!
+                )
             }
 
         }
 
 
     data class State(
-        var topics: Resource<List<Topic>> = Resource.Loading,
-        var todayAttendanceQuiz: Resource<TodayAttendanceQuiz> = Resource.Loading,
-        var weekAttendanceInfo: Resource<WeekAttendanceInfo> = Resource.Loading,
+        var topics: List<Topic> = emptyList(),
+        var todayAttendanceQuiz: TodayAttendanceQuiz = TodayAttendanceQuiz(false, "질문을 가져오지 못했어요", ""),
+        var weekAttendanceInfo: WeekAttendanceInfo = WeekAttendanceInfo(emptyList(), 0),
         var gitLanguage: List<GitLanguage> = emptyList()
     )
     /*
@@ -153,17 +159,10 @@ class HomeViewModel @Inject constructor(
      */
 
     sealed class Effect {
-        data class ShowMessage(val message: String, val type: MessageType) : Effect() {
-            enum class MessageType {
-                Loading,
-                Normal,
-                Error
-            }
-        }
+        data class ShowMessage(val message: String) : Effect()
+
+        data class NavigateTo(val route: String, val builder: NavOptionsBuilder.() -> Unit = {}): Effect()
 
     }
 
-    sealed class Event {
-        data class ShowMemoDialog(val todayQuestionMemo: TodayQuestionMemo) : Event()
-    }
 }

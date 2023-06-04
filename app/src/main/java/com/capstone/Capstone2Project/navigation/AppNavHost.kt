@@ -1,5 +1,6 @@
 package com.capstone.Capstone2Project.navigation
 
+import InterviewScreen
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -23,9 +24,9 @@ import com.capstone.Capstone2Project.ui.screen.interesting.topic.TopicScreen
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewFinishScreen
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewGuideScreen
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewResultScreen
-import com.capstone.Capstone2Project.ui.screen.interview.InterviewScreen
 import com.capstone.Capstone2Project.ui.screen.mypage.MyPageScreen
 import com.capstone.Capstone2Project.ui.screen.comment.CommunityScreen
+import com.capstone.Capstone2Project.ui.screen.interview.InterviewScreen2
 import com.capstone.Capstone2Project.ui.screen.script.ScriptScreen
 
 @Composable
@@ -80,7 +81,7 @@ fun AppNavHost(
             val questionnaire = if(questionnaireJson == null) null else Questionnaire.jsonToObject(questionnaireJson)
 
             questionnaire?.let {
-                InterviewScreen(navController = navController, questionnaire = it)
+                InterviewScreen2(navController = navController, questionnaire = it)
             }
         }
 
@@ -183,10 +184,13 @@ fun AppNavHost(
         composable("$ROUTE_OTHERS_ANSWERS/{question_uuid}") { navBackStackEntry ->
 
             val questionUUID = navBackStackEntry.arguments?.getString("question_uuid")
-
-            questionUUID?.let {
-                CommunityScreen(questionUUID = it, navController = navController)
+            val authViewModel = hiltViewModel<AuthViewModel>()
+            if(authViewModel.currentUser != null) {
+                questionUUID?.let {
+                    CommunityScreen(questionUUID = it, navController = navController, firebaseUser = authViewModel.currentUser!!)
+                }
             }
+
         }
     }
 }

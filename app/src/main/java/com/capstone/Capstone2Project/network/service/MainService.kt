@@ -15,6 +15,7 @@ import com.capstone.Capstone2Project.data.model.fornetwork.Memo
 import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestion
 import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestionComment
 import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
+import retrofit2.Call
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -150,7 +151,7 @@ interface MainService {
     /*
     오늘의 질문에 달린 내 댓글 가져오기
      */
-    @GET("community/view_my_comment/")
+    @GET("community/view_my_ques_comment/")
     suspend fun getMyTodayQuestionComment(
         @Query("ques_uuid") questionUUID: String,
         @Query("user_uuid") hostUUID: String
@@ -247,7 +248,6 @@ interface MainService {
     suspend fun getQuestionnaire(
         @Query("user_uuid") hostUUID: String,
         @Query("script_uuid") scriptUUID: String,
-        //@Query("role") jobRole: String,
         @Query("reuse") reuse: Int
     ): Response<Questionnaire>
 

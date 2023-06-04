@@ -26,9 +26,9 @@ interface NetworkRepository {
 
 
 
-    suspend fun checkAttendance(hostUUID: String): Resource<Boolean>
+    suspend fun checkAttendance(hostUUID: String): Result<Boolean>
 
-    suspend fun getUserTopics(hostUUID: String): Resource<List<Topic>>
+    suspend fun getUserTopics(hostUUID: String): Result<List<Topic>>
 
     suspend fun postUserInfo(
         hostUUID: String,
@@ -38,16 +38,16 @@ interface NetworkRepository {
     suspend fun postTopics(
         hostUUID: String,
         topics: Topics
-    ): Response<Int>
+    ): Result<Boolean>
 
     suspend fun getTodayQuestionAttendance(
         hostUUID: String,
         currentQuestionUUID: String?
-    ): Resource<TodayAttendanceQuiz>
+    ): Result<TodayAttendanceQuiz>
 
     suspend fun getWeekAttendanceInfo(
         hostUUID: String
-    ): Resource<WeekAttendanceInfo>
+    ): Result<WeekAttendanceInfo>
 
     suspend fun getTodayQuestionMemo(
         hostUUID: String,

@@ -317,6 +317,7 @@ class ScriptViewModel @Inject constructor(
             _effect.emit(
                 Effect.ShowMessage("자기소개서 생성 완료")
             )
+            
             val curPage = state.value.curPage
             _state.update {
                 it.copy(
@@ -326,7 +327,6 @@ class ScriptViewModel @Inject constructor(
             }
         }
     }
-
     fun updateScriptItemAnswer(scriptItem: ScriptItem, answer: String) = viewModelScope.launch {
 
         if (answer.length > scriptItem.maxLength) {
@@ -404,8 +404,6 @@ class ScriptViewModel @Inject constructor(
                     )
                 )
             }
-
-            val jobRole = state.value.jobRoleList.first{it.second}.first
 
 
             //TODO 주석 풀어야함

@@ -30,7 +30,7 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonNull.content
 
-@OptIn(ExperimentalPagerApi::class)
+
 @Composable
 fun InterviewResultScreen(
     interviewResult: InterviewResult,

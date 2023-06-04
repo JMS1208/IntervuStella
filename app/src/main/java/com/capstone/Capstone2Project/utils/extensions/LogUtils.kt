@@ -1,6 +1,6 @@
 package com.capstone.Capstone2Project.utils.etc
 
-import com.capstone.Capstone2Project.data.model.LogLine
+import com.capstone.Capstone2Project.data.model.LiveFeedback
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseLandmark
@@ -8,9 +8,9 @@ import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-fun Face.toLogLine(): LogLine? {
+fun Face.toLiveFeedbackInfo(): Pair<LiveFeedback.Type, String>? {
 
-    val type: LogLine.Type = LogLine.Type.Camera
+    val type: LiveFeedback.Type = LiveFeedback.Type.Camera
 
     val message: String
 
@@ -20,18 +20,12 @@ fun Face.toLogLine(): LogLine? {
         headEulerAngleX > 10.0f -> {
             message = "고개를 살짝 내려주세요"
 
-            return LogLine(
-                type = type,
-                message = message
-            )
+            return Pair(type,message)
         }
         headEulerAngleX < -10.0f -> {
             message = "고개를 살짝 들어주세요"
 
-            return LogLine(
-                type = type,
-                message = message
-            )
+            return Pair(type,message)
         }
     }
 
@@ -41,18 +35,12 @@ fun Face.toLogLine(): LogLine? {
         headEulerAngleY > 15.0f -> {
             message = "얼굴을 오른쪽으로 살짝 돌려주세요"
 
-            return LogLine(
-                type = type,
-                message = message
-            )
+            return Pair(type,message)
         }
         headEulerAngleY < -15.0f -> {
             message = "얼굴을 왼쪽으로 살짝 돌려주세요"
 
-            return LogLine(
-                type = type,
-                message = message
-            )
+            return Pair(type,message)
         }
     }
 
@@ -62,51 +50,21 @@ fun Face.toLogLine(): LogLine? {
         headEulerAngleZ > 15.0f -> {
             message = "얼굴을 반시계 방향으로 살짝 돌려주세요"
 
-            return LogLine(
-                type = type,
-                message = message
-            )
+            return Pair(type,message)
         }
         headEulerAngleZ < -15.0f -> {
             message = "얼굴을 시계 방향으로 살짝 돌려주세요"
 
-            return LogLine(
-                type = type,
-                message = message
-            )
+            return Pair(type,message)
         }
     }
-
-
-//    smilingProbability?.let {
-//        when {
-//            it < 0.001f -> {
-//                message = "살짝 미소를 띄워볼까요?"
-//
-//                return LogLine(
-//                    type = type,
-//                    message = message
-//                )
-//            }
-//
-//            it > 0.8f -> {
-//                message = "크게 웃는 모습 좋아요"
-//
-//                return LogLine(
-//                    type = type,
-//                    message = message
-//                )
-//            }
-//            else -> Unit
-//        }
-//    }
 
     return null
 }
 
-fun Pose.toLogLine(): LogLine? {
+fun Pose.toLiveFeedbackInfo(): Triple<LiveFeedback.Type, String, Int>? {
 
-    val type = LogLine.Type.Pose
+    val type = LiveFeedback.Type.Pose
 
     val leftShoulderPosition = getPoseLandmark(PoseLandmark.LEFT_SHOULDER)?.position
 
@@ -116,11 +74,7 @@ fun Pose.toLogLine(): LogLine? {
         val diff = abs(leftShoulderPosition.y - rightShoulderPosition.y)
 
         if(diff > 30.0f) {
-            return LogLine(
-                type = type,
-                message = "자세를 교정해주세요",
-                index = 0
-            )
+            return Triple(type,"자세를 교정해주세요",0)
         }
 
     }
@@ -138,11 +92,7 @@ fun Pose.toLogLine(): LogLine? {
         val diff = sqrt(xSquare+ySquare)
 
         if(diff < 200.0f) {
-            return LogLine(
-                type = type,
-                message = "긴장을 풀어주세요",
-                index = 1
-            )
+            return Triple(type,"긴장을 풀어주세요",1)
         }
 
     }
@@ -154,14 +104,9 @@ fun Pose.toLogLine(): LogLine? {
         val diff = sqrt(xSquare+ySquare)
 
         if(diff < 200.0f) {
-            return LogLine(
-                type = type,
-                message = "긴장을 풀어주세요",
-                index = 1
-            )
+            return Triple(type,"긴장을 풀어주세요",1)
         }
     }
-
 
     return null
 }

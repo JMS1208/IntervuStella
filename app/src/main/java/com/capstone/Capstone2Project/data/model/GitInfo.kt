@@ -1,11 +1,10 @@
 package com.capstone.Capstone2Project.data.model
 
-data class GitInfo(
-    val hostUUID: String,
-    val gitNickName: String
-)
+import com.google.gson.annotations.SerializedName
 
 data class GitLanguage(
+    @SerializedName("lang")
     val name: String,
+    @SerializedName("percent")
     val ratio: Float
 )

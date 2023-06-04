@@ -50,7 +50,6 @@ Comment
 fun InterviewResultMotionScreenContent(
     interviewResult: InterviewResult,
     navController: NavController
-
 ) {
 
 

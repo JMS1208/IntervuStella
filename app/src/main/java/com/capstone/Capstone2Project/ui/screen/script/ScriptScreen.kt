@@ -72,6 +72,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -152,9 +153,9 @@ fun ScriptScreen(
 ) {
     val viewModel: ScriptViewModel = hiltViewModel()
 
-    val state = viewModel.state.collectAsStateWithLifecycle()
+    val state = viewModel.state.collectAsState()
 
-    val effect = viewModel.effect.collectAsStateWithLifecycle(initialValue = null)
+    val effect = viewModel.effect.collectAsState(null)
 
     val context = LocalContext.current
 
@@ -195,7 +196,8 @@ fun ScriptScreen(
         }
 
         is DataState.Loading -> {
-            LoadingScreen()
+            val message = (state.value.dataState as DataState.Loading).message
+            LoadingScreen(message?:"")
         }
 
         DataState.Normal -> {

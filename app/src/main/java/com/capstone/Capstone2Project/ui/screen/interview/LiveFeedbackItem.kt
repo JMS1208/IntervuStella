@@ -7,7 +7,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
@@ -19,46 +18,26 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.capstone.Capstone2Project.data.model.InterviewLogLine
-import com.capstone.Capstone2Project.data.model.LogLine
-import com.capstone.Capstone2Project.data.model.QuestionItem
+import com.capstone.Capstone2Project.data.model.LiveFeedback
 import com.capstone.Capstone2Project.utils.etc.CustomFont
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
-import com.capstone.Capstone2Project.utils.extensions.generateRandomText
 import com.capstone.Capstone2Project.utils.theme.LocalSpacing
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import java.util.*
-import kotlin.random.Random
-
-
-
 
 
 @Composable
 private fun ItemContent(
     modifier: Modifier = Modifier,
-    interviewLogLine: InterviewLogLine,
+    liveFeedback: LiveFeedback,
     fontSize: TextUnit,
     maxLines: Int = Int.MAX_VALUE,
     isNew: Boolean
 ) {
-
-    val progressText = remember {
-        interviewLogLine.progressToString()
-    }
-
-    val message = remember {
-        interviewLogLine.logLine.message
-    }
 
     val spacing = LocalSpacing.current
 
@@ -84,7 +63,7 @@ private fun ItemContent(
 
 
             Text(
-                progressText,
+                liveFeedback.progressToString(),
                 modifier = Modifier
                     .constrainAs(progressRef) {
                         end.linkTo(messageRef.start, margin = spacing.extraSmall)
@@ -105,7 +84,7 @@ private fun ItemContent(
 
 
             Text(
-                message,
+                liveFeedback.message,
                 maxLines = maxLines,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
@@ -174,13 +153,13 @@ private fun ItemContent(
 @Composable
 fun NewLogContent(
     modifier: Modifier = Modifier,
-    interviewLogLine: InterviewLogLine
+    liveFeedback: LiveFeedback
 ) {
 
-    val oldInterviewLog by rememberUpdatedState(newValue = interviewLogLine)
+    val oldLiveFeedback by rememberUpdatedState(newValue = liveFeedback)
 
     AnimatedContent(
-        targetState = oldInterviewLog,
+        targetState = oldLiveFeedback,
         transitionSpec = {
             slideInVertically {
                 it
@@ -195,7 +174,7 @@ fun NewLogContent(
         modifier = modifier
     ) { il ->
         ItemContent(
-            interviewLogLine = il,
+            liveFeedback = il,
             fontSize = 16.sp,
             isNew = true,
             maxLines = 2
@@ -207,10 +186,10 @@ fun NewLogContent(
 @Composable
 fun OldLogContent(
     modifier: Modifier = Modifier,
-    interviewLogLine: InterviewLogLine
+    liveFeedback: LiveFeedback
 ) {
 
-    val oldInterviewLog by rememberUpdatedState(newValue = interviewLogLine)
+    val oldInterviewLog by rememberUpdatedState(newValue = liveFeedback)
 
     AnimatedContent(
         targetState = oldInterviewLog,
@@ -228,7 +207,7 @@ fun OldLogContent(
         modifier = modifier.alpha(0.5f)
     ) { il ->
         ItemContent(
-            interviewLogLine = il,
+            liveFeedback = il,
             fontSize = 14.sp,
             maxLines = 1,
             isNew = false
