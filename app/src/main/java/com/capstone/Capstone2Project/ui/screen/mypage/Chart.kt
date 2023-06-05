@@ -68,15 +68,13 @@ fun ChartScreen(rankRecords: InterviewScore) {
 
     fun getDataPointList(): List<DataPoint> {
 
-        return rankRecords.ranks.mapIndexed { idx, rank->
+        return rankRecords.ranks.mapIndexed { idx, rank ->
             DataPoint(
                 x = idx.toFloat(),
                 y = rank.rankToDataPointY()
             )
         }
     }
-
-
 
 
     val density = LocalDensity.current
@@ -102,7 +100,7 @@ fun ChartScreen(rankRecords: InterviewScore) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = spacing.medium)
-                    .shadow(3.dp,shape = RoundedCornerShape(5.dp))
+                    .shadow(3.dp, shape = RoundedCornerShape(5.dp))
                     .background(
                         brush = Brush.linearGradient(
                             colors = listOf(
@@ -197,7 +195,8 @@ fun ChartScreen(rankRecords: InterviewScore) {
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 
-                Text("마지막 기록 ${simpleDateFormat.format(Date(rankRecords.recentlyDate))}",
+                Text(
+                    "마지막 기록 ${simpleDateFormat.format(Date(rankRecords.recentlyDate))}",
                     modifier = Modifier.fillMaxWidth(),
                     fontSize = 14.sp,
                     color = White,

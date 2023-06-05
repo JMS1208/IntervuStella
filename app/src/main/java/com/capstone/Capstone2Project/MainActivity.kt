@@ -22,8 +22,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import androidx.navigation.compose.rememberNavController
+import com.capstone.Capstone2Project.data.model.InterviewResult
 import com.capstone.Capstone2Project.data.model.Questionnaire
 import com.capstone.Capstone2Project.navigation.AppNavHost
+import com.capstone.Capstone2Project.ui.screen.interview.InterviewResultMotionScreenContent
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewScreen2
 import com.capstone.Capstone2Project.utils.ThemeHelper
 import com.capstone.Capstone2Project.utils.etc.CustomFont
@@ -48,18 +50,8 @@ class MainActivity : BaseActivity() {
                 )
             ) {
                 AppNavHost()
-
-//                InterviewScreen2(
-//                    navController = rememberNavController(),
-//                    questionnaire = Questionnaire.createTestQuestionnaire()
-//                )
-
-//                InterviewScreen(
-//                    navController = rememberNavController(),
-//                    questionnaire = Questionnaire.createTestQuestionnaire()
-//                )
-
-
+//                InterviewScreen2(navController = rememberNavController(),
+//                    questionnaire = Questionnaire.createTestQuestionnaire())
             }
         }
 

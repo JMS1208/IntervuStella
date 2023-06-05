@@ -734,7 +734,6 @@ private fun OthersAnswerItemContent(
                 fontWeight = FontWeight.Normal,
                 textAlign = TextAlign.Start
             ),
-            maxLines = 1,
             minLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth()

@@ -3,10 +3,13 @@ package com.capstone.Capstone2Project.ui.screen.script
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavOptionsBuilder
 import com.capstone.Capstone2Project.data.model.Questionnaire
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.data.model.ScriptItem
 import com.capstone.Capstone2Project.data.resource.DataState
+import com.capstone.Capstone2Project.navigation.ROUTE_HOME
+import com.capstone.Capstone2Project.navigation.ROUTE_INTERVIEW_GUIDE
 import com.capstone.Capstone2Project.repository.NetworkRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -208,6 +211,28 @@ class ScriptViewModel @Inject constructor(
 
 
     fun setScriptAndFetchBaseData(script: Script?) = viewModelScope.launch(Dispatchers.IO) {
+        if(script == null) {
+            _state.update {
+                it.copy(
+                    dataState = DataState.Error(Exception("없는 자기소개서 입니다"))
+                )
+            }
+            _effect.emit(
+                Effect.ShowMessage("잠시 후 다시 시도해주세요")
+            )
+            return@launch
+        }
+
+        if(state.value.scriptItemList.count{it.second} > 0) {
+            return@launch
+        }
+        if(state.value.title.isNotBlank()) {
+            return@launch
+        }
+        if(state.value.jobRoleList.count {it.second} > 0) {
+            return@launch
+        }
+
         _state.update {
             it.copy(
                 dataState = DataState.Loading()
@@ -217,35 +242,32 @@ class ScriptViewModel @Inject constructor(
         fetchJobRoleList()
         fetchScriptItems()
 
-        if (script != null) {
-            val newScriptItemList = script.scriptItems.map {
-                Pair(it, true)
-            }.toMutableList()
+        val newScriptItemList = script.scriptItems.map {
+            Pair(it, true)
+        }.toMutableList()
 
-            for (scriptItem in state.value.scriptItemList) {
-                if (scriptItem.first !in script.scriptItems) {
-                    newScriptItemList.add(Pair(scriptItem.first, false))
-                }
+        for (scriptItem in state.value.scriptItemList) {
+            if (scriptItem.first !in script.scriptItems) {
+                newScriptItemList.add(Pair(scriptItem.first, false))
             }
-
-            val newJobRoleList = state.value.jobRoleList.map {
-                if (it.first == script.jobRole) {
-                    Pair(it.first, true)
-                } else {
-                    it
-                }
-            }
-
-            _state.update {
-                it.copy(
-                    scriptItemList = newScriptItemList,
-                    jobRoleList = newJobRoleList,
-                    title = script.title
-                )
-            }
-
-
         }
+
+        val newJobRoleList = state.value.jobRoleList.map {
+            if (it.first == script.jobRole) {
+                Pair(it.first, true)
+            } else {
+                it
+            }
+        }
+
+        _state.update {
+            it.copy(
+                scriptItemList = newScriptItemList,
+                jobRoleList = newJobRoleList,
+                title = script.title
+            )
+        }
+
 
         _state.update {
             it.copy(
@@ -260,6 +282,16 @@ class ScriptViewModel @Inject constructor(
     세팅한걸로 초벌 자기소개서 만들기 (질문, 직무 선택하고 다음 페이지 넘어가는 상황)
      */
     fun makeScript() = viewModelScope.launch {
+
+        val scriptTitle = state.value.title
+
+        if(scriptTitle.isBlank()) {
+            _effect.emit(
+                Effect.ShowMessage("제목을 입력해주세요 :)")
+            )
+            return@launch
+        }
+
 
         val scriptItemCnt = state.value.scriptItemList.count { it.second }
 
@@ -423,11 +455,27 @@ class ScriptViewModel @Inject constructor(
             }
 
             val questionnaire = result.getOrNull()?: throw Exception()
+
             _state.update {
                 it.copy(
                     questionnaire = questionnaire
                 )
             }
+
+            val route = "$ROUTE_INTERVIEW_GUIDE?questionnaire={questionnaire}"
+                .replace(
+                    oldValue = "{questionnaire}",
+                    newValue = state.value.questionnaire!!.toJsonString()
+                )
+
+            _effect.emit(
+                Effect.NavigateTo(route) {
+                    popUpTo(ROUTE_HOME) {
+                        inclusive = true
+                    }
+                }
+            )
+
 
         } catch(e: Exception) {
             e.printStackTrace()
@@ -454,8 +502,10 @@ class ScriptViewModel @Inject constructor(
 
     sealed class Effect {
         data class ShowMessage(val message: String) : Effect()
-        data class NavigateTo(val questionnaire: Questionnaire) : Effect()
+//        data class NavigateTo(val questionnaire: Questionnaire) : Effect()
+        data class NavigateTo(val route: String, val builder: NavOptionsBuilder.()->Unit): Effect()
     }
+
 
 
     sealed class DialogState {

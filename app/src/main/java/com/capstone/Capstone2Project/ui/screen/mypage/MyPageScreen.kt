@@ -70,9 +70,11 @@ import com.capstone.Capstone2Project.R
 import com.capstone.Capstone2Project.data.model.InspiringKeyword
 import com.capstone.Capstone2Project.data.model.InterviewResult
 import com.capstone.Capstone2Project.data.model.InterviewScore
+import com.capstone.Capstone2Project.data.model.Rank
 import com.capstone.Capstone2Project.data.model.Script
 import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
 import com.capstone.Capstone2Project.data.resource.DataState
+import com.capstone.Capstone2Project.navigation.ROUTE_INTERVIEW_RESULT
 import com.capstone.Capstone2Project.navigation.ROUTE_LOGIN
 import com.capstone.Capstone2Project.navigation.ROUTE_SCRIPT_WRITING
 import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
@@ -1529,6 +1531,7 @@ fun MyInterviewScores(
 
     val spacing = LocalSpacing.current
 
+    val context = LocalContext.current
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -1536,20 +1539,22 @@ fun MyInterviewScores(
         )
     ) {
         rankRecords?.let {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(spacing.small),
-                contentAlignment = Alignment.Center
-            ) {
-                ChartScreen(it)
+            if(rankRecords.ranks.size > 1) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(spacing.small),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ChartScreen(it)
+
+                }
             }
         }
-
-
     }
 
 }
+
 
 @Composable
 fun MyInterviewRecords(
@@ -1622,7 +1627,15 @@ fun MyInterviewRecords(
 
                     items(interviewRecords.size) { idx ->
                         val interviewRecord = interviewRecords[idx]
-                        MyInterviewRecordItem(interviewRecord)
+                        MyInterviewRecordItem(interviewRecord) {
+                            navController.navigate(
+                                "$ROUTE_INTERVIEW_RESULT?interview_result={interview_result}"
+                                    .replace(
+                                        oldValue = "{interview_result}",
+                                        newValue = interviewRecord.toJsonString()
+                                    )
+                            )
+                        }
                     }
 
                 }
@@ -1688,11 +1701,11 @@ private fun ScrollToLeftButton(
 @Preview(showBackground = true)
 @Composable
 private fun RecordItemPreview() {
-    MyInterviewRecordItem(interviewRecord = InterviewResult.createTestInterviewResult())
+    MyInterviewRecordItem(interviewRecord = InterviewResult.createTestInterviewResult()) {}
 }
 
 @Composable
-fun MyInterviewRecordItem(interviewRecord: InterviewResult) {
+fun MyInterviewRecordItem(interviewRecord: InterviewResult, itemClicked:()->Unit) {
     val spacing = LocalSpacing.current
 
     val simpleDateFormat = remember {
@@ -1716,10 +1729,20 @@ fun MyInterviewRecordItem(interviewRecord: InterviewResult) {
                     color = White,
                     shape = RoundedCornerShape(5.dp)
                 )
-                .padding(spacing.small),
+                .padding(spacing.small)
+                .clickable {
+                    itemClicked()
+                },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+
+            Text(
+                simpleDateFormat.format(Date(interviewRecord.interviewDate)),
+                fontSize = 14.sp
+            )
+
+            Spacer(modifier = Modifier.height(spacing.small))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1758,12 +1781,7 @@ fun MyInterviewRecordItem(interviewRecord: InterviewResult) {
             }
 
 
-            Spacer(modifier = Modifier.height(spacing.small))
 
-            Text(
-                simpleDateFormat.format(Date(interviewRecord.interviewDate)),
-                fontSize = 14.sp
-            )
         }
     }
 }

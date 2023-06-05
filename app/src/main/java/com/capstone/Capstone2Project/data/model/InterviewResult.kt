@@ -76,7 +76,7 @@ data class InterviewResult(
 
             val feedbackList = mutableListOf<FeedbackItem>()
 
-            for (i in 0 until 5) {
+            for (i in 0 until 2) {
                 val feedbackItem = FeedbackItem(
                     question = "질문예시${i + 1}",
                     answer = "답변예시${i + 1}",
@@ -109,7 +109,7 @@ data class InterviewResult(
 
                 val gson = Gson()
 
-                gson.fromJson<InterviewResult>(interviewResultJson, InterviewResult::class.java)
+                gson.fromJson(interviewResultJson, InterviewResult::class.java)
 
             } catch (e:Exception) {
                 e.printStackTrace()

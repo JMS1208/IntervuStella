@@ -35,13 +35,21 @@ data class Questionnaire(
 
             val questions = mutableListOf<QuestionItem>()
 
-            for ( i in 0 until 5) {
-                val questionItem = QuestionItem(
-                    uuid = UUID.randomUUID().toString(),
-                    question = "$i 번째 질문 예시",
-                )
-                questions.add(questionItem)
-            }
+
+            questions.add(QuestionItem(
+                uuid = UUID.randomUUID().toString(),
+                question = "사용해보신 프레임워크와 언어는 무엇이 있나요?",
+            ))
+
+            questions.add(QuestionItem(
+                uuid = UUID.randomUUID().toString(),
+                question = "프로젝트 활동 중 힘들었던 점과 극복했던 방법에 대해서 알려주세요",
+            ))
+
+            questions.add(QuestionItem(
+                uuid = UUID.randomUUID().toString(),
+                question = "Compose와 View의 차이는 무엇인가요?",
+            ))
 
             return Questionnaire(
                 uuid = UUID.randomUUID().toString(),

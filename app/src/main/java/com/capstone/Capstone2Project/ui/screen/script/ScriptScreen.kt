@@ -4,9 +4,7 @@ import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -72,6 +70,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -96,6 +95,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -111,7 +111,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -126,6 +128,7 @@ import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.navigation.ROUTE_INTERVIEW_GUIDE
 import com.capstone.Capstone2Project.ui.screen.error.ErrorScreen
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
+import com.capstone.Capstone2Project.utils.composable.ComposableLifecycle
 import com.capstone.Capstone2Project.utils.composable.HighlightText
 import com.capstone.Capstone2Project.utils.composable.PocketBookShape
 import com.capstone.Capstone2Project.utils.etc.AlertUtils
@@ -140,6 +143,7 @@ import com.capstone.Capstone2Project.utils.theme.bright_blue
 import com.capstone.Capstone2Project.utils.theme.highlight_blue
 import com.capstone.Capstone2Project.utils.theme.text_blue
 import com.capstone.Capstone2Project.utils.theme.text_red
+import com.google.android.datatransport.cct.internal.LogEvent
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -149,54 +153,29 @@ import kotlinx.coroutines.launch
 fun ScriptScreen(
     navController: NavController,
     oriScript: Script? = null,
-    firebaseUser: FirebaseUser
+    firebaseUser: FirebaseUser,
+    viewModel: ScriptViewModel
 ) {
-    val viewModel: ScriptViewModel = hiltViewModel()
 
-    val state = viewModel.state.collectAsState()
 
-    val effect = viewModel.effect.collectAsState(null)
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
 
-    LaunchedEffect(viewModel) {
+    LaunchedEffect(oriScript) {
         viewModel.setScriptAndFetchBaseData(
             oriScript //?: Script.makeTestScript()
         )
     }
 
-    when {
-        state.value.questionnaire != null -> {
-            LaunchedEffect(state.value.questionnaire) {
+    when (state.dataState) {
 
-//                navController.currentBackStackEntry?.savedStateHandle?.set(
-//                    key = "questionnaire",
-//                    value = state.value.questionnaire
-//                )
-//
-//                navController.navigate(ROUTE_INTERVIEW_GUIDE)
-
-                navController.navigate(
-                    "$ROUTE_INTERVIEW_GUIDE?questionnaire={questionnaire}"
-                        .replace(
-                            oldValue = "{questionnaire}",
-                            newValue = state.value.questionnaire!!.toJsonString()
-                        )
-                )
-            }
-
-        }
-
-        else -> Unit
-    }
-
-    when (state.value.dataState) {
         is DataState.Error -> {
             ErrorScreen()
         }
 
         is DataState.Loading -> {
-            val message = (state.value.dataState as DataState.Loading).message
+            val message = (state.dataState as DataState.Loading).message
             LoadingScreen(message?:"")
         }
 
@@ -244,68 +223,70 @@ fun ScriptScreen(
                     contentAlignment = Alignment.Center
                 ) {
 
-                    if (state.value.curPage == 0) {
-                        ScriptSettingContent(
-                            state.value.scriptItemList,
-                            state.value.jobRoleList,
-                            state.value.title,
-                            viewModel
-                        )
+                    when  {
+                        state.curPage == 0 -> {
+                            ScriptSettingContent(
+                                state.scriptItemList,
+                                state.jobRoleList,
+                                state.title,
+                                viewModel
+                            )
 
-                        when (state.value.dialogState) {
-                            is ScriptViewModel.DialogState.CheckRemoveDialog -> {
-                                CheckRemoveDialog(
-                                    scriptItem = (state.value.dialogState as ScriptViewModel.DialogState.CheckRemoveDialog).scriptItem,
-                                    onDismiss = viewModel::closeDialog,
-                                    removeClicked = {
-                                        viewModel.removeScriptItem(it)
-                                    }
-                                )
+                            when (state.dialogState) {
+                                is ScriptViewModel.DialogState.CheckRemoveDialog -> {
+                                    CheckRemoveDialog(
+                                        scriptItem = (state.dialogState as ScriptViewModel.DialogState.CheckRemoveDialog).scriptItem,
+                                        onDismiss = viewModel::closeDialog,
+                                        removeClicked = {
+                                            viewModel.removeScriptItem(it)
+                                        }
+                                    )
+                                }
+
+                                ScriptViewModel.DialogState.Nothing -> Unit
                             }
-
-                            ScriptViewModel.DialogState.Nothing -> Unit
                         }
-                    } else if (state.value.curPage == state.value.scriptItemList.count { it.second } + 1) {
-                        ScriptLastContent(
-                            moveToInterviewClicked = {
-                                /*
-                                자기소개서 서버에 만들어졌으니, 이제 면접 질문지 생성 요청
-                                 */
-                                viewModel.startInterview(firebaseUser.uid, false)
-                            },
-                            moveToHomeClicked = {
-                                navController.navigate(ROUTE_HOME) {
-                                    popUpTo(ROUTE_HOME) {
-                                        inclusive = true
+                        state.curPage < state.scriptItemList.count{ it.second }+1 -> {
+
+                            val scriptIdx = state.curPage - 1
+                            val scriptItem = state.scriptItemList.filter { it.second }
+                                .sortedBy { it.first.index }[scriptIdx]
+
+                            ScriptWritingContent(
+                                scriptItem = scriptItem.first,
+                                curPage = state.curPage,
+                                moveNextPage = {
+                                    viewModel.moveNextPage(firebaseUser.uid)
+                                },
+                                movePrevPage = viewModel::movePrevPage,
+                                answerChanged = {
+                                    viewModel.updateScriptItemAnswer(scriptItem.first, it)
+                                }
+                            )
+
+                        }
+
+                        state.curPage == state.scriptItemList.count { it.second }+1 -> {
+
+                            ScriptLastContent(
+                                moveToInterviewClicked = {
+                                    /*
+                                                자기소개서 서버에 만들어졌으니, 이제 면접 질문지 생성 요청
+                                                 */
+                                    viewModel.startInterview(firebaseUser.uid, false)
+                                },
+                                moveToHomeClicked = {
+                                    navController.navigate(ROUTE_HOME) {
+                                        popUpTo(ROUTE_HOME) {
+                                            inclusive = true
+                                        }
                                     }
                                 }
-                            }
-                        )
-                    } else {
-
-                        val scriptIdx = state.value.curPage - 1
-                        val scriptItem = state.value.scriptItemList.filter { it.second }
-                            .sortedBy { it.first.index }[scriptIdx]
-
-                        ScriptWritingContent(
-                            scriptItem = scriptItem.first,
-                            curPage = state.value.curPage,
-                            moveNextPage = {
-                                viewModel.moveNextPage(firebaseUser.uid)
-                            },
-                            movePrevPage = viewModel::movePrevPage,
-                            answerChanged = {
-                                viewModel.updateScriptItemAnswer(scriptItem.first, it)
-                            }
-                        )
-
-
+                            )
+                        }
                     }
 
-
                 }
-
-
 
                 LaunchedEffect(viewModel) {
                     viewModel.effect.collect {
@@ -316,22 +297,7 @@ fun ScriptScreen(
                             }
 
                             is ScriptViewModel.Effect.NavigateTo -> {
-                                val questionnaire = it.questionnaire
-
-//                                navController.currentBackStackEntry?.savedStateHandle?.set(
-//                                    key = "questionnaire",
-//                                    value = questionnaire
-//                                )
-//
-//                                navController.navigate(ROUTE_INTERVIEW_GUIDE)
-
-                                navController.navigate(
-                                    "$ROUTE_INTERVIEW_GUIDE?questionnaire={questionnaire}"
-                                        .replace(
-                                            oldValue = "{questionnaire}",
-                                            newValue = questionnaire.toJsonString()
-                                        )
-                                )
+                                navController.navigate(it.route, it.builder)
 
                             }
                         }
@@ -530,8 +496,6 @@ private fun ScriptWritingContent(
         mutableStateOf(0)
     }
 
-
-
     val focusManager = LocalFocusManager.current
 
     val bringIntoViewRequester = remember {
@@ -546,26 +510,29 @@ private fun ScriptWritingContent(
         mutableStateOf(false)
     }
 
-    var targetOffsetValue by remember {
-        mutableStateOf(false)
+    val offsetState = remember {
+        Animatable(2f)
     }
 
-    val offsetState by animateDpAsState(
-        targetValue = if (targetOffsetValue) 2.dp else (-2).dp,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 800
-            ),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
-
-    LaunchedEffect(true) {
-        while (true) {
-            targetOffsetValue = !targetOffsetValue
-            delay(800)
+    SideEffect {
+        coroutineScope.launch {
+            while(true) {
+                offsetState.animateTo(
+                    -2f,
+                    animationSpec = tween(
+                        durationMillis = 800
+                    )
+                )
+                offsetState.animateTo(
+                    2f,
+                    animationSpec = tween(
+                        durationMillis = 800
+                    )
+                )
+            }
         }
     }
+
 
     LaunchedEffect(scriptItem) {
         if(scriptItem.tips.isNotEmpty()) {
@@ -814,7 +781,7 @@ private fun ScriptWritingContent(
                         modifier = Modifier
                             .align(Alignment.CenterStart)
                             .size(50.dp)
-                            .offset(y = offsetState)
+                            .offset(y = offsetState.value.dp)
                             .clickable {
                                 movePrevPage()
                             }
@@ -835,7 +802,7 @@ private fun ScriptWritingContent(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
                             .size(50.dp)
-                            .offset(y = offsetState)
+                            .offset(y = offsetState.value.dp)
                             .clickable {
                                 moveNextPage()
                             }

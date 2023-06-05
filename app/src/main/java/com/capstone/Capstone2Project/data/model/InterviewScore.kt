@@ -12,7 +12,27 @@ data class InterviewScore(
     val recentlyDate: Long,
     @SerializedName("scores")
     val ranks: List<Rank>
-)
+) {
+    companion object {
+        fun createTestObject(): InterviewScore {
+
+            val ranks = mutableListOf<Rank>()
+
+            for(i in 0 until 5) {
+                ranks.add(
+                    Rank.makeTestRank()
+                )
+            }
+
+            return InterviewScore(
+                maxRank = "S",
+                minRank = "C",
+                recentlyDate = System.currentTimeMillis(),
+                ranks = ranks
+            )
+        }
+    }
+}
 
 data class Rank(
     @SerializedName("date")
@@ -36,12 +56,12 @@ data class Rank(
 
     fun rankToDataPointY(): Float {
         return when(rank) {
-            "A"-> 3f
-            "B"-> 2f
-            "C"-> 1f
+            "A"-> 30f
+            "B"-> 20f
+            "C"-> 10f
             "D"-> 0f
-            "S"-> 4f
-            else -> 0f
+            "S"-> 40f
+            else -> 40f
         }
     }
 

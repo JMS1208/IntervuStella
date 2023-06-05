@@ -28,6 +28,7 @@ import com.capstone.Capstone2Project.ui.screen.mypage.MyPageScreen
 import com.capstone.Capstone2Project.ui.screen.comment.CommunityScreen
 import com.capstone.Capstone2Project.ui.screen.interview.InterviewScreen2
 import com.capstone.Capstone2Project.ui.screen.script.ScriptScreen
+import com.capstone.Capstone2Project.ui.screen.script.ScriptViewModel
 
 @Composable
 fun AppNavHost(
@@ -167,10 +168,14 @@ fun AppNavHost(
 
             authViewModel.currentUser?.let { firebaseUser ->
 
+                val viewModel: ScriptViewModel = hiltViewModel()
+
+
                 ScriptScreen(
                     navController = navController,
                     oriScript = script,
-                    firebaseUser = firebaseUser
+                    firebaseUser = firebaseUser,
+                    viewModel = viewModel
                 )
             }
 
