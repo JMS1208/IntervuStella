@@ -212,15 +212,44 @@ class ScriptViewModel @Inject constructor(
 
     fun setScriptAndFetchBaseData(script: Script?) = viewModelScope.launch(Dispatchers.IO) {
 
-        if(state.value.scriptItemList.count{it.second} > 0) {
-            return@launch
+
+        if(script == null) {
+            /*
+            script == null 인 경우는 자기소개서 새로 작성하는 경우임
+            뷰모델에 사용자가 선택한 질문, 입력한 제목, 선택된 직무가 있는지 확인하고
+            하나라도 있다면 리턴 시켜서 처리하지 않음
+             */
+
+            if (state.value.scriptItemList.count { it.second } > 0) {
+                return@launch
+            }
+            if (state.value.title.isNotBlank()) {
+                return@launch
+            }
+            if (state.value.jobRoleList.count { it.second } > 0) {
+                return@launch
+            }
+        } else {
+            /*
+            script != null 이면 자기소개서를 수정하는 경우임
+            뷰모델에 세팅된 uuid (자기소개서 uuid) 와 script의 uuid 가 같다면, 리턴 시켜서 처리하지 않음
+            다르다면 뷰모델에 세팅된 uuid (자기소개서 uuid)를 갱신함
+             */
+            if(state.value.uuid == script.uuid) {
+                return@launch
+            } else {
+                _state.update {
+                    it.copy(
+                        uuid = script.uuid
+                    )
+                }
+            }
         }
-        if(state.value.title.isNotBlank()) {
-            return@launch
-        }
-        if(state.value.jobRoleList.count {it.second} > 0) {
-            return@launch
-        }
+
+
+        /*
+        여기서부터는 뷰모델에 초기 세팅하는 작업임 
+         */
 
         _state.update {
             it.copy(
@@ -277,7 +306,7 @@ class ScriptViewModel @Inject constructor(
 
         val scriptTitle = state.value.title
 
-        if(scriptTitle.isBlank()) {
+        if (scriptTitle.isBlank()) {
             _effect.emit(
                 Effect.ShowMessage("제목을 입력해주세요 :)")
             )
@@ -320,19 +349,19 @@ class ScriptViewModel @Inject constructor(
         val script = Script(
             date = System.currentTimeMillis(),
             title = state.value.title,
-            scriptItems = state.value.scriptItemList.filter{it.second}.map{it.first},
-            jobRole = state.value.jobRoleList.first{it.second}.first,
+            scriptItems = state.value.scriptItemList.filter { it.second }.map { it.first },
+            jobRole = state.value.jobRoleList.first { it.second }.first,
             hostUUID = hostUUID,
             uuid = state.value.uuid
         )
 
         val result = repository.createScript(hostUUID, script)
 
-        if(result.isFailure || result.getOrNull() == false) {
+        if (result.isFailure || result.getOrNull() == false) {
             _effect.emit(
-                Effect.ShowMessage(result.exceptionOrNull()?.message?:"자기소개서 생성 실패")
+                Effect.ShowMessage(result.exceptionOrNull()?.message ?: "자기소개서 생성 실패")
             )
-            _state.update{
+            _state.update {
                 it.copy(
                     dataState = DataState.Error(Exception("자기소개서 생성 실패"))
                 )
@@ -341,16 +370,22 @@ class ScriptViewModel @Inject constructor(
             _effect.emit(
                 Effect.ShowMessage("자기소개서 생성 완료")
             )
-            
+
             val curPage = state.value.curPage
+
+            /*
+            뷰모델의 생명주기가 더 길기 때문에 자기소개서 생성이 완료되면 데이터들을 초기화해주어야 함
+             */
+
             _state.update {
-                it.copy(
+                State().copy(
                     dataState = DataState.Normal,
-                    curPage = curPage+1
+                    curPage = curPage + 1
                 )
             }
         }
     }
+
     fun updateScriptItemAnswer(scriptItem: ScriptItem, answer: String) = viewModelScope.launch {
 
         if (answer.length > scriptItem.maxLength) {
@@ -390,9 +425,9 @@ class ScriptViewModel @Inject constructor(
                 )
             }
 
-        } else if(curPage == totalPage) {
+        } else if (curPage == totalPage) {
             sendScriptToServer(hostUUID)
-        }else {
+        } else {
             _effect.emit(
                 Effect.ShowMessage("페이지를 넘어갈 수 없어요")
             )
@@ -437,16 +472,18 @@ class ScriptViewModel @Inject constructor(
             /*
             여기서는 재사용 X
              */
-            val result = repository.getQuestionnaire(hostUUID, scriptUUID,
-                reuse)
+            val result = repository.getQuestionnaire(
+                hostUUID, scriptUUID,
+                reuse
+            )
 
 
 
-            if(result.isFailure) {
+            if (result.isFailure) {
                 throw Exception(result.exceptionOrNull())
             }
 
-            val questionnaire = result.getOrNull()?: throw Exception()
+            val questionnaire = result.getOrNull() ?: throw Exception()
 
             _state.update {
                 it.copy(
@@ -469,10 +506,10 @@ class ScriptViewModel @Inject constructor(
             )
 
 
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             e.printStackTrace()
             _effect.emit(
-                Effect.ShowMessage(e.message?:"질문지 생성 오류")
+                Effect.ShowMessage(e.message ?: "질문지 생성 오류")
             )
         }
 
@@ -494,10 +531,11 @@ class ScriptViewModel @Inject constructor(
 
     sealed class Effect {
         data class ShowMessage(val message: String) : Effect()
-//        data class NavigateTo(val questionnaire: Questionnaire) : Effect()
-        data class NavigateTo(val route: String, val builder: NavOptionsBuilder.()->Unit): Effect()
-    }
 
+        //        data class NavigateTo(val questionnaire: Questionnaire) : Effect()
+        data class NavigateTo(val route: String, val builder: NavOptionsBuilder.() -> Unit) :
+            Effect()
+    }
 
 
     sealed class DialogState {
