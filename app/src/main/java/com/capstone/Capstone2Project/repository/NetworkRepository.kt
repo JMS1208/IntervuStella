@@ -1,37 +1,34 @@
 package com.capstone.Capstone2Project.repository
 
+import androidx.paging.Pager
 import com.capstone.Capstone2Project.data.model.*
-import com.capstone.Capstone2Project.data.model.TodayQuestion
-import com.capstone.Capstone2Project.data.model.response.InterviewDataResponse
+import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestion
+import com.capstone.Capstone2Project.data.model.fornetwork.TodayQuestionComment
+import com.capstone.Capstone2Project.data.model.fornetwork.Topics
+import com.capstone.Capstone2Project.data.model.inapp.TodayAttendanceQuiz
+import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
+import com.capstone.Capstone2Project.data.model.inapp.WeekAttendanceInfo
 import com.capstone.Capstone2Project.data.resource.Resource
-import com.capstone.Capstone2Project.ui.screen.othersanswers.OthersAnswersData
 import retrofit2.Response
 
 interface NetworkRepository {
-    //suspend fun getDefaultTopics(): Resource<List<Topic>>
-    suspend fun getScripts(hostUUID: String): Resource<List<Script>>
-    suspend fun getCustomQuestionnaire(script: Script): Resource<CustomQuestionnaire>
-//    suspend fun getScriptPaper(): Resource<ScriptPaper>
-    suspend fun createEmptyScript(hostUUID: String): Resource<Script>
-    suspend fun getInterviewLogs(hostUUID: String): Resource<List<InterviewLog>>
-    suspend fun getInterviewScores(hostUUID: String): Resource<List<InterviewScore>>
-    suspend fun getMyTodayQuestions(hostUUID: String): Resource<List<TodayQuestion>>
 
-    suspend fun sendInterviewData(interviewData: InterviewData): InterviewDataResponse
+    suspend fun getQuestionnaire(
+        hostUUID: String,
+        scriptUUID: String,
+        //jobRole: String,
+        reuse: Boolean
+    ): Result<Questionnaire>
 
-    suspend fun writeMemo(interviewUUID: String, memo: String): Resource<String> //성공여부 알려줘야함
+    suspend fun getInterviewScore(hostUUID: String): Result<InterviewScore>
+    suspend fun getMyTodayQuestionsMemo(hostUUID: String): Result<List<TodayQuestionMemo>>
 
-    suspend fun getInterviewResult(interviewUUID: String): Resource<InterviewResult>
 
-    suspend fun getOthersAnswersData(questionUUID: String): Resource<OthersAnswersData>
 
-    suspend fun updateLikeForAnswerData(answerUUID: String, like: Boolean): Resource<String> //성공여부
 
-    suspend fun isUserPresent(hostUUID: String): Boolean
+    suspend fun checkAttendance(hostUUID: String): Result<Boolean>
 
-    suspend fun checkAttendance(hostUUID: String)
-
-    suspend fun getUserTopics(hostUUID: String): Resource<List<Topic>>
+    suspend fun getUserTopics(hostUUID: String): Result<List<Topic>>
 
     suspend fun postUserInfo(
         hostUUID: String,
@@ -41,5 +38,113 @@ interface NetworkRepository {
     suspend fun postTopics(
         hostUUID: String,
         topics: Topics
-    ): Response<Int>
+    ): Result<Boolean>
+
+    suspend fun getTodayQuestionAttendance(
+        hostUUID: String,
+        currentQuestionUUID: String?
+    ): Result<TodayAttendanceQuiz>
+
+    suspend fun getWeekAttendanceInfo(
+        hostUUID: String
+    ): Result<WeekAttendanceInfo>
+
+    suspend fun getTodayQuestionMemo(
+        hostUUID: String,
+        questionUUID: String,
+        question: String
+    ): Resource<TodayQuestionMemo>
+
+    suspend fun updateTodayQuestionMemo(
+        hostUUID: String,
+        questionUUID: String,
+        memo: String
+    ): Boolean
+
+    suspend fun getTodayQuestionCommentList(
+        questionUUID: String,
+        hostUUID: String
+    ): Pager<Int, TodayQuestionComment>
+
+    suspend fun getMyTodayQuestionComment(
+        questionUUID: String,
+        hostUUID: String
+    ): Result<TodayQuestionComment?>
+
+    suspend fun getTodayQuestionInfo(
+        questionUUID: String
+    ): Result<TodayQuestion>
+
+    suspend fun changeCommentLikeCount(
+        commentUUID: String,
+        hostUUID: String
+    ): Result<Int>
+
+    suspend fun createMyComment(
+        questionUUID: String,
+        hostUUID: String,
+        comment: String
+    ): Result<TodayQuestionComment>
+
+    suspend fun updateMyComment(
+        commentUUID: String,
+        questionUUID: String,
+        hostUUID: String,
+        comment: String
+    ): Result<TodayQuestionComment>
+
+    suspend fun deleteMyComment(
+        commentUUID: String,
+        hostUUID: String
+    ): Result<Boolean>
+
+    suspend fun getMyScriptList(
+        hostUUID: String
+    ): Result<List<Script>>
+
+    suspend fun getJobRoleList(
+    ): Result<List<String>>
+
+    suspend fun getScriptItemList(
+    ): Result<List<ScriptItem>>
+
+
+
+    suspend fun getMyInterviewResultList(
+        hostUUID: String
+    ): Result<List<InterviewResult>>
+
+    suspend fun createScript(
+        hostUUID: String,
+        script: Script
+    ): Result<Boolean>
+
+    suspend fun getInterviewFeedback(
+        interviewData: InterviewData
+    ): Result<InterviewResult>
+
+    suspend fun deleteScript(
+        scriptUUID: String,
+        hostUUID: String
+    ): Result<Boolean>
+
+/*    suspend fun getInterviewList(
+        hostUUID: String
+    ): Result<List<InterviewResult>>*/
+
+    suspend fun getGitNickName(
+        hostUUID: String
+    ): Result<String?>
+
+    suspend fun updateGitNickName(
+        hostUUID: String,
+        nickName: String
+    ): Result<Boolean>
+
+    suspend fun getGitLanguage(
+        hostUUID: String
+    ): Result<List<GitLanguage>>
+
+
+
 }

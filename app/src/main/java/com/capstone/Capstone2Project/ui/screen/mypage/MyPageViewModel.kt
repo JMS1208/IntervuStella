@@ -1,21 +1,25 @@
 package com.capstone.Capstone2Project.ui.screen.mypage
 
+import androidx.compose.runtime.MutableState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capstone.Capstone2Project.data.model.InspiringKeyword
-import com.capstone.Capstone2Project.data.model.InterviewLog
+import com.capstone.Capstone2Project.data.model.InterviewResult
 import com.capstone.Capstone2Project.data.model.InterviewScore
 import com.capstone.Capstone2Project.data.model.Script
-import com.capstone.Capstone2Project.data.model.TodayQuestion
-import com.capstone.Capstone2Project.data.resource.Resource
+import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
+import com.capstone.Capstone2Project.data.resource.DataState
+//import com.capstone.Capstone2Project.data.model.TodayQuestion
 import com.capstone.Capstone2Project.repository.AppDatabaseRepository
 import com.capstone.Capstone2Project.repository.NetworkRepository
+import com.capstone.Capstone2Project.ui.screen.home.HomeViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,79 +27,301 @@ import javax.inject.Inject
 class MyPageViewModel @Inject constructor(
     private val repository: NetworkRepository,
     private val appDatabaseRepository: AppDatabaseRepository
-): ViewModel() {
+) : ViewModel() {
 
-    private var _myScriptsFlow: MutableStateFlow<Resource<List<Script>>?> = MutableStateFlow(null)
-    val myScriptsFlow: StateFlow<Resource<List<Script>>?> = _myScriptsFlow
+    private var _state: MutableStateFlow<State> = MutableStateFlow(State())
+    val state: StateFlow<State> = _state
 
-    private var _myInterviewLogsFlow: MutableStateFlow<Resource<List<InterviewLog>>?> = MutableStateFlow(null)
-    val myInterviewLogsFlow: StateFlow<Resource<List<InterviewLog>>?> = _myInterviewLogsFlow
+    private var _effect: MutableSharedFlow<Effect> = MutableSharedFlow()
+    val effect: SharedFlow<Effect> = _effect
 
-    private var _myInterviewScoresFlow: MutableStateFlow<Resource<List<InterviewScore>>?> = MutableStateFlow(null)
-    val myInterviewScoresFlow: StateFlow<Resource<List<InterviewScore>>?> = _myInterviewScoresFlow
-
-    private var _myInspiringKeywords: MutableStateFlow<Resource<List<InspiringKeyword>>?> = MutableStateFlow(null)
-    val myInspiringKeywords: StateFlow<Resource<List<InspiringKeyword>>?> = _myInspiringKeywords
-
-
-    private var _myTodayQuestionsFlow: MutableStateFlow<Resource<List<TodayQuestion>>?> = MutableStateFlow(null)
-    val myTodayQuestionsFlow: StateFlow<Resource<List<TodayQuestion>>?> = _myTodayQuestionsFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-
-    fun fetchMyScripts(hostUUID: String) = viewModelScope.launch {
-        _myScriptsFlow.value = Resource.Loading
-
-
-        val result = repository.getScripts(hostUUID)
-
-        _myScriptsFlow.value = result
+    fun fetchMyData(hostUUID: String) = viewModelScope.launch {
+        fetchMyInspiringKeywords(hostUUID)
+        fetchMyInterviewRecords(hostUUID)
+        fetchMyInterviewScores(hostUUID)
+        fetchMyScripts(hostUUID)
+        fetchMyTodayQuestionsMemo(hostUUID)
+        fetchMyGitNickName(hostUUID)
     }
 
-    fun fetchMyInterviewLogs(hostUUID: String) = viewModelScope.launch {
-        _myInterviewLogsFlow.value = Resource.Loading
+    private fun fetchMyGitNickName(hostUUID: String) = viewModelScope.launch {
 
-        val result = repository.getInterviewLogs(hostUUID)
+        val result = repository.getGitNickName(hostUUID)
 
-        _myInterviewLogsFlow.value = result
+        if(result.isSuccess) {
+            _state.update {
+                it.copy(
+                    gitNickName = result.getOrNull() ?: "깃허브 닉네임 설정"
+                )
+            }
+        }
+
     }
 
-    fun fetchMyInterviewScores(hostUUID: String) = viewModelScope.launch {
-        _myInterviewScoresFlow.value = Resource.Loading
+    private fun fetchMyScripts(hostUUID: String) = viewModelScope.launch {
 
-        val result = repository.getInterviewScores(hostUUID)
+        _state.update {
+            it.copy(
+                dataState = DataState.Loading()
+            )
+        }
 
-        _myInterviewScoresFlow.value = result
+        val result = repository.getMyScriptList(hostUUID)
+
+        if (result.isSuccess) {
+            _state.update {
+                it.copy(
+                    myScripts = result.getOrNull() ?: emptyList(),
+                    dataState = DataState.Normal
+                )
+            }
+        } else {
+            _state.update {
+                it.copy(
+                    dataState = DataState.Error(
+                        result.exceptionOrNull(),
+                        message = "자기소개서 불러오기 실패"
+                    ),
+                )
+            }
+        }
     }
 
-    fun fetchMyTodayQuestions(hostUUID: String) = viewModelScope.launch {
-        _myTodayQuestionsFlow.value = Resource.Loading
+    private fun fetchMyInterviewRecords(hostUUID: String) = viewModelScope.launch {
+        _state.update {
+            it.copy(
+                dataState = DataState.Loading()
+            )
+        }
 
+        val result = repository.getMyInterviewResultList(hostUUID)
 
-        val result = repository.getMyTodayQuestions(hostUUID)
-
-        _myTodayQuestionsFlow.value = result
+        if(result.isSuccess) {
+            _state.update {
+                it.copy(
+                    myInterviewRecords = result.getOrNull() ?: emptyList(),
+                    dataState = DataState.Normal
+                )
+            }
+        } else {
+            _state.update {
+                it.copy(
+                    dataState = DataState.Error(
+                        result.exceptionOrNull(),
+                        message = "면접 기록 불러오기 실패"
+                    ),
+                )
+            }
+        }
     }
+
+
+
+    private fun fetchMyInterviewScores(hostUUID: String) = viewModelScope.launch {
+        _state.update {
+            it.copy(
+                dataState = DataState.Loading()
+            )
+        }
+
+        val result = repository.getInterviewScore(hostUUID)
+
+        if(result.isSuccess) {
+            _state.update {
+                it.copy(
+                    myRankRecords = result.getOrNull(),
+                    dataState = DataState.Normal
+                )
+            }
+        } else {
+            _state.update {
+                it.copy(
+                    dataState = DataState.Error(
+                        result.exceptionOrNull(),
+                        message = "면접 점수 기록 불러오기 실패"
+                    )
+                )
+            }
+        }
+
+    }
+
+    private fun fetchMyTodayQuestionsMemo(hostUUID: String) = viewModelScope.launch {
+
+        _state.update {
+            it.copy(
+                dataState = DataState.Loading()
+            )
+        }
+
+        val result = repository.getMyTodayQuestionsMemo(hostUUID)
+
+        if (result.isSuccess) {
+
+            _state.update {
+                it.copy(
+                    todayQuestionsMemo = result.getOrNull() ?: emptyList(),
+                    dataState = DataState.Normal
+                )
+            }
+        } else {
+            _state.update {
+                it.copy(
+                    dataState = DataState.Error(
+                        result.exceptionOrNull(),
+                        message = "메모 리스트 불러오기 실패"
+                    )
+                )
+            }
+        }
+
+    }
+
 
     fun fetchMyInspiringKeywords(hostUUID: String) = viewModelScope.launch(Dispatchers.IO) {
-        _myInspiringKeywords.value = Resource.Loading
+
+        _state.update {
+            it.copy(
+                dataState = DataState.Loading()
+            )
+        }
 
         val result = appDatabaseRepository.getInspiringKeywords(hostUUID)
 
-        _myInspiringKeywords.value = Resource.Success(result)
+        _state.update {
+            it.copy(
+                inspiringKeywords = result,
+                dataState = DataState.Normal
+            )
+        }
+
     }
 
-    fun insertInspiringKeyword(inspiringKeyword: InspiringKeyword) = viewModelScope.launch(Dispatchers.IO) {
-        appDatabaseRepository.insertInspiringKeyword(inspiringKeyword)
-        fetchMyInspiringKeywords(inspiringKeyword.hostUUID)
-    }
+    fun insertInspiringKeyword(inspiringKeyword: InspiringKeyword) =
+        viewModelScope.launch(Dispatchers.IO) {
+            appDatabaseRepository.insertInspiringKeyword(inspiringKeyword)
+            fetchMyInspiringKeywords(inspiringKeyword.hostUUID)
+        }
 
     fun deleteAllInspiringKeywords(hostUUID: String) = viewModelScope.launch(Dispatchers.IO) {
         appDatabaseRepository.deleteAllInspiringKeywords(hostUUID)
         fetchMyInspiringKeywords(hostUUID)
     }
 
-    fun deleteInspiringKeyword(inspiringKeyword: InspiringKeyword) = viewModelScope.launch(Dispatchers.IO) {
-        appDatabaseRepository.deleteInspiringKeyword(inspiringKeyword)
-        fetchMyInspiringKeywords(inspiringKeyword.hostUUID)
+    fun deleteInspiringKeyword(inspiringKeyword: InspiringKeyword) =
+        viewModelScope.launch(Dispatchers.IO) {
+            appDatabaseRepository.deleteInspiringKeyword(inspiringKeyword)
+            fetchMyInspiringKeywords(inspiringKeyword.hostUUID)
+        }
+
+    fun closeDialog() {
+        _state.update {
+            it.copy(
+                dialogState = DialogState.Nothing
+            )
+        }
+    }
+
+    fun showGitLinkDialog() {
+        _state.update {
+            it.copy(
+                dialogState = DialogState.GitLinkDialog
+            )
+        }
+    }
+
+    fun showKeywordAddingDialog() {
+        _state.update {
+            it.copy(
+                dialogState = DialogState.KeywordAddingDialog
+            )
+        }
+    }
+
+    fun scriptClicked(script: Script) = viewModelScope.launch {
+        _state.update {
+            it.copy(
+                dialogState = DialogState.ScriptDialog(script)
+            )
+        }
+    }
+
+    fun deleteScript(script: Script) = viewModelScope.launch {
+
+        /*
+        삭제 제대로 됐으면 다이얼로그 닫고 메시지 띄우고, state.myScripts에서 제거
+        삭제 제대로 안 됐으면 다이얼로그 유지하고 메시지 띄우기
+         */
+        val result = repository.deleteScript(script.uuid, script.hostUUID)
+
+        if(result.isFailure) {
+            _effect.emit(
+                Effect.ShowMessage(result.exceptionOrNull()?.message ?:"잠시 후 다시 시도해주세요")
+            )
+        } else {
+
+            val newScripts = state.value.myScripts.filter {
+                it.uuid != script.uuid
+            }
+
+            _effect.emit(
+                Effect.ShowMessage("삭제 되었습니다")
+            )
+            _state.update {
+                it.copy(
+                    dialogState = DialogState.Nothing,
+                    myScripts = newScripts
+                )
+            }
+        }
+    }
+
+    fun updateGitNickName(hostUUID: String, nickname: String) = viewModelScope.launch {
+
+        val result = repository.updateGitNickName(hostUUID, nickName = nickname)
+
+        if(result.isFailure) {
+            _effect.emit(
+                Effect.ShowMessage(result.exceptionOrNull()?.message ?:"잠시 후 다시 시도해주세요")
+            )
+        } else {
+            _effect.emit(
+                Effect.ShowMessage("업데이트 되었습니다")
+            )
+            _state.update {
+                it.copy(
+                    gitNickName = nickname
+                )
+            }
+        }
+    }
+
+    data class State(
+        var dialogState: DialogState = DialogState.Nothing,
+        var dataState: DataState = DataState.Loading(),
+        var inspiringKeywords: List<InspiringKeyword> = emptyList(),
+        var todayQuestionsMemo: List<TodayQuestionMemo> = emptyList(),
+        var myScripts: List<Script> = emptyList(),
+        var myRankRecords: InterviewScore? = null,
+        var myInterviewRecords: List<InterviewResult> = emptyList(),
+        var gitNickName: String = "",
+
+    )
+
+    sealed class Effect {
+        data class ShowMessage(val message: String) : Effect()
+    }
+
+
+    sealed class DialogState {
+        object MemoDialog : DialogState()
+        object Nothing : DialogState()
+
+        object KeywordAddingDialog : DialogState()
+
+        object GitLinkDialog : DialogState()
+
+        data class ScriptDialog(val script: Script): DialogState()
+
     }
 }

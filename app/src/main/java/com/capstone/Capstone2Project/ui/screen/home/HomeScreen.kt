@@ -2,7 +2,6 @@ package com.capstone.Capstone2Project.ui.screen.home
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -18,10 +17,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.Color.Companion.DarkGray
+import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.graphics.Color.Companion.White
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -36,15 +34,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.capstone.Capstone2Project.R
-import com.capstone.Capstone2Project.data.model.Achievement
-import com.capstone.Capstone2Project.data.model.Attendance
-import com.capstone.Capstone2Project.navigation.ROUTE_MY_PAGE
-import com.capstone.Capstone2Project.navigation.ROUTE_SCRIPT_WRITING
-import com.capstone.Capstone2Project.navigation.ROUTE_TOPIC
+import com.capstone.Capstone2Project.data.model.GitLanguage
+import com.capstone.Capstone2Project.data.model.Topic
+import com.capstone.Capstone2Project.data.model.inapp.TodayAttendanceQuiz
+import com.capstone.Capstone2Project.data.model.inapp.WeekAttendanceInfo
+import com.capstone.Capstone2Project.data.model.inapp.WeekItem
+import com.capstone.Capstone2Project.navigation.*
 import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
 import com.capstone.Capstone2Project.ui.screen.interview.stopRecordingService
 import com.capstone.Capstone2Project.ui.screen.intro.InterviewIntroDialog
 import com.capstone.Capstone2Project.utils.composable.HighlightText
+import com.capstone.Capstone2Project.utils.etc.AlertUtils
 import com.capstone.Capstone2Project.utils.etc.CustomFont
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
 import com.capstone.Capstone2Project.utils.extensions.WithEmojiView
@@ -60,24 +60,79 @@ import java.text.SimpleDateFormat
 import java.time.DayOfWeek
 import java.time.YearMonth
 import java.util.*
+import kotlin.math.roundToInt
 
 
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
 
-    HomeScreen(rememberNavController())
+    val homeViewModel: HomeViewModel = hiltViewModel()
+
+    val authViewModel: AuthViewModel = hiltViewModel()
+
+    HomeScreen(rememberNavController(), homeViewModel, authViewModel)
+
+}
+
+@Composable
+fun HomeScreen(
+    navController: NavController,
+    homeViewModel: HomeViewModel,
+    authViewModel: AuthViewModel
+) {
+
+    val context = LocalContext.current
+
+    val state = homeViewModel.state.collectAsState()
+
+    LaunchedEffect(homeViewModel) {
+        homeViewModel.effect.collect {
+            when (it) {
+                is HomeViewModel.Effect.ShowMessage -> {
+                    AlertUtils.showToast(context, it.message)
+                }
+
+                is HomeViewModel.Effect.NavigateTo -> {
+                    navController.navigate(it.route, it.builder)
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(authViewModel) {
+        authViewModel.currentUser?.uid?.let {
+            homeViewModel.fetchAllHomeData(it)
+
+        } ?: run {
+            navController.navigate(ROUTE_LOGIN) {
+                popUpTo(ROUTE_HOME) {
+                    inclusive = true
+                }
+            }
+        }
+
+    }
+
+    HomeScreenContent(
+        navController,
+        state.value
+    )
+
 
 }
 
 
 @Composable
-fun HomeScreen(
-    navController: NavController
+private fun HomeScreenContent(
+    navController: NavController,
+    state: HomeViewModel.State
 ) {
     val scrollState = rememberScrollState()
 
     val spacing = LocalSpacing.current
+
+    val context = LocalContext.current
 
     Scaffold(
         floatingActionButtonPosition = FabPosition.Center,
@@ -88,7 +143,7 @@ fun HomeScreen(
     ) { innerPadding ->
 
 
-        ConstraintLayout(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
@@ -97,44 +152,37 @@ fun HomeScreen(
                 .padding(innerPadding)
                 .navigationBarsPadding()
                 .padding(top = 30.dp)
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(spacing.large, Alignment.Top)
         ) {
 
+            LogoAndInfoContent(
+                modifier = Modifier.fillMaxWidth(),
+                navController
+            )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState),
-                verticalArrangement = Arrangement.spacedBy(spacing.large, Alignment.Top)
-            ) {
+            ScriptAndInfoContent(
+                modifier = Modifier.fillMaxWidth(),
+                navController,
+                gitLangList = state.gitLanguage
+            )
 
-                LogoAndInfoContent(
-                    modifier = Modifier.fillMaxWidth(),
-                    navController
-                )
 
-                ScriptAndInfoContent(
-                    modifier = Modifier.fillMaxWidth(),
-                    navController
-                )
+            MyTopicAndTodayQuiz(
+                modifier = Modifier.fillMaxWidth(),
+                navController,
+                topicsState = state.topics,
+                todayAttendanceQuiz = state.todayAttendanceQuiz
+            )
 
-                MyTopicAndTodayQuiz(
-                    modifier = Modifier.fillMaxWidth(),
-                    navController
-                )
+            AttendanceCheck(
+                modifier = Modifier.fillMaxWidth(),
+                weekAttendanceInfo = state.weekAttendanceInfo
+            )
 
-                AttendanceCheck(
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                MyAchievement(
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(spacing.large))
-            }
+            Spacer(modifier = Modifier.height(spacing.large))
+            Spacer(modifier = Modifier.height(spacing.medium))
         }
-
-
     }
 
 
@@ -210,146 +258,26 @@ private fun InterviewButton(
 
 }
 
-@Composable
-private fun MyAchievement(
-    modifier: Modifier = Modifier
-) {
-
-    val spacing = LocalSpacing.current
-
-    val configuration = LocalConfiguration.current
-
-    val screenWidth = configuration.screenWidthDp.dp
-
-    CompositionLocalProvider(
-        LocalTextStyle provides TextStyle(
-            fontFamily = nexonFont
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing.medium)
-        ) {
-
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(
-                        3.dp,
-                        shape = RoundedCornerShape(5.dp)
-                    )
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                bright_blue,
-                                darker_blue
-                            )
-                        ),
-                        shape = RoundedCornerShape(5.dp)
-                    )
-                    .shimmerEffect(2000)
-
-            ) {
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(spacing.small)
-                ) {
-
-                    Spacer(modifier = Modifier.height(spacing.medium))
-
-                    Text(
-                        "나의 달성 업적",
-                        color = White,
-                        fontWeight = FontWeight(550),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = spacing.small),
-                        textAlign = TextAlign.Start,
-                        fontSize = 20.sp,
-                        style = LocalTextStyle.current.copy(
-                            shadow = Shadow(
-                                DarkGray,
-                                offset = Offset(1f, 1f),
-                                blurRadius = 4f
-                            )
-                        )
-                    )
-                    val achievement = remember {
-                        listOf(
-                            Achievement(System.currentTimeMillis(), "회원가입", type = 1),
-                            Achievement(System.currentTimeMillis(), "자기소개서 1회 작성 완료 !", type = 2)
-                        )
-                    }
-
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(100.dp, 150.dp)
-                            .shadow(
-                                3.dp,
-                                shape = RoundedCornerShape(5.dp)
-                            )
-                            .background(
-                                color = White,
-                                shape = RoundedCornerShape(5.dp)
-                            ),
-                        contentPadding = PaddingValues(spacing.small),
-                        verticalArrangement = Arrangement.spacedBy(
-                            spacing.extraSmall,
-                            Alignment.CenterVertically
-                        ),
-                        horizontalAlignment = Alignment.Start
-                    ) {
-
-                        items(achievement) {
-                            Text(
-                                "${it.timeToString()} - ${it.text}",
-                                color = DarkGray,
-                                fontSize = 13.sp
-                            )
-                        }
-                    }
-
-                }
-
-            }
-
-            Image(
-                painter = painterResource(id = R.drawable.ic_trophy),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(
-                        screenWidth
-                            .div(5)
-                            .times(2)
-                    )
-                    .align(Alignment.TopEnd)
-                    .padding(start = spacing.medium)
-                    .offset(y = (-50).dp)
-            )
-
-        }
-    }
-
-}
 
 @Composable
 private fun MyTopicAndTodayQuiz(
     modifier: Modifier = Modifier,
-    navController: NavController
+    navController: NavController,
+    topicsState: List<Topic>,
+    todayAttendanceQuiz: TodayAttendanceQuiz
 ) {
 
     val spacing = LocalSpacing.current
 
+    val context = LocalContext.current
+
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
-            fontFamily = nexonFont
+            fontFamily = nexonFont,
+            color = Black
         )
     ) {
+
         Column(
             modifier = modifier.padding(horizontal = spacing.medium),
             verticalArrangement = Arrangement.Center
@@ -376,7 +304,8 @@ private fun MyTopicAndTodayQuiz(
                     Text("변경하기", fontSize = 16.sp, color = Gray)
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
-                        contentDescription = null
+                        contentDescription = null,
+                        tint = Gray
                     )
                 }
 
@@ -413,7 +342,7 @@ private fun MyTopicAndTodayQuiz(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(7) {
+                    items(topicsState.filter { it.selected }) {
                         Box(
                             modifier = Modifier
                                 .shadow(
@@ -443,27 +372,25 @@ private fun MyTopicAndTodayQuiz(
                                 )
                                 .padding(vertical = 5.dp, horizontal = 10.dp)
                         ) {
-                            Text("#예시$it", fontSize = 15.sp)
+                            Text("#${it.name}", fontSize = 15.sp)
                         }
                     }
                 }
 
 
 
-
                 TodayQuestionCard(
-                    question = "프로세스와 스레드의 차이는 무엇인가요",
-                    questionUUID = UUID.randomUUID().toString(),
+                    question = todayAttendanceQuiz.question,
+                    questionUUID = todayAttendanceQuiz.questionUUID,
+                    isPresentToday = todayAttendanceQuiz.isPresentToday,
                     modifier = Modifier.fillMaxWidth(),
                     navController = navController
                 )
 
-
-//                ChartScreen()
-
             }
 
         }
+
     }
 
 
@@ -471,7 +398,8 @@ private fun MyTopicAndTodayQuiz(
 
 @Composable
 private fun AttendanceCheck(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    weekAttendanceInfo: WeekAttendanceInfo
 ) {
 
     val spacing = LocalSpacing.current
@@ -479,7 +407,8 @@ private fun AttendanceCheck(
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
-            fontFamily = nexonFont
+            fontFamily = nexonFont,
+            color = Black
         )
     ) {
         Column(
@@ -495,22 +424,17 @@ private fun AttendanceCheck(
             ) {
                 Text("Weekly 출석 !", fontSize = 20.sp, fontWeight = FontWeight.Medium)
 
-                Text("연속 2일 출석 !", fontSize = 16.sp, fontWeight = FontWeight.Normal, color = Gray)
+                if (weekAttendanceInfo.continuousCount > 0) {
+                    Text(
+                        "연속 ${weekAttendanceInfo.continuousCount}일 출석 !",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = Gray
+                    )
+                }
 
             }
 
-
-            val weeklyData = remember {
-                listOf<Attendance>(
-                    Attendance(date = System.currentTimeMillis(), false),
-                    Attendance(date = System.currentTimeMillis(), true),
-                    Attendance(date = System.currentTimeMillis(), false),
-                    Attendance(date = System.currentTimeMillis(), true),
-                    Attendance(date = System.currentTimeMillis(), true),
-                    Attendance(date = System.currentTimeMillis(), false),
-                    Attendance(date = System.currentTimeMillis(), true)
-                )
-            }
 
             LazyRow(
                 modifier = Modifier
@@ -527,8 +451,10 @@ private fun AttendanceCheck(
                     top = spacing.small
                 )
             ) {
-                items(weeklyData) {
-                    ItemAttendance(attendance = it)
+                items(weekAttendanceInfo.weekAttendance) {weekItem->
+                    weekItem?.let{
+                        ItemAttendance(weekItem = it)
+                    }
                 }
             }
 
@@ -551,7 +477,7 @@ private fun AttendanceCheck(
 }
 
 @Composable
-private fun ItemAttendance(attendance: Attendance) {
+private fun ItemAttendance(weekItem: WeekItem) {
 
     val spacing = LocalSpacing.current
 
@@ -562,35 +488,39 @@ private fun ItemAttendance(attendance: Attendance) {
             fontWeight = FontWeight(550)
         )
     ) {
-        attendance.date?.let {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
-                modifier = Modifier.padding(vertical = 10.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .wrapContentSize()
-                        .background(
-                            color = bg_darker_gray,
-                            shape = RoundedCornerShape(5.dp)
-                        )
-                        .padding(horizontal = 6.dp, vertical = 3.dp)
-                ) {
-                    Text(attendance.timeToDayOfWeek()!!)
-                }
 
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
+            modifier = Modifier.padding(vertical = 10.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(50.dp)
+                    .background(
+                        color = bg_darker_gray,
+                        shape = RoundedCornerShape(5.dp)
+                    )
+                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(weekItem.dayOfWeek.value)
+            }
+
+            weekItem.isPresent?.let { isPresent->
                 Image(
-                    painter = painterResource(id = if (attendance.isPresent) R.drawable.ic_check_att else R.drawable.ic_close_att),
+                    painter = painterResource(id = if (isPresent) R.drawable.ic_check_att else R.drawable.ic_close_att),
                     contentDescription = null,
                     modifier = Modifier
                         .padding(5.dp)
                         .size(40.dp)
                 )
-
-
             }
+
+
+
         }
+
 
     }
 }
@@ -598,7 +528,8 @@ private fun ItemAttendance(attendance: Attendance) {
 @Composable
 private fun ScriptAndInfoContent(
     modifier: Modifier = Modifier,
-    navController: NavController
+    navController: NavController,
+    gitLangList: List<GitLanguage>
 ) {
 
     val spacing = LocalSpacing.current
@@ -611,7 +542,8 @@ private fun ScriptAndInfoContent(
 
     CompositionLocalProvider(
         LocalTextStyle provides androidx.compose.ui.text.TextStyle(
-            fontFamily = nexonFont
+            fontFamily = nexonFont,
+            color = Black
         )
     ) {
         ConstraintLayout(
@@ -636,9 +568,7 @@ private fun ScriptAndInfoContent(
                         color = Color.White,
                         shape = RoundedCornerShape(5.dp)
                     ),
-            ) {
-
-            }
+            ) { }
 
             Box(
                 modifier = Modifier
@@ -715,7 +645,7 @@ private fun ScriptAndInfoContent(
                     color = White
                 )
                 GitLanguageAnalysis(
-
+                    gitLangList = gitLangList
                 )
             }
 
@@ -744,7 +674,8 @@ private fun ScriptAndInfoContent(
 
 @Composable
 private fun GitLanguageAnalysis(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    gitLangList: List<GitLanguage>
 ) {
 
     CompositionLocalProvider(
@@ -758,13 +689,9 @@ private fun GitLanguageAnalysis(
             verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.Start
         ) {
-            Text("Kotlin 40%")
-            Text("그 외 60%")
-            Text(
-                "주 언어",
-                textAlign = TextAlign.End,
-                modifier = Modifier.fillMaxWidth()
-            )
+            gitLangList.sortedBy { -(it.ratio) }.forEach {
+                Text("${it.name} ${it.ratio.roundToInt()}%")
+            }
         }
     }
 
@@ -788,7 +715,9 @@ private fun LogoAndInfoContent(
         )
     ) {
         Row(
-            modifier = modifier.padding(horizontal = spacing.medium).padding(top = spacing.small),
+            modifier = modifier
+                .padding(horizontal = spacing.medium)
+                .padding(top = spacing.small),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -796,9 +725,11 @@ private fun LogoAndInfoContent(
             Image(
                 painterResource(id = R.drawable.logo3),
                 contentDescription = null,
-                modifier = Modifier.height(30.dp).clickable {
-                    stopRecordingService(context)
-                })
+                modifier = Modifier
+                    .height(30.dp)
+                    .clickable {
+                        stopRecordingService(context)
+                    })
 
             Icon(
                 imageVector = Icons.Outlined.Person,
@@ -832,7 +763,7 @@ fun ChartData() {
             .fillMaxWidth()
 
     ) {
-        ChartScreen()
+//        ChartScreen()
     }
 }
 

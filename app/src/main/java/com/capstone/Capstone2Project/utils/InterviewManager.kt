@@ -105,7 +105,6 @@ class InterviewManager private constructor(private val builder: Builder) :
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                Log.e(TAG, "Use case binding failed", e)
             }
 
 
@@ -151,7 +150,6 @@ class InterviewManager private constructor(private val builder: Builder) :
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                Log.e(TAG, "Use case binding failed", e)
             }
 
 

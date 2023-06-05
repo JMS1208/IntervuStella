@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.DarkGray
+import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -33,10 +34,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.capstone.Capstone2Project.data.model.Topic
+import com.capstone.Capstone2Project.data.resource.DataState
 import com.capstone.Capstone2Project.data.resource.Resource
 import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.navigation.ROUTE_TOPIC
 import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
+import com.capstone.Capstone2Project.ui.screen.error.ErrorScreen
+import com.capstone.Capstone2Project.ui.screen.home.HomeViewModel
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.composable.HighlightText
 import com.capstone.Capstone2Project.utils.etc.AlertUtils
@@ -46,6 +50,9 @@ import com.capstone.Capstone2Project.utils.extensions.clickableWithoutRipple
 import com.capstone.Capstone2Project.utils.theme.*
 import com.google.accompanist.flowlayout.FlowMainAxisAlignment
 import com.google.accompanist.flowlayout.FlowRow
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @Preview(showBackground = true)
 @Composable
@@ -65,34 +72,45 @@ fun TopicScreen(
 
     val topicViewModel: TopicViewModel = hiltViewModel()
 
+    val context = LocalContext.current
+
     LaunchedEffect(authViewModel.currentUser) {
         authViewModel.currentUser?.uid?.let {
             topicViewModel.fetchUserTopics(it)
         }
     }
 
-    val context = LocalContext.current
-
-    val userTopics = topicViewModel.userTopicsFlow.collectAsStateWithLifecycle()
-
-    userTopics.value?.let {
-        when(it) {
-            is Resource.Error -> {
-                it.error?.message?.let { message ->
-                    AlertUtils.showToast(context, message, Toast.LENGTH_LONG)
+    LaunchedEffect(topicViewModel) {
+        topicViewModel.effect.collectLatest {
+            when(it) {
+                is TopicViewModel.Effect.NavigateTo -> {
+                    navController.navigate(it.route, it.builder)
+                }
+                is TopicViewModel.Effect.ShowMessage -> {
+                    AlertUtils.showToast(context, it.message)
                 }
             }
-            Resource.Loading -> {
-                LoadingScreen()
-            }
-            is Resource.Success -> {
-                InterestingTopicContent(
-                    navController = navController,
-                    topicList = it.data
-                )
-            }
         }
+    }
 
+
+
+    val state = topicViewModel.state.collectAsStateWithLifecycle()
+
+    when(state.value.dataState) {
+        is DataState.Error -> {
+            val message = (state.value.dataState as DataState.Error).message
+            ErrorScreen(message)
+        }
+        is DataState.Loading -> {
+            LoadingScreen()
+        }
+        DataState.Normal -> {
+            InterestingTopicContent(
+                navController = navController,
+                topicList = state.value.topics
+            )
+        }
     }
 
 
@@ -114,7 +132,11 @@ fun InterestingTopicContent(
 
     val viewModel: TopicViewModel = hiltViewModel()
 
+    val coroutineScope = rememberCoroutineScope()
 
+    val context = LocalContext.current
+
+    val homeViewModel: HomeViewModel = hiltViewModel()
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -128,7 +150,7 @@ fun InterestingTopicContent(
             topBar = {
                 CenterAlignedTopAppBar(
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.Transparent
+                        containerColor = Color.White
                     ),
                     title = {
                         Text(
@@ -162,6 +184,7 @@ fun InterestingTopicContent(
                     .verticalScroll(
                         scrollState
                     )
+                    .background(color = White)
                     .padding(innerPadding)
                     .padding(spacing.medium),
                 verticalArrangement = Arrangement.Top,
@@ -170,18 +193,15 @@ fun InterestingTopicContent(
 
                 TopicHeader()
 
-
-
                 FlowItems(
                     modifier = Modifier
                         .background(
                             color = bg_grey,
                             shape = RoundedCornerShape(10.dp)
                         )
-                        .padding(horizontal = spacing.medium, vertical = spacing.extraMedium)
-                    ,
+                        .padding(horizontal = spacing.medium, vertical = spacing.extraMedium),
                     topicList
-                ) { topic->
+                ) { topic ->
                     viewModel.changeSelectedTopic(topic)
                 }
 
@@ -194,13 +214,17 @@ fun InterestingTopicContent(
 
                     authViewModel.currentUser?.uid?.let {
                         viewModel.postUserTopics(it, topicList)
+                        //homeViewModel.fetchUserTopics(it)
                     }
+
 
                     navController.navigate(ROUTE_HOME) {
                         popUpTo(ROUTE_TOPIC) {
                             inclusive = true
                         }
                     }
+
+
                 }
 
             }
@@ -244,7 +268,7 @@ fun TopicFooter(
                     .fillMaxWidth()
                     .padding(top = spacing.medium, start = spacing.small)
             ) {
-                Text("선택한 영역 $selectedCount 개")
+                Text("선택한 주제 $selectedCount 개", color = Gray)
             }
 
 
@@ -362,7 +386,7 @@ fun FlowItemContent(
     )
 
     val textColor = remember(topic.selected) {
-        if(topic.selected) White else DarkGray
+        if (topic.selected) White else DarkGray
     }
 
     val spacing = LocalSpacing.current

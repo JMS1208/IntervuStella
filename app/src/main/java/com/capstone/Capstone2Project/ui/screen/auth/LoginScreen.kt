@@ -63,10 +63,7 @@ import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.etc.AlertUtils
 import com.capstone.Capstone2Project.utils.etc.CustomFont
 import com.capstone.Capstone2Project.utils.extensions.onTouchKeyBoardFocusDismiss
-import com.capstone.Capstone2Project.utils.theme.LocalSpacing
-import com.capstone.Capstone2Project.utils.theme.bright_blue
-import com.capstone.Capstone2Project.utils.theme.dim_sky_blue
-import com.capstone.Capstone2Project.utils.theme.spacing
+import com.capstone.Capstone2Project.utils.theme.*
 import kotlinx.coroutines.launch
 
 @Preview(showBackground = true)
@@ -91,8 +88,11 @@ fun LoginScreen(
     Column(
         verticalArrangement = Arrangement.spacedBy(spacing.medium, Alignment.CenterVertically),
         modifier = Modifier
-            .padding(spacing.medium)
             .fillMaxSize()
+            .background(
+                color = bg_grey
+            )
+            .padding(spacing.medium)
             .onTouchKeyBoardFocusDismiss()
     ) {
         LogoUI(modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -114,7 +114,7 @@ fun LoginScreen(
     loginFlow.value?.let {
         when(it) {
             is Resource.Error -> {
-                it.error?.message?.let {message->
+                it.error?.message?.let { message->
                     AlertUtils.showToast(context, message, Toast.LENGTH_LONG)
                 }
             }

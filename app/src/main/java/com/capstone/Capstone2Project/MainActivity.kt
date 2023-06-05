@@ -1,5 +1,6 @@
 package com.capstone.Capstone2Project
 
+import InterviewScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,7 +21,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
+import androidx.navigation.compose.rememberNavController
+import com.capstone.Capstone2Project.data.model.InterviewResult
+import com.capstone.Capstone2Project.data.model.Questionnaire
 import com.capstone.Capstone2Project.navigation.AppNavHost
+import com.capstone.Capstone2Project.ui.screen.interview.InterviewResultMotionScreenContent
+import com.capstone.Capstone2Project.ui.screen.interview.InterviewScreen2
+import com.capstone.Capstone2Project.utils.ThemeHelper
 import com.capstone.Capstone2Project.utils.etc.CustomFont
 import com.capstone.Capstone2Project.utils.theme.Capstone2ProjectTheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -38,15 +45,23 @@ class MainActivity : BaseActivity() {
         setBaseContent {
             CompositionLocalProvider(
                 LocalTextStyle provides TextStyle(
-                    fontFamily = CustomFont.nexonFont
+                    fontFamily = CustomFont.nexonFont,
+                    color = Color.Black
                 )
             ) {
                 AppNavHost()
+//                InterviewScreen2(navController = rememberNavController(),
+//                    questionnaire = Questionnaire.createTestQuestionnaire())
             }
         }
 
+        setupThemeMode()
 
 
+    }
+
+    private fun setupThemeMode() {
+        ThemeHelper.applyTheme(ThemeHelper.ThemeMode.LIGHT)
     }
 
 }

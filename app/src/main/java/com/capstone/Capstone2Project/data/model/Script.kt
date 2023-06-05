@@ -1,69 +1,107 @@
 package com.capstone.Capstone2Project.data.model
 
-import com.squareup.moshi.JsonAdapter
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import android.os.Parcelable
+import android.util.Log
+import com.capstone.Capstone2Project.utils.extensions.generateRandomText
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.annotations.SerializedName
 import java.util.*
 
+@kotlinx.parcelize.Parcelize
 data class Script(
-    val uuid: String = UUID.randomUUID().toString(),
-    val host: String,
-    var date: Long,
-    var name: String,
-    val questionnaireState: Boolean,
-    val scriptItems: List<ScriptItem>
-) {
+    @SerializedName("script_uuid")
+    val uuid: String = UUID.randomUUID().toString(), //내가 만들기
+    @SerializedName("host_uuid")
+    val hostUUID: String,
+    @SerializedName("date")
+    var date: Long? = null,//
+    @SerializedName("script_title")
+    var title: String = "",//
+    @SerializedName("interviewed")
+    val interviewed: Boolean = false,
+    @SerializedName("script_items")
+    var scriptItems: List<ScriptItem> = emptyList(),
+    @SerializedName("role")
+    var jobRole: String
+): Parcelable {
     fun toJsonString(): String {
-        val moshi = Moshi.Builder()
-            .addLast(KotlinJsonAdapterFactory())
-            .build()
 
-        val jsonAdapter: JsonAdapter<Script> = moshi.adapter(Script::class.java)
+        val gsonBuilder = GsonBuilder().setLenient()
 
-        return jsonAdapter.toJson(this)
+        val gson = gsonBuilder.create()
+
+        return gson.toJson(this)
+
     }
 
     companion object {
+        fun createTestingScript(): Script {
 
-        fun jsonStringToScript(jsonString: String): Script? {
-            val moshi = Moshi.Builder()
-                .addLast(KotlinJsonAdapterFactory())
-                .build()
-            val jsonAdapter: JsonAdapter<Script> = moshi.adapter(Script::class.java)
+            val scriptItems = mutableListOf<ScriptItem>()
 
-            return jsonAdapter.fromJson(jsonString)
-        }
-
-        fun makeTestScript(): Script {
-            val tips = listOf("팁 예시1111111111", "팁 예시22222222222", "팁 예시3333333333")
-
-            val scriptUUID = UUID.randomUUID().toString()
-
-            val items = listOf(
-                ScriptItem(question = "예시 질문", tips = tips, maxLength = 300, scriptUUID = scriptUUID),
-                ScriptItem(question = "예시 질문", tips = tips, maxLength = 500, scriptUUID = scriptUUID),
-                ScriptItem(question = "예시 질문", tips = tips, maxLength = 300, scriptUUID = scriptUUID),
-                ScriptItem(question = "예시 질문", tips = tips, maxLength = 500, scriptUUID = scriptUUID),
-            )
+            for(i in 0 until 4) {
+                scriptItems.add(
+                    ScriptItem.createTestScriptItem()
+                )
+            }
 
             return Script(
-                host = UUID.randomUUID().toString(),
-                date = System.currentTimeMillis(),
-                name = "자기소개서",
-                questionnaireState = false,
-                scriptItems = items
+                hostUUID = UUID.randomUUID().toString(),
+                title = "안드로이드 개발자로서의 꿈",
+                interviewed = true,
+                jobRole = "안드로이드",
+                scriptItems = scriptItems,
+                date = System.currentTimeMillis()
             )
         }
+        fun jsonStringToScript(jsonString: String): Script? {
+
+            return try {
+
+                val gson = Gson()
+
+                gson.fromJson<Script>(jsonString, Script::class.java)
+
+            } catch (e:Exception) {
+                e.printStackTrace()
+                null
+            }
+
+        }
+
     }
 
 
 }
 
+@kotlinx.parcelize.Parcelize
 data class ScriptItem(
+    @SerializedName("script_item_uuid") //question 에 대한 uuid
     val itemUUID: String = UUID.randomUUID().toString(),
-    val scriptUUID: String,
+    @SerializedName("script_item_question")
     val question: String,
+    @SerializedName("script_item_answer")
     var answer: String = "",
+    @SerializedName("script_item_answer_max_length")
     val maxLength: Int,
-    val tips: List<String>
-)
+    @SerializedName("tips")
+    val tips: List<String>,
+    @SerializedName("index")
+    val index: Int
+): Parcelable {
+    companion object {
+        fun createTestScriptItem(): ScriptItem {
+            val tips = listOf("A","B","C","D")
+
+            return ScriptItem(
+                maxLength = 500,
+                tips = tips,
+                index = (0..5).random(),
+                question = "테스트 질문 ${(0..5).random()}",
+                answer = generateRandomText(100)
+            )
+        }
+    }
+}
+

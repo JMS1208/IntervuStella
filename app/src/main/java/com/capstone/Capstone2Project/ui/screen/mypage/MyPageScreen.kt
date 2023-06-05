@@ -1,7 +1,6 @@
 package com.capstone.Capstone2Project.ui.screen.mypage
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -17,7 +16,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowLeft
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Add
@@ -32,7 +30,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.FocusRequester.Companion.createRefs
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.geometry.Offset
@@ -64,7 +61,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -72,83 +68,72 @@ import androidx.navigation.compose.rememberNavController
 import com.airbnb.lottie.compose.*
 import com.capstone.Capstone2Project.R
 import com.capstone.Capstone2Project.data.model.InspiringKeyword
-import com.capstone.Capstone2Project.data.model.InterviewLog
+import com.capstone.Capstone2Project.data.model.InterviewResult
+import com.capstone.Capstone2Project.data.model.InterviewScore
+import com.capstone.Capstone2Project.data.model.Rank
 import com.capstone.Capstone2Project.data.model.Script
-import com.capstone.Capstone2Project.data.model.TodayQuestion
-import com.capstone.Capstone2Project.data.resource.Resource
-import com.capstone.Capstone2Project.navigation.ROUTE_HOME
+import com.capstone.Capstone2Project.data.model.inapp.TodayQuestionMemo
+import com.capstone.Capstone2Project.data.resource.DataState
+import com.capstone.Capstone2Project.navigation.ROUTE_INTERVIEW_RESULT
 import com.capstone.Capstone2Project.navigation.ROUTE_LOGIN
 import com.capstone.Capstone2Project.navigation.ROUTE_SCRIPT_WRITING
 import com.capstone.Capstone2Project.ui.screen.auth.AuthViewModel
+import com.capstone.Capstone2Project.ui.screen.error.ErrorScreen
 import com.capstone.Capstone2Project.ui.screen.home.ChartScreen
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.etc.AlertUtils
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
 import com.capstone.Capstone2Project.utils.etc.invokeVibration
 import com.capstone.Capstone2Project.utils.extensions.clickableWithoutRipple
+import com.capstone.Capstone2Project.utils.extensions.progressToString
+import com.capstone.Capstone2Project.utils.extensions.toFormatString
 import com.capstone.Capstone2Project.utils.theme.*
 import com.google.accompanist.flowlayout.FlowMainAxisAlignment
 import com.google.accompanist.flowlayout.FlowRow
+import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-@Preview(showBackground = true)
-@Composable
-private fun Preview() {
-    MyPageScreen(navController = rememberNavController())
-}
 
 @Composable
 fun MyPageScreen(
     navController: NavController
 ) {
     val authViewModel: AuthViewModel = hiltViewModel()
-    val viewModel: MyPageViewModel = hiltViewModel()
 
-    LaunchedEffect(authViewModel) {
-        authViewModel.currentUser?.uid?.let {
-            with(viewModel) {
-                fetchMyInspiringKeywords(it)
-            }
-        }
-    }
+    val viewModel: MyPageViewModel = hiltViewModel()
 
     val context = LocalContext.current
 
+    val firebaseUser = authViewModel.currentUser
 
+    if (firebaseUser == null) {
 
-    val loginFlow = authViewModel.loginFlow.collectAsStateWithLifecycle()
-
-    loginFlow.value.let {
-        when(it) {
-            is Resource.Error -> {
-                AlertUtils.showToast(context, it.error?.message ?: "로그인 오류 발생")
-                LaunchedEffect(Unit) {
-                    navController.navigate(ROUTE_LOGIN) {
-                        popUpTo(ROUTE_LOGIN) {
-                            inclusive = true
-                        }
-                    }
+        LaunchedEffect(Unit) {
+            navController.navigate(ROUTE_LOGIN) {
+                popUpTo(ROUTE_LOGIN) {
+                    inclusive = true
                 }
             }
-            Resource.Loading -> {
-                LoadingScreen()
-            }
-            is Resource.Success -> {
-                MyPageContent(navController)
-            }
-            null -> {
-                LaunchedEffect(Unit) {
-                    navController.navigate(ROUTE_LOGIN) {
-                        popUpTo(ROUTE_LOGIN) {
-                            inclusive = true
-                        }
-                    }
-                }
-            }
-
+            AlertUtils.showToast(context, "다시 로그인 해주세요")
         }
+    } else {
+
+        LaunchedEffect(authViewModel) {
+            firebaseUser.uid.let {
+                with(viewModel) {
+                    fetchMyData(it)
+                }
+            }
+        }
+
+        MyPageContent(
+            navController,
+            firebaseUser = firebaseUser,
+            logOutClicked = authViewModel::logout
+        )
     }
 
 
@@ -157,35 +142,41 @@ fun MyPageScreen(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 private fun MyPageContent(
-    navController: NavController
+    navController: NavController,
+    firebaseUser: FirebaseUser,
+    logOutClicked: () -> Unit
 ) {
-    val authViewModel: AuthViewModel = hiltViewModel()
 
     val viewModel: MyPageViewModel = hiltViewModel()
 
     val spacing = LocalSpacing.current
 
-    val keywordsFlow = viewModel.myInspiringKeywords.collectAsStateWithLifecycle()
+    val stateFlow = viewModel.state.collectAsStateWithLifecycle()
 
-    val showKeywordAddingDialog = remember {
-        mutableStateOf(false)
+    val userName = remember(firebaseUser) {
+        firebaseUser.displayName ?: "(이름 없음)"
     }
 
-    val showGitLinkDialog = remember {
-        mutableStateOf(false)
+    val userEmail = remember(firebaseUser) {
+        firebaseUser.email ?: "(이메일 미지정)"
     }
 
-    val userName = remember(authViewModel) {
-        authViewModel.currentUser?.displayName ?: ""
-    }
+    val context = LocalContext.current
 
-    val userEmail = remember(authViewModel) {
-        authViewModel.currentUser?.email ?: ""
+    LaunchedEffect(viewModel) {
+        viewModel.effect.collectLatest {
+            when (it) {
+                is MyPageViewModel.Effect.ShowMessage -> {
+                    AlertUtils.showToast(context, it.message)
+                }
+            }
+        }
     }
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
-            fontFamily = nexonFont
+            fontFamily = nexonFont,
+            color = Black
         )
     ) {
         Scaffold(
@@ -193,7 +184,7 @@ private fun MyPageContent(
             topBar = {
                 CenterAlignedTopAppBar(
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.Transparent
+                        containerColor = Color.White
                     ),
                     title = {
                         Text(
@@ -217,346 +208,604 @@ private fun MyPageContent(
                 )
             }
         ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .background(
-                        color = bg_grey
-                    )
-                    .verticalScroll(rememberScrollState())
-                    .padding(spacing.small)
-            ) {
-
-                Spacer(modifier = Modifier.height(spacing.medium))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = spacing.small)
-                        .wrapContentHeight()
-                        .shadow(3.dp, shape = RoundedCornerShape(5.dp))
-                        .background(
-                            color = darker_blue,
-                            shape = RoundedCornerShape(5.dp)
-                        )
-                        .clip(
-                            shape = RoundedCornerShape(5.dp)
-                        )
-                ) {
-                    val composition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/astronaut.json"))
-                    val progress by animateLottieCompositionAsState(
-                        composition,
-                        iterations = LottieConstants.IterateForever
-                    )
-
-                    LottieAnimation(
-                        composition = composition,
-                        progress = { progress },
-                        contentScale = ContentScale.FillWidth,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                    )
-
-                    Text(
-                        "자기소개서를 작성하고\nAI 모의면접을 시작해보세요 !",
-                        style = LocalTextStyle.current.copy(
-                            color = White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight(550),
-                            shadow = Shadow(
-                                color = DarkGray,
-                                offset = Offset(1f, 1f),
-                                blurRadius = 4f
-                            ),
-                            textAlign = TextAlign.Start
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.medium, vertical = spacing.large)
-                    )
-
+            when (stateFlow.value.dataState) {
+                is DataState.Error -> {
+                    ErrorScreen((stateFlow.value.dataState as DataState.Error).message)
                 }
 
-                Column(
-                    modifier = Modifier
-                        .padding(spacing.small)
-                        .shadow(3.dp, shape = RoundedCornerShape(5.dp))
-                        .background(
-                            color = White,
-                            shape = RoundedCornerShape(5.dp)
-                        )
-                        .padding(spacing.small)
-                ) {
+                is DataState.Loading -> {
+                    LoadingScreen()
+                }
 
-                    Spacer(modifier = Modifier.height(spacing.small))
-
-                    Row(
+                DataState.Normal -> {
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.small)
-                            .border(
-                                1.dp,
-                                color = LightGray,
-                                shape = RoundedCornerShape(5.dp)
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                            .background(
+                                color = bg_grey
                             )
+                            .verticalScroll(rememberScrollState())
                             .padding(spacing.small)
-                            .wrapContentHeight(),
-                        verticalAlignment = Alignment.CenterVertically
                     ) {
 
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                        Spacer(modifier = Modifier.height(spacing.medium))
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = spacing.small)
+                                .wrapContentHeight()
+                                .shadow(3.dp, shape = RoundedCornerShape(5.dp))
+                                .background(
+                                    color = darker_blue,
+                                    shape = RoundedCornerShape(5.dp)
+                                )
+                                .clip(
+                                    shape = RoundedCornerShape(5.dp)
+                                )
                         ) {
-                            Text(
-                                userName,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = DarkGray
+                            val composition by rememberLottieComposition(
+                                LottieCompositionSpec.Asset(
+                                    "lottie/astronaut.json"
+                                )
                             )
-                            Spacer(modifier = Modifier.height(spacing.small))
-                            Text(
-                                userEmail,
-                                color = text_blue,
-                                textDecoration = TextDecoration.Underline,
-                                fontSize = 14.sp
+                            val progress by animateLottieCompositionAsState(
+                                composition,
+                                iterations = LottieConstants.IterateForever
                             )
+
+                            LottieAnimation(
+                                composition = composition,
+                                progress = { progress },
+                                contentScale = ContentScale.FillWidth,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                            )
+
+                            Text(
+                                "자기소개서를 작성하고\nAI 모의면접을 시작해보세요 !",
+                                style = LocalTextStyle.current.copy(
+                                    color = White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight(550),
+                                    shadow = Shadow(
+                                        color = DarkGray,
+                                        offset = Offset(1f, 1f),
+                                        blurRadius = 4f
+                                    ),
+                                    textAlign = TextAlign.Start
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = spacing.medium, vertical = spacing.large)
+                            )
+
                         }
 
-
-                        Divider(
-                            color = LightGray,
+                        Column(
                             modifier = Modifier
                                 .padding(spacing.small)
-                                .height(40.dp)
-                                .width(1.dp)
-                        )
-
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_github),
-                                    contentDescription = null,
-                                    tint = Black,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(spacing.small))
-                                Text(
-                                    userName,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = DarkGray
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(spacing.small))
-                            Text(
-                                "깃허브 닉네임",
-                                color = text_blue,
-                                textDecoration = TextDecoration.Underline,
-                                fontSize = 14.sp
-                            )
-                        }
-
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.small),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            "깃허브 레포지토리와 연동해보세요 !",
-                            color = Color(0xFF2238FF),
-                            fontSize = 14.sp,
-                            modifier = Modifier
+                                .shadow(3.dp, shape = RoundedCornerShape(5.dp))
                                 .background(
-                                    color = Color(0xFFBFC6FF)
+                                    color = White,
+                                    shape = RoundedCornerShape(5.dp)
                                 )
-                                .padding(4.dp),
-                            fontWeight = FontWeight.SemiBold
-                        )
-
-                        IconButton(
-                            onClick = {
-                                showGitLinkDialog.value = !showGitLinkDialog.value
-                            }
+                                .padding(spacing.small)
                         ) {
+
+                            Spacer(modifier = Modifier.height(spacing.small))
+
                             Row(
                                 modifier = Modifier
-                                    .wrapContentSize()
+                                    .fillMaxWidth()
+                                    .padding(horizontal = spacing.small)
                                     .border(
                                         1.dp,
-                                        color = text_blue,
-                                        shape = RoundedCornerShape(50)
+                                        color = LightGray,
+                                        shape = RoundedCornerShape(5.dp)
                                     )
-                                    .padding(
-                                        horizontal = spacing.small,
-                                        vertical = spacing.extraSmall
-                                    ),
+                                    .padding(spacing.small)
+                                    .wrapContentHeight(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_link),
-                                    contentDescription = null,
-                                    tint = text_blue,
-                                    modifier = Modifier.size(15.dp)
+
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        userName,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = DarkGray
+                                    )
+                                    Spacer(modifier = Modifier.height(spacing.small))
+                                    Text(
+                                        userEmail,
+                                        color = text_blue,
+                                        textDecoration = TextDecoration.Underline,
+                                        fontSize = 14.sp
+                                    )
+                                }
+
+
+                                Divider(
+                                    color = LightGray,
+                                    modifier = Modifier
+                                        .padding(spacing.small)
+                                        .height(40.dp)
+                                        .width(1.dp)
                                 )
-                                Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                Text(
-                                    "연동",
-                                    color = text_blue,
-                                    fontSize = 14.sp
-                                )
+
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_github),
+                                            contentDescription = null,
+                                            tint = Black,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(spacing.small))
+                                        Text(
+                                            "깃허브 닉네임",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = DarkGray
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(spacing.small))
+                                    Text(
+                                        stateFlow.value.gitNickName,
+                                        color = text_blue,
+                                        textDecoration = TextDecoration.Underline,
+                                        fontSize = 14.sp
+                                    )
+                                }
+
                             }
 
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = spacing.small),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    "깃허브 레포지토리와 연동해보세요 !",
+                                    color = Color(0xFF2238FF),
+                                    fontSize = 14.sp,
+                                    modifier = Modifier
+                                        .background(
+                                            color = Color(0xFFBFC6FF)
+                                        )
+                                        .padding(4.dp),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+
+                                IconButton(
+                                    onClick = viewModel::showGitLinkDialog
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .wrapContentSize()
+                                            .border(
+                                                1.dp,
+                                                color = text_blue,
+                                                shape = RoundedCornerShape(50)
+                                            )
+                                            .padding(
+                                                horizontal = spacing.small,
+                                                vertical = spacing.extraSmall
+                                            ),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_link),
+                                            contentDescription = null,
+                                            tint = text_blue,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(spacing.extraSmall))
+                                        Text(
+                                            "연동",
+                                            color = text_blue,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+
+                                }
+
+                            }
                         }
 
-                    }
-                }
+                        Spacer(modifier = Modifier.height(spacing.large))
 
-                Spacer(modifier = Modifier.height(spacing.large))
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = spacing.small)
-                        .shadow(3.dp, shape = RoundedCornerShape(5.dp))
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    bright_blue,
-                                    bright_purple
-                                )
-                            ),
-                            shape = RoundedCornerShape(5.dp)
-                        )
-                        .padding(spacing.medium)
-                ) {
-                    Text(
-                        "자기소개서 키워드",
-                        fontWeight = FontWeight(550),
-                        color = White,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Start,
-                        fontSize = 20.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(spacing.small))
-
-                    Text(
-                        "자기소개서를 작성하기 막막하신가요?\n우선 키워드로 시작해보세요 !",
-                        color = White,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Start,
-                        fontSize = 14.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(spacing.large))
-
-                    FlowRow(
-                        crossAxisSpacing = spacing.extraSmall,
-                        mainAxisSpacing = spacing.extraSmall,
-                        modifier = Modifier.fillMaxWidth(),
-                        mainAxisAlignment = FlowMainAxisAlignment.SpaceAround,
-                        lastLineMainAxisAlignment = FlowMainAxisAlignment.SpaceEvenly
-                    ) {
-
-                        keywordsFlow.value?.let {
-                            when (it) {
-                                is Resource.Error -> {
-                                    Text(
-                                        "${it.error?.message}", style = LocalTextStyle.current.copy(
-                                            color = White,
-                                            fontWeight = FontWeight(550),
-                                            fontFamily = nexonFont
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = spacing.small)
+                                .shadow(3.dp, shape = RoundedCornerShape(5.dp))
+                                .background(
+                                    brush = Brush.linearGradient(
+                                        colors = listOf(
+                                            bright_blue,
+                                            bright_purple
                                         )
-                                    )
-                                }
-                                Resource.Loading -> {
-                                    CircularProgressIndicator(
-                                        color = White
-                                    )
-                                }
-                                is Resource.Success -> {
-                                    it.data.forEach { keyword ->
+                                    ),
+                                    shape = RoundedCornerShape(5.dp)
+                                )
+                                .padding(spacing.medium)
+                        ) {
+                            Text(
+                                "자기소개서 키워드",
+                                fontWeight = FontWeight(550),
+                                color = White,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Start,
+                                fontSize = 20.sp
+                            )
+
+                            Spacer(modifier = Modifier.height(spacing.small))
+
+                            Text(
+                                "자기소개서를 작성하기 막막하신가요?\n우선 키워드로 시작해보세요 !",
+                                color = White,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Start,
+                                fontSize = 14.sp
+                            )
+
+                            Spacer(modifier = Modifier.height(spacing.large))
+
+                            FlowRow(
+                                crossAxisSpacing = spacing.extraSmall,
+                                mainAxisSpacing = spacing.extraSmall,
+                                modifier = Modifier.fillMaxWidth(),
+                                mainAxisAlignment = FlowMainAxisAlignment.SpaceAround,
+                                lastLineMainAxisAlignment = FlowMainAxisAlignment.SpaceEvenly
+                            ) {
+
+                                stateFlow.value.inspiringKeywords.let {
+                                    it.forEach { keyword ->
                                         AnimatedContent(targetState = keyword) {
                                             KeywordItem(keyword)
                                         }
                                     }
                                 }
+                                KeywordItemAdd(onItemClick = viewModel::showKeywordAddingDialog)
+
                             }
                         }
 
-                        KeywordItemAdd {
-                            showKeywordAddingDialog.value = true
-                        }
+                        Spacer(modifier = Modifier.height(spacing.small))
+
+                        Spacer(modifier = Modifier.height(spacing.large))
+
+                        Spacer(modifier = Modifier.height(spacing.small))
+
+                        MyTodayQuestionMemo(
+                            navController,
+                            firebaseUser = firebaseUser,
+                            stateFlow.value.todayQuestionsMemo
+                        )
+
+                        Spacer(modifier = Modifier.height(spacing.large))
+
+                        Spacer(modifier = Modifier.height(spacing.small))
+
+                        MyScriptList(
+                            navController,
+                            firebaseUser = firebaseUser,
+                            myScripts = stateFlow.value.myScripts,
+                            scriptClicked = {
+                                viewModel.scriptClicked(it)
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(spacing.large))
+
+                        Spacer(modifier = Modifier.height(spacing.small))
+
+                        MyInterviewRecords(
+                            navController,
+                            firebaseUser,
+                            stateFlow.value.myInterviewRecords
+                        )
+
+                        Spacer(modifier = Modifier.height(spacing.small))
+
+                        MyInterviewScores(
+                            navController,
+                            firebaseUser,
+                            stateFlow.value.myRankRecords
+                        )
+
+                        Spacer(modifier = Modifier.height(spacing.small))
+
+                        LogOutText(modifier = Modifier, clicked = logOutClicked)
+
+                        Spacer(modifier = Modifier.height(spacing.large))
+
                     }
-
-                    Spacer(modifier = Modifier.height(spacing.small))
-
-
                 }
-                Spacer(modifier = Modifier.height(spacing.large))
-
-                Spacer(modifier = Modifier.height(spacing.small))
-
-                MyTodayQuestion(navController, authViewModel)
-
-                Spacer(modifier = Modifier.height(spacing.large))
-
-                Spacer(modifier = Modifier.height(spacing.small))
-
-                MyScriptList(navController, authViewModel)
+            }
 
 
-                Spacer(modifier = Modifier.height(spacing.large))
-
-                Spacer(modifier = Modifier.height(spacing.small))
-
-                MyInterviewLogs(navController, authViewModel)
-
-                Spacer(modifier = Modifier.height(spacing.small))
-
-                MyInterviewScores(navController, authViewModel)
-
-                Spacer(modifier = Modifier.height(spacing.small))
-
-                LogOutText(modifier = Modifier) {
-                    authViewModel.logout()
+            when (stateFlow.value.dialogState) {
+                MyPageViewModel.DialogState.GitLinkDialog -> {
+                    GitLinkDialog(
+                        firebaseUser = firebaseUser,
+                        viewModel = viewModel,
+                        onDismissRequest = viewModel::closeDialog
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(spacing.large))
-
-                if (showKeywordAddingDialog.value) {
+                MyPageViewModel.DialogState.KeywordAddingDialog -> {
                     KeywordAddingDialog(
-                        authViewModel, viewModel
-                    ) {
-                        showKeywordAddingDialog.value = false
-                    }
+                        firebaseUser = firebaseUser,
+                        viewModel,
+                        onDismissRequest = viewModel::closeDialog
+                    )
                 }
 
-                if (showGitLinkDialog.value) {
-                    GitLinkDialog(authViewModel = authViewModel, viewModel = viewModel) {
-                        showGitLinkDialog.value = false
-                    }
+                MyPageViewModel.DialogState.MemoDialog -> {
+
+                }
+
+                MyPageViewModel.DialogState.Nothing -> Unit
+
+                is MyPageViewModel.DialogState.ScriptDialog -> {
+                    val script =
+                        (stateFlow.value.dialogState as MyPageViewModel.DialogState.ScriptDialog).script
+
+                    ScriptInfoDialog(
+                        script = script,
+                        onDismissRequest = viewModel::closeDialog,
+                        deleteScriptRequest = {
+                            viewModel.deleteScript(script)
+                        },
+                        moveScriptRequest = {
+                            viewModel.closeDialog()
+                            navController.navigate(
+                                "$ROUTE_SCRIPT_WRITING?script={script}".replace(
+                                    oldValue = "{script}",
+                                    newValue = script.toJsonString()
+                                )
+                            )
+                        })
+
                 }
             }
         }
     }
 }
+
+
+@Composable
+private fun ScriptInfoDialog(
+    script: Script,
+    onDismissRequest: () -> Unit,
+    deleteScriptRequest: () -> Unit,
+    moveScriptRequest: () -> Unit
+) {
+
+    val spacing = LocalSpacing.current
+
+    val composition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/profil.json"))
+    val progress by animateLottieCompositionAsState(
+        composition,
+        iterations = LottieConstants.IterateForever
+    )
+
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .verticalScroll(rememberScrollState())
+                .background(
+                    color = White,
+                    shape = RoundedCornerShape(spacing.medium)
+                )
+                .padding(
+                    vertical = spacing.large,
+                    horizontal = spacing.medium
+                ),
+            verticalArrangement = Arrangement.spacedBy(
+                spacing.large,
+                Alignment.CenterVertically
+            ),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(
+                    "수정",
+                    color = text_blue,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    fontFamily = nexonFont,
+                    modifier = Modifier.clickable {
+                        moveScriptRequest()
+                    }
+                )
+
+                Spacer(modifier = Modifier.width(spacing.medium))
+
+                Text(
+                    "삭제",
+                    color = text_blue,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    fontFamily = nexonFont,
+                    modifier = Modifier.clickable {
+                        deleteScriptRequest()
+                    }
+                )
+
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
+                    spacing.medium,
+                    Alignment.CenterHorizontally
+                ),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                LottieAnimation(
+                    composition = composition,
+                    progress = { progress }
+                )
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(spacing.small),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        script.title,
+                        color = Black,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp,
+                        fontFamily = nexonFont
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small, Alignment.Start)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = bright_pink,
+                                    shape = RoundedCornerShape(50)
+                                )
+                                .padding(
+                                    vertical = spacing.small,
+                                    horizontal = spacing.medium
+                                )
+                        ) {
+                            Text(
+                                script.jobRole,
+                                color = White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                                fontFamily = nexonFont
+                            )
+                        }
+
+                        if (script.interviewed) {
+                            Box(
+                                modifier = Modifier
+                                    .background(
+                                        color = orange_yellow,
+                                        shape = RoundedCornerShape(50)
+                                    )
+                                    .padding(
+                                        vertical = spacing.small,
+                                        horizontal = spacing.medium
+                                    )
+                            ) {
+                                Text(
+                                    "면접기록 있음",
+                                    color = White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                    fontFamily = nexonFont
+                                )
+                            }
+                        }
+                    }
+
+                    if (script.date != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Text(
+                                "작성일: ${script.date!!.toFormatString("yyyy.MM.dd")}",
+                                color = Gray,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 12.sp,
+                                fontFamily = nexonFont
+                            )
+                        }
+                    }
+
+                }
+            }
+
+            script.scriptItems.forEachIndexed { index, scriptItem ->
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(
+                        spacing.small,
+                        Alignment.CenterVertically
+                    ),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        "${index + 1}. ${scriptItem.question} (${scriptItem.maxLength})",
+                        color = Black,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        fontFamily = nexonFont
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = bg_mono_grey
+                            )
+                            .padding(vertical = spacing.medium, horizontal = spacing.small),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            modifier = Modifier.fillMaxWidth(),
+                            text = scriptItem.answer,
+                            color = DarkGray,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 13.sp,
+                            fontFamily = nexonFont,
+                            textAlign = TextAlign.Start
+                        )
+                    }
+                }
+
+            }
+        }
+    }
+}
+
 
 @Composable
 fun LogOutText(
@@ -575,10 +824,10 @@ fun LogOutText(
     ) {
         Text("로그아웃",
             style = LocalTextStyle.current.copy(
-            fontFamily = nexonFont,
-            fontSize = 14.sp,
-            color = text_blue,
-            fontWeight = FontWeight.SemiBold
+                fontFamily = nexonFont,
+                fontSize = 14.sp,
+                color = text_blue,
+                fontWeight = FontWeight.SemiBold
             ),
             modifier = Modifier.clickable {
                 clicked()
@@ -587,16 +836,11 @@ fun LogOutText(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-private fun DialogPreview() {
-//    KeywordAddingDialog(onKeywordInput = {})
-}
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun KeywordAddingDialog(
-    authViewModel: AuthViewModel,
+    firebaseUser: FirebaseUser,
     viewModel: MyPageViewModel,
     onDismissRequest: () -> Unit
 ) {
@@ -624,7 +868,7 @@ private fun KeywordAddingDialog(
 
     fun insertKeyword() {
         if (keyword.value.isNotBlank()) {
-            authViewModel.currentUser?.uid?.let { hostUUID ->
+            firebaseUser.uid.let { hostUUID ->
                 val inspiringKeyword = InspiringKeyword(
                     hostUUID = hostUUID,
                     date = System.currentTimeMillis(),
@@ -634,8 +878,7 @@ private fun KeywordAddingDialog(
 
                 viewModel.insertInspiringKeyword(inspiringKeyword)
                 AlertUtils.showToast(context, "키워드가 추가되었어요")
-            } ?: AlertUtils.showToast(context, "유효하지 않은 사용자입니다.")
-
+            }
         } else {
             AlertUtils.showToast(context, "아무것도 입력하지 않았습니다.")
         }
@@ -686,19 +929,6 @@ private fun KeywordAddingDialog(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-//                            .shadow(
-//                                5.dp,
-//                                shape = RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp)
-//                            )
-//                            .background(
-//                                brush = Brush.verticalGradient(
-//                                    colors = listOf(
-//                                        bright_violet,
-//                                        bright_blue
-//                                    )
-//                                ),
-//                                shape = RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp)
-//                            )
                             .padding(spacing.medium),
                         verticalArrangement = Arrangement.Bottom
                     ) {
@@ -830,12 +1060,13 @@ private fun KeywordAddingDialog(
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun GitLinkDialog(
-    authViewModel: AuthViewModel,
+//    authViewModel: AuthViewModel,
+    firebaseUser: FirebaseUser,
     viewModel: MyPageViewModel,
     onDismissRequest: () -> Unit
 ) {
 
-    val keyword = remember {
+    val nickname = remember {
         mutableStateOf("")
     }
 
@@ -856,17 +1087,7 @@ private fun GitLinkDialog(
 
     val context = LocalContext.current
 
-    fun insertKeyword() {
-        if (keyword.value.isNotBlank()) {
-            authViewModel.currentUser?.uid?.let { hostUUID ->
-                //ViewModel에 추가하기
 
-            } ?: AlertUtils.showToast(context, "유효하지 않은 사용자입니다.")
-
-        } else {
-            AlertUtils.showToast(context, "아무것도 입력하지 않았습니다.")
-        }
-    }
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -943,9 +1164,9 @@ private fun GitLinkDialog(
 
 
                             TextField(
-                                value = keyword.value,
+                                value = nickname.value,
                                 onValueChange = {
-                                    keyword.value = it
+                                    nickname.value = it
                                 },
                                 placeholder = {
                                     Text(
@@ -959,7 +1180,10 @@ private fun GitLinkDialog(
                                 },
                                 keyboardActions = KeyboardActions(
                                     onDone = {
-                                        insertKeyword()
+                                        viewModel.updateGitNickName(
+                                            firebaseUser.uid,
+                                            nickname.value
+                                        )
                                     }
                                 ),
                                 keyboardOptions = KeyboardOptions(
@@ -993,7 +1217,7 @@ private fun GitLinkDialog(
 
                             IconButton(
                                 onClick = {
-                                    insertKeyword()
+                                    viewModel.updateGitNickName(firebaseUser.uid, nickname.value)
                                 }
                             ) {
                                 Row(
@@ -1042,21 +1266,15 @@ private fun GitLinkDialog(
 }
 
 @Composable
-fun MyTodayQuestion(navController: NavController, authViewModel: AuthViewModel) {
+fun MyTodayQuestionMemo(
+    navController: NavController,
+    firebaseUser: FirebaseUser,
+    todayQuestionsMemo: List<TodayQuestionMemo> = emptyList()
+) {
 
-    val viewModel: MyPageViewModel = hiltViewModel()
-
-    val myTodayQuestionsFlow = viewModel.myTodayQuestionsFlow.collectAsStateWithLifecycle()
 
     val spacing = LocalSpacing.current
 
-    LaunchedEffect(authViewModel) {
-        authViewModel.currentUser?.uid?.let {
-            with(viewModel) {
-                fetchMyTodayQuestions(it)
-            }
-        }
-    }
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -1082,7 +1300,7 @@ fun MyTodayQuestion(navController: NavController, authViewModel: AuthViewModel) 
                                 fontWeight = FontWeight.SemiBold
                             )
                         ) {
-                            append(authViewModel.currentUser?.displayName)
+                            append(firebaseUser.displayName)
                         }
 
                         withStyle(
@@ -1105,48 +1323,35 @@ fun MyTodayQuestion(navController: NavController, authViewModel: AuthViewModel) 
                     .padding(vertical = spacing.small),
                 contentAlignment = Alignment.Center
             ) {
-                myTodayQuestionsFlow.value?.let {
-                    when (it) {
-                        is Resource.Error -> {
-                            Text("${it.error}")
-                        }
-                        Resource.Loading -> {
-                            CircularProgressIndicator(
-                                color = bright_blue
-                            )
-                        }
-                        is Resource.Success -> {
+                val lazyListState = rememberLazyListState()
 
-                            val lazyListState = rememberLazyListState()
-
-                            LazyRow(
-                                state = lazyListState,
-                                modifier = Modifier.fillMaxWidth(),
-                                contentPadding = PaddingValues(end = 50.dp),
-                                horizontalArrangement = Arrangement.spacedBy(spacing.medium)
-                            ) {
-                                item {
-                                    MyTodayQuestionsFirstItem(count = it.data.size)
-                                }
-
-                                items(it.data.size) { idx ->
-                                    val todayQuestion = it.data[idx]
-                                    MyTodayQuestionsItem(todayQuestion)
-                                }
-
-                            }
-
-                            ScrollToLeftButton(
-                                lazyListState = lazyListState,
-                                threshold = 0,
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .align(Alignment.CenterEnd)
-                                    .padding(spacing.small)
-                            )
-                        }
+                LazyRow(
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(end = 50.dp),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                ) {
+                    item {
+                        MyTodayQuestionsFirstItem(count = todayQuestionsMemo.size)
                     }
+
+                    items(todayQuestionsMemo.size) { idx ->
+                        val todayQuestion = todayQuestionsMemo[idx]
+                        MyTodayQuestionsItem(todayQuestion, onItemClick = {
+                            //TODO
+                        })
+                    }
+
                 }
+
+                ScrollToLeftButton(
+                    lazyListState = lazyListState,
+                    threshold = 0,
+                    modifier = Modifier
+                        .size(60.dp)
+                        .align(Alignment.CenterEnd)
+                        .padding(spacing.small)
+                )
             }
 
         }
@@ -1156,12 +1361,16 @@ fun MyTodayQuestion(navController: NavController, authViewModel: AuthViewModel) 
 }
 
 @Composable
-private fun MyTodayQuestionsItem(todayQuestion: TodayQuestion) {
+private fun MyTodayQuestionsItem(
+    todayQuestion: TodayQuestionMemo,
+    onItemClick: (TodayQuestionMemo) -> Unit
+) {
     val spacing = LocalSpacing.current
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
-            fontFamily = nexonFont
+            fontFamily = nexonFont,
+            color = Black
         )
     ) {
         Column(
@@ -1175,28 +1384,75 @@ private fun MyTodayQuestionsItem(todayQuestion: TodayQuestion) {
                     color = White,
                     shape = RoundedCornerShape(5.dp)
                 )
-                .padding(spacing.small),
+                .padding(spacing.small)
+                .clickable {
+                    onItemClick(todayQuestion)
+                },
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(spacing.small, Alignment.CenterVertically)
         ) {
 
-            Text(
-                "Q. ${todayQuestion.question}",
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = text_blue
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Text(
+                    "질문",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = White,
+                    modifier = Modifier
+                        .background(
+                            color = bright_violet,
+                            shape = RoundedCornerShape(50)
+                        )
+                        .padding(
+                            vertical = spacing.extraSmall,
+                            horizontal = spacing.small
+                        )
+                )
+                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                Text(
+                    todayQuestion.question,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = text_blue
+                )
+            }
 
-            Spacer(modifier = Modifier.height(spacing.small))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Text(
+                    "메모",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = White,
+                    modifier = Modifier
+                        .background(
+                            color = bright_sky_blue,
+                            shape = RoundedCornerShape(50)
+                        )
+                        .padding(
+                            vertical = spacing.extraSmall,
+                            horizontal = spacing.small
+                        )
+                )
+                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                Text(
+                    todayQuestion.memo,
+                    fontSize = 14.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
 
-            Text(
-                "A. ${todayQuestion.answer}",
-                fontSize = 14.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+
         }
     }
 }
@@ -1267,69 +1523,46 @@ private fun MyTodayQuestionsFirstItem(count: Int) {
 }
 
 @Composable
-fun MyInterviewScores(navController: NavController, authViewModel: AuthViewModel) {
+fun MyInterviewScores(
+    navController: NavController,
+    firebaseUser: FirebaseUser,
+    rankRecords: InterviewScore?
+) {
 
     val spacing = LocalSpacing.current
 
-    val viewModel: MyPageViewModel = hiltViewModel()
-
-    val myInterviewScoresFlow = viewModel.myInterviewScoresFlow.collectAsStateWithLifecycle()
-
-    LaunchedEffect(authViewModel) {
-        authViewModel.currentUser?.uid?.let {
-            with(viewModel) {
-                fetchMyInterviewScores(it)
-            }
-        }
-    }
+    val context = LocalContext.current
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
             fontFamily = nexonFont
         )
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(spacing.small),
-            contentAlignment = Alignment.Center
-        ) {
-            myInterviewScoresFlow.value?.let {
-                when (it) {
-                    is Resource.Error -> {
-                        Text("${it.error}")
-                    }
-                    Resource.Loading -> {
-                        CircularProgressIndicator(
-                            color = bright_blue
-                        )
-                    }
-                    is Resource.Success -> {
-                        ChartScreen()
-                    }
+        rankRecords?.let {
+            if(rankRecords.ranks.size > 1) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(spacing.small),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ChartScreen(it)
+
                 }
             }
         }
-
     }
 
 }
 
+
 @Composable
-fun MyInterviewLogs(navController: NavController, authViewModel: AuthViewModel) {
+fun MyInterviewRecords(
+    navController: NavController,
+    firebaseUser: FirebaseUser,
+    interviewRecords: List<InterviewResult>
+) {
     val spacing = LocalSpacing.current
-
-    val viewModel: MyPageViewModel = hiltViewModel()
-
-    val myInterviewLogsFlow = viewModel.myInterviewLogsFlow.collectAsStateWithLifecycle()
-
-    LaunchedEffect(authViewModel) {
-        authViewModel.currentUser?.uid?.let {
-            with(viewModel) {
-                fetchMyInterviewLogs(it)
-            }
-        }
-    }
 
     val lazyListState = rememberLazyListState()
 
@@ -1357,7 +1590,7 @@ fun MyInterviewLogs(navController: NavController, authViewModel: AuthViewModel) 
                                 fontWeight = FontWeight.SemiBold
                             )
                         ) {
-                            append(authViewModel.currentUser?.displayName)
+                            append(firebaseUser.displayName)
                         }
 
                         withStyle(
@@ -1367,7 +1600,7 @@ fun MyInterviewLogs(navController: NavController, authViewModel: AuthViewModel) 
                                 fontWeight = FontWeight.SemiBold
                             )
                         ) {
-                            append("님의 인터뷰 연습 기록")
+                            append("님의 면접 연습 기록")
                         }
                     }
                 )
@@ -1380,46 +1613,43 @@ fun MyInterviewLogs(navController: NavController, authViewModel: AuthViewModel) 
                     .padding(vertical = spacing.small),
                 contentAlignment = Alignment.Center
             ) {
-                myInterviewLogsFlow.value?.let {
-                    when (it) {
-                        is Resource.Error -> {
-                            Text("${it.error}")
-                        }
-                        Resource.Loading -> {
-                            CircularProgressIndicator(
-                                color = bright_blue
-                            )
-                        }
-                        is Resource.Success -> {
-                            LazyRow(
-                                state = lazyListState,
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(spacing.medium),
-                                contentPadding = PaddingValues(end = 50.dp)
-                            ) {
-                                item {
-                                    MyInterviewLogFirstItem(count = it.data.size)
-                                }
 
-                                items(it.data.size) { idx ->
-                                    val interviewLog = it.data[idx]
-                                    MyInterviewLogItem(interviewLog)
-                                }
 
-                            }
+                LazyRow(
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.medium),
+                    contentPadding = PaddingValues(end = 50.dp)
+                ) {
+                    item {
+                        MyInterviewLogFirstItem(count = interviewRecords.size)
+                    }
 
-                            ScrollToLeftButton(
-                                lazyListState = lazyListState,
-                                threshold = 0,
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .align(Alignment.CenterEnd)
-                                    .padding(spacing.small)
+                    items(interviewRecords.size) { idx ->
+                        val interviewRecord = interviewRecords[idx]
+                        MyInterviewRecordItem(interviewRecord) {
+                            navController.navigate(
+                                "$ROUTE_INTERVIEW_RESULT?interview_result={interview_result}"
+                                    .replace(
+                                        oldValue = "{interview_result}",
+                                        newValue = interviewRecord.toJsonString()
+                                    )
                             )
                         }
                     }
+
                 }
+
+                ScrollToLeftButton(
+                    lazyListState = lazyListState,
+                    threshold = 0,
+                    modifier = Modifier
+                        .size(60.dp)
+                        .align(Alignment.CenterEnd)
+                        .padding(spacing.small)
+                )
             }
+
 
         }
     }
@@ -1468,8 +1698,14 @@ private fun ScrollToLeftButton(
     }
 }
 
+@Preview(showBackground = true)
 @Composable
-fun MyInterviewLogItem(interviewLog: InterviewLog) {
+private fun RecordItemPreview() {
+    MyInterviewRecordItem(interviewRecord = InterviewResult.createTestInterviewResult()) {}
+}
+
+@Composable
+fun MyInterviewRecordItem(interviewRecord: InterviewResult, itemClicked:()->Unit) {
     val spacing = LocalSpacing.current
 
     val simpleDateFormat = remember {
@@ -1478,7 +1714,8 @@ fun MyInterviewLogItem(interviewLog: InterviewLog) {
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
-            fontFamily = nexonFont
+            fontFamily = nexonFont,
+            color = Black
         )
     ) {
         Column(
@@ -1492,25 +1729,59 @@ fun MyInterviewLogItem(interviewLog: InterviewLog) {
                     color = White,
                     shape = RoundedCornerShape(5.dp)
                 )
-                .padding(spacing.small),
+                .padding(spacing.small)
+                .clickable {
+                    itemClicked()
+                },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
 
             Text(
-                interviewLog.scriptName,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
+                simpleDateFormat.format(Date(interviewRecord.interviewDate)),
+                fontSize = 14.sp
             )
 
             Spacer(modifier = Modifier.height(spacing.small))
 
-            Text(
-                simpleDateFormat.format(Date(interviewLog.date)),
-                fontSize = 14.sp
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Text(
+                    "${interviewRecord.rank} 등급",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = White,
+                    modifier = Modifier
+                        .background(
+                            color = highlight_green,
+                            shape = RoundedCornerShape(50)
+                        )
+                        .padding(vertical = spacing.extraSmall, horizontal = spacing.small)
+                )
+                Spacer(modifier = Modifier.width(spacing.small))
+                Text(
+                    "${interviewRecord.totalDurationToString()} 소요",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = White,
+                    modifier = Modifier
+                        .background(
+                            color = dim_sky_blue,
+                            shape = RoundedCornerShape(50)
+                        )
+                        .padding(vertical = spacing.extraSmall, horizontal = spacing.small)
+                )
+            }
+
+
+
         }
     }
 }
@@ -1521,7 +1792,8 @@ fun MyInterviewLogFirstItem(count: Int) {
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
-            fontFamily = nexonFont
+            fontFamily = nexonFont,
+            color = Black
         )
     ) {
         ConstraintLayout(
@@ -1581,22 +1853,14 @@ fun MyInterviewLogFirstItem(count: Int) {
 }
 
 @Composable
-private fun MyScriptList(navController: NavController, authViewModel: AuthViewModel) {
+private fun MyScriptList(
+    navController: NavController,
+    firebaseUser: FirebaseUser,
+    myScripts: List<Script> = emptyList(),
+    scriptClicked: (Script) -> Unit
+) {
 
     val spacing = LocalSpacing.current
-
-    val viewModel: MyPageViewModel = hiltViewModel()
-
-    val myScriptsFlow = viewModel.myScriptsFlow.collectAsStateWithLifecycle()
-
-    LaunchedEffect(authViewModel) {
-        authViewModel.currentUser?.uid?.let {
-            with(viewModel) {
-                fetchMyScripts(it)
-            }
-        }
-    }
-
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -1622,7 +1886,7 @@ private fun MyScriptList(navController: NavController, authViewModel: AuthViewMo
                                 fontWeight = FontWeight.SemiBold
                             )
                         ) {
-                            append(authViewModel.currentUser?.displayName)
+                            append(firebaseUser.displayName)
                         }
 
                         withStyle(
@@ -1656,57 +1920,51 @@ private fun MyScriptList(navController: NavController, authViewModel: AuthViewMo
                     .padding(vertical = spacing.small),
                 contentAlignment = Alignment.Center
             ) {
-                myScriptsFlow.value?.let {
-                    when (it) {
-                        is Resource.Error -> {
-                            Text("${it.error}")
-                        }
-                        Resource.Loading -> {
-                            CircularProgressIndicator(
-                                color = bright_blue
-                            )
-                        }
-                        is Resource.Success -> {
-                            val lazyListState = rememberLazyListState()
 
-                            LazyRow(
-                                state = lazyListState,
-                                contentPadding = PaddingValues(end = 50.dp),
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(spacing.medium)
-                            ) {
-                                item {
-                                    MyScriptFirstItem(count = it.data.size)
-                                }
+                val lazyListState = rememberLazyListState()
 
-                                items(it.data.size) { idx ->
-                                    val script = it.data[idx]
-                                    MyScriptItem(script)
-                                }
 
-                            }
 
-                            ScrollToLeftButton(
-                                lazyListState = lazyListState,
-                                threshold = 0,
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .align(Alignment.CenterEnd)
-                                    .padding(spacing.small)
-                            )
+                LazyRow(
+                    state = lazyListState,
+                    contentPadding = PaddingValues(end = 50.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                ) {
+                    item {
+                        MyScriptFirstItem(count = myScripts.size)
+                    }
+
+                    items(myScripts.size) { idx ->
+                        val script = myScripts[idx]
+                        MyScriptItem(script) {
+                            scriptClicked(script)
                         }
                     }
-                }
-            }
 
+                }
+
+                ScrollToLeftButton(
+                    lazyListState = lazyListState,
+                    threshold = 0,
+                    modifier = Modifier
+                        .size(60.dp)
+                        .align(Alignment.CenterEnd)
+                        .padding(spacing.small)
+                )
+            }
         }
+
+
     }
+
 
 }
 
 @Composable
 private fun MyScriptItem(
-    script: Script
+    script: Script,
+    clicked: () -> Unit
 ) {
 
     val spacing = LocalSpacing.current
@@ -1717,7 +1975,8 @@ private fun MyScriptItem(
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
-            fontFamily = nexonFont
+            fontFamily = nexonFont,
+            color = Black
         )
     ) {
         Column(
@@ -1731,13 +1990,16 @@ private fun MyScriptItem(
                     color = White,
                     shape = RoundedCornerShape(5.dp)
                 )
-                .padding(spacing.small),
+                .padding(spacing.small)
+                .clickable {
+                    clicked()
+                },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
 
             Text(
-                script.name,
+                script.title,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 fontSize = 16.sp,
@@ -1746,10 +2008,68 @@ private fun MyScriptItem(
 
             Spacer(modifier = Modifier.height(spacing.small))
 
-            Text(
-                simpleDateFormat.format(Date(script.date)),
-                fontSize = 14.sp
-            )
+
+            script.date?.let {
+                Text(
+                    simpleDateFormat.format(Date(it)),
+                    fontSize = 14.sp
+                )
+            }
+            Spacer(modifier = Modifier.height(spacing.small))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(
+                            color = bright_pink,
+                            shape = RoundedCornerShape(50)
+                        )
+                        .padding(horizontal = spacing.small, vertical = spacing.extraSmall)
+                        .wrapContentHeight(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        script.jobRole,
+                        color = White,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(spacing.small))
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(
+                            color = seed,
+                            shape = RoundedCornerShape(50)
+                        )
+                        .padding(horizontal = spacing.small, vertical = spacing.extraSmall)
+                        .wrapContentHeight(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val interviewedText = if (script.interviewed) "면접 O" else "면접 X"
+                    Text(
+                        interviewedText,
+                        color = White,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
         }
     }
 

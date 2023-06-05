@@ -11,7 +11,7 @@ internal fun Int.toDp(density: Density): Dp {
     return (this * density.density + 0.5f).toInt().dp
 }
 
-fun Int.progressToString(): String {
+fun Long.progressToString(): String {
     val sec = this % 60
 
     val min = this / 60

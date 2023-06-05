@@ -13,6 +13,5 @@ dependencyResolutionManagement {
         maven { url 'https://jitpack.io' }
     }
 }
-rootProject.name = "Capstone2Project"
+rootProject.name = "IntervuStella"
 include ':app'
-include ':myapplication'

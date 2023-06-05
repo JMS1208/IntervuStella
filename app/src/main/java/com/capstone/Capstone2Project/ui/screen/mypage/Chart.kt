@@ -39,6 +39,7 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import com.capstone.Capstone2Project.R
+import com.capstone.Capstone2Project.data.model.InterviewScore
 import com.capstone.Capstone2Project.utils.composable.GlassMorphismCardBackground
 import com.capstone.Capstone2Project.utils.etc.CustomFont
 import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
@@ -51,19 +52,36 @@ import com.madrapps.plot.line.DataPoint
 import com.madrapps.plot.line.LineGraph
 import com.madrapps.plot.line.LinePlot
 import java.text.DecimalFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 import kotlin.math.absoluteValue
 
 
-@Preview(showBackground = true)
 @Composable
-fun ChartScreen() {
+fun ChartScreen(rankRecords: InterviewScore) {
 
     val spacing = LocalSpacing.current
 
-    val dataPointList = getDataPointList()
+//    val dataPointList = getDataPointList()
+
+    fun getDataPointList(): List<DataPoint> {
+
+        return rankRecords.ranks.mapIndexed { idx, rank ->
+            DataPoint(
+                x = idx.toFloat(),
+                y = rank.rankToDataPointY()
+            )
+        }
+    }
+
 
     val density = LocalDensity.current
+
+    val simpleDateFormat = remember {
+        SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
+    }
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -82,7 +100,7 @@ fun ChartScreen() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = spacing.medium)
-                    .shadow(3.dp,shape = RoundedCornerShape(5.dp))
+                    .shadow(3.dp, shape = RoundedCornerShape(5.dp))
                     .background(
                         brush = Brush.linearGradient(
                             colors = listOf(
@@ -114,7 +132,7 @@ fun ChartScreen() {
                     val (lowRef, highRef, newRef) = createRefs()
 
                     Text(
-                        "최저 점수\n400점",
+                        "최저 등급\n${rankRecords.minRank}",
                         modifier = Modifier.constrainAs(lowRef) {
                             bottom.linkTo(parent.bottom, margin = spacing.small)
                             start.linkTo(parent.start, margin = spacing.small)
@@ -127,7 +145,7 @@ fun ChartScreen() {
                     )
 
                     Text(
-                        "최고 점수\n920점",
+                        "최고 등급\n${rankRecords.maxRank}",
                         modifier = Modifier
                             .wrapContentSize()
                             .constrainAs(highRef) {
@@ -169,7 +187,7 @@ fun ChartScreen() {
                     ChartContent(
                         modifier = Modifier
                             .padding(end = spacing.small),
-                        dataPointList = dataPointList
+                        dataPointList = getDataPointList()
                     )
 
 
@@ -177,7 +195,8 @@ fun ChartScreen() {
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 
-                Text("마지막 기록 2023.02.17",
+                Text(
+                    "마지막 기록 ${simpleDateFormat.format(Date(rankRecords.recentlyDate))}",
                     modifier = Modifier.fillMaxWidth(),
                     fontSize = 14.sp,
                     color = White,
@@ -356,9 +375,9 @@ private fun getLines(): List<List<DataPoint>> {
 private fun getDataPointList(): List<DataPoint> {
     return listOf(
         DataPoint(1f, 0f),
-        DataPoint(2f, 20f),
+        DataPoint(2f, 50f),
         DataPoint(3f, 50f),
-        DataPoint(4f, 10f),
+        DataPoint(4f, 100f),
         DataPoint(5f, 0f)
     )
 }

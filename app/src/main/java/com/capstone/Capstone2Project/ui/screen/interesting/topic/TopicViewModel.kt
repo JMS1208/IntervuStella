@@ -1,12 +1,15 @@
 package com.capstone.Capstone2Project.ui.screen.interesting.topic
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavOptionsBuilder
 import com.capstone.Capstone2Project.data.model.Topic
-import com.capstone.Capstone2Project.data.model.Topics
+import com.capstone.Capstone2Project.data.model.fornetwork.Topics
+import com.capstone.Capstone2Project.data.resource.DataState
 import com.capstone.Capstone2Project.data.resource.Resource
+import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.repository.NetworkRepository
+import com.capstone.Capstone2Project.ui.screen.home.HomeViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -18,14 +21,39 @@ class TopicViewModel @Inject constructor(
     private val repository: NetworkRepository
 ) : ViewModel() {
 
-    private val _userTopicsFlow: MutableStateFlow<Resource<List<Topic>>?> = MutableStateFlow(null)
-    val userTopicsFlow: StateFlow<Resource<List<Topic>>?> = _userTopicsFlow
+//    private val _userTopicsFlow: MutableStateFlow<Resource<List<Topic>>?> = MutableStateFlow(null)
+//    val userTopicsFlow: StateFlow<Resource<List<Topic>>?> = _userTopicsFlow
+
+
+    private val _state: MutableStateFlow<State> = MutableStateFlow(State())
+    val state: StateFlow<State> = _state
+
+    private val _effect: MutableSharedFlow<Effect> = MutableSharedFlow()
+    val effect: SharedFlow<Effect> = _effect
 
 
     fun fetchUserTopics(hostUUID: String) = viewModelScope.launch(Dispatchers.IO) {
-//        _userTopicsFlow.value = Resource.Loading
+        _state.update {
+            it.copy(
+                dataState = DataState.Loading()
+            )
+        }
         val result = repository.getUserTopics(hostUUID)
-        _userTopicsFlow.value = result
+
+        if(result.isFailure || result.getOrNull() == null) {
+            _effect.emit(
+                Effect.ShowMessage(result.exceptionOrNull()?.message ?: "관심주제를 불러오지 못했어요")
+            )
+            return@launch
+        }
+
+        _state.update {
+            it.copy(
+                topics = result.getOrNull()!!,
+                dataState = DataState.Normal
+            )
+        }
+
     }
 
 
@@ -40,35 +68,54 @@ class TopicViewModel @Inject constructor(
                 hostUUID,
                 Topics(topicNameList)
             )
-        }
 
-    fun changeSelectedTopic(topic: Topic) = viewModelScope.launch {
-        if (userTopicsFlow.value is Resource.Success) {
-
-            if (userTopicsFlow.value == null) {
+            if(result.isFailure) {
+                _effect.emit(
+                    Effect.ShowMessage(result.exceptionOrNull()?.message ?: "잠시 후 다시 시도해주세요")
+                )
                 return@launch
             }
 
-
-            val topics = (userTopicsFlow.value as Resource.Success<List<Topic>>).data.map {
-                if (it == topic) {
-                    it.copy(
-                        selected = !it.selected
-                    )
-                } else {
-                    it
+            _effect.emit(
+                Effect.NavigateTo(ROUTE_HOME) {
+                    popUpTo(ROUTE_HOME) {
+                        inclusive = true
+                    }
                 }
+            )
+
+        }
+
+    fun changeSelectedTopic(topic: Topic) = viewModelScope.launch {
+
+        val newTopics = state.value.topics.map {
+            if(it.name == topic.name) {
+                it.copy(
+                    selected = !it.selected
+                )
+            } else {
+                it
             }
+        }
 
-            _userTopicsFlow.value = Resource.Success(topics)
-
-
+        if(newTopics.isNotEmpty()) {
+            _state.update {
+                it.copy(
+                    topics = newTopics
+                )
+            }
         }
     }
 
 
-    sealed class Effect {
-        object Loading : Effect()
+    data class State (
+        val topics: List<Topic> = emptyList(),
+        val dataState: DataState = DataState.Loading()
+    )
 
+    sealed class Effect {
+
+        data class ShowMessage(val message: String): Effect()
+        data class NavigateTo(val route: String, val builder: NavOptionsBuilder.()->Unit = {}): Effect()
     }
 }

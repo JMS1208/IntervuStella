@@ -1,5 +1,6 @@
 package com.capstone.Capstone2Project.ui.screen.interview
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -13,7 +14,11 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -21,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -29,16 +35,19 @@ import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.airbnb.lottie.compose.*
+import com.capstone.Capstone2Project.data.model.InterviewResult
 import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.navigation.ROUTE_INTERVIEW_RESULT
+import com.capstone.Capstone2Project.utils.etc.AlertUtils
 import com.capstone.Capstone2Project.utils.etc.CustomFont
 import com.capstone.Capstone2Project.utils.theme.LocalSpacing
 import com.capstone.Capstone2Project.utils.theme.bg_grey
 import com.capstone.Capstone2Project.utils.theme.bright_blue
+import kotlinx.coroutines.delay
 
 @Composable
 fun InterviewFinishScreen(
-    interviewUUID: String,
+    interviewResult: InterviewResult,
     navController: NavController
 ) {
 
@@ -62,15 +71,43 @@ fun InterviewFinishScreen(
 
     val spacing = LocalSpacing.current
 
+    var backPressCnt by remember {
+        mutableStateOf(0)
+    }
+
+    val context = LocalContext.current
+
+    LaunchedEffect(backPressCnt) {
+        if(backPressCnt > 0) {
+            delay(1000)
+            backPressCnt -= 1
+        }
+    }
+
+    BackHandler {
+        if(backPressCnt == 1) {
+            navController.navigate(ROUTE_HOME) {
+                popUpTo(ROUTE_HOME) {
+                    inclusive = true
+                }
+            }
+        } else {
+            backPressCnt += 1
+            AlertUtils.showToast(context, "한번 더 누르면 홈화면으로 이동해요")
+        }
+    }
+
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
             fontFamily = CustomFont.nexonFont
         )
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().background(
-                color = bg_grey
-            ),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    color = bg_grey
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -109,16 +146,14 @@ fun InterviewFinishScreen(
 
             IconButton(
                 onClick = {
+
                     navController.navigate(
-                        "$ROUTE_INTERVIEW_RESULT/{interviewUUID}".replace(
-                            oldValue = "{interviewUUID}",
-                            newValue = interviewUUID
-                        )
-                    ) {
-                        popUpTo(ROUTE_HOME) {
-                            inclusive = true
-                        }
-                    }
+                        "$ROUTE_INTERVIEW_RESULT?interview_result={interview_result}"
+                            .replace(
+                                oldValue = "{interview_result}",
+                                newValue = interviewResult.toJsonString()
+                            )
+                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()

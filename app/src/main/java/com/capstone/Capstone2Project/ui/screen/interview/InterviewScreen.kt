@@ -1,5 +1,3 @@
-package com.capstone.Capstone2Project.ui.screen.interview
-
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -11,17 +9,16 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
@@ -31,9 +28,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
@@ -41,57 +36,76 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.onFocusEvent
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.graphics.Color.Companion.DarkGray
 import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.graphics.Color.Companion.LightGray
 import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.compose.ui.graphics.Color.Companion.White
-import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.LocalTextStyle
+import androidx.compose.material.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.DarkGray
+import androidx.compose.ui.graphics.Color.Companion.Red
+import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.constraintlayout.compose.Dimension
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.capstone.Capstone2Project.data.model.InterviewLogLine
+import com.capstone.Capstone2Project.data.model.LogLine
+import com.capstone.Capstone2Project.data.model.QuestionItem
+import com.capstone.Capstone2Project.utils.etc.CustomFont
+import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
+import com.capstone.Capstone2Project.utils.theme.LocalSpacing
+import kotlinx.coroutines.delay
+import java.util.*
+import kotlin.random.Random
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle.Event.*
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.airbnb.lottie.compose.*
 import com.capstone.Capstone2Project.R
-import com.capstone.Capstone2Project.data.model.LogLine
-import com.capstone.Capstone2Project.data.model.Script
-import com.capstone.Capstone2Project.data.resource.Resource
+import com.capstone.Capstone2Project.data.model.Questionnaire
+import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.navigation.ROUTE_INTERVIEW_FINISHED
-import com.capstone.Capstone2Project.ui.screen.animation.NewLogContent
-import com.capstone.Capstone2Project.ui.screen.animation.OldLogContent
+import com.capstone.Capstone2Project.ui.screen.interview.InterviewViewModel
+import com.capstone.Capstone2Project.ui.screen.interview.isServiceRunning
+import com.capstone.Capstone2Project.ui.screen.interview.startRecordingService
+import com.capstone.Capstone2Project.ui.screen.interview.stopRecordingService
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.*
-import com.capstone.Capstone2Project.utils.composable.AnimatedCounter
 import com.capstone.Capstone2Project.utils.composable.ComposableLifecycle
 import com.capstone.Capstone2Project.utils.etc.*
-import com.capstone.Capstone2Project.utils.etc.CustomFont.nexonFont
 import com.capstone.Capstone2Project.utils.extensions.clickableWithoutRipple
 import com.capstone.Capstone2Project.utils.extensions.progressToString
-import com.capstone.Capstone2Project.utils.extensions.toBitmap
 import com.capstone.Capstone2Project.utils.service.ScreenRecordService
 import com.capstone.Capstone2Project.utils.theme.*
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -102,27 +116,29 @@ import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseDetection
+import com.google.mlkit.vision.pose.PoseLandmark
 import com.google.mlkit.vision.pose.accurate.AccuratePoseDetectorOptions
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonDisposableHandle.parent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
+import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import kotlin.streams.toList
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun InterviewScreen(
     navController: NavController,
-    script: Script?,
-//    useRecording: Boolean
+    questionnaire: Questionnaire?
 ) {
 
     val interviewViewModel: InterviewViewModel = hiltViewModel()
 
-    val state = interviewViewModel.state.collectAsStateWithLifecycle()
+    val state = interviewViewModel.state.collectAsState()
 
     val context = LocalContext.current
 
@@ -132,35 +148,46 @@ fun InterviewScreen(
 
     val permissionState = rememberMultiplePermissionsState(permissions = permissions)
 
-
-//    val screenRecordLauncher = rememberLauncherForActivityResult(
-//        contract = ActivityResultContracts.StartActivityForResult()
-//    ) {
-//        if (it.resultCode != Activity.RESULT_OK) {
-//            return@rememberLauncherForActivityResult
-//        }
-//        if (it.data == null) {
-//            return@rememberLauncherForActivityResult
-//        }
-//
-//        startRecordingService(context, it.resultCode, it.data!!)
-//
-//    }
-
-
-    LaunchedEffect(interviewViewModel) {
-        //script 가 null 이면 state로 에러떠서 괜찮음
-        //TODO(바꿔줘야함)
-        //interviewViewModel2.fetchCustomQuestionnaire(script)
-        interviewViewModel.fetchCustomQuestionnaire((script ?: Script.makeTestScript()))
-
-    }
-
-
     if (!permissionState.allPermissionsGranted) {
         RequestPermissions(permissionState)
     } else {
-        InterviewUIScreenContent(navController = navController)
+        InterviewUIScreenContent(navController = navController, questionnaire = questionnaire)
+    }
+
+    var backPressCnt by remember {
+        mutableStateOf(0)
+    }
+
+    LaunchedEffect(backPressCnt) {
+        if(backPressCnt > 0) {
+            delay(1000)
+            backPressCnt -= 1
+        }
+    }
+
+    BackHandler {
+        if(backPressCnt == 1) {
+            navController.navigate(ROUTE_HOME) {
+                popUpTo(ROUTE_HOME) {
+                    inclusive = true
+                }
+            }
+        } else {
+            backPressCnt += 1
+            AlertUtils.showToast(context, "한번 더 누르면 홈화면으로 이동해요")
+        }
+
+    }
+
+    LaunchedEffect(interviewViewModel) {
+        interviewViewModel.effect.collect {
+            when(it) {
+                is InterviewViewModel.Effect.ShowMessage -> {
+                    val message = it.message
+                    AlertUtils.showToast(context, message)
+                }
+            }
+        }
     }
 
     ComposableLifecycle { _, event ->
@@ -225,24 +252,16 @@ fun InterviewScreen(
 
             is InterviewViewModel.InterviewState.Finished -> {
                 LaunchedEffect(Unit) {
-                    val interviewUUID =
-                        (it.interviewState as InterviewViewModel.InterviewState.Finished).interviewUUID
+                    val interviewResult =
+                        (it.interviewState as InterviewViewModel.InterviewState.Finished).interviewResult
+
+
                     navController.navigate(
-                        "$ROUTE_INTERVIEW_FINISHED/{interviewUUID}".replace(
-                            oldValue = "{interviewUUID}",
-                            newValue = interviewUUID
+                        "$ROUTE_INTERVIEW_FINISHED?interview_result={interview_result}".replace(
+                            oldValue = "{interview_result}",
+                            newValue = interviewResult.toJsonString()
                         )
-                    ) {
-
-                        launchSingleTop = true
-
-                        navController.currentDestination?.route?.let { route ->
-                            popUpTo(route) {
-                                inclusive = true
-                            }
-                        }
-
-                    }
+                    )
 
                 }
 
@@ -258,7 +277,10 @@ fun InterviewScreen(
                             //showAnswerDialog.value = false
                         },
                         question = this.questionItem.question,
-                        answer = this.answerItem.answer
+                        answer = this.answerItem.answer,
+                        closeDialog = {
+                            interviewViewModel.restartInterview()
+                        }
                     )
                 }
 
@@ -328,7 +350,7 @@ private fun InterviewCountDownDialog(
                         fontSize = if (count > 0) 150.sp else 100.sp,
                         fontFamily = nexonFont,
                         fontWeight = FontWeight.Bold,
-                        color = White,
+                        color = Color.White,
                         shadow = Shadow(
                             offset = Offset(1f, 1f),
                             color = Black,
@@ -347,7 +369,7 @@ private fun InterviewCountDownDialog(
                         fontSize = 30.sp,
                         fontFamily = nexonFont,
                         fontWeight = FontWeight.Bold,
-                        color = White,
+                        color = Color.White,
                         shadow = Shadow(
                             offset = Offset(1f, 1f),
                             color = Black,
@@ -365,11 +387,16 @@ private fun InterviewCountDownDialog(
 
 @Composable
 fun InterviewUIScreenContent(
-    navController: NavController
+    navController: NavController,
+    questionnaire: Questionnaire?
 ) {
 
     val interviewViewModel: InterviewViewModel = hiltViewModel()
     //val state = interviewViewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(interviewViewModel) {
+        interviewViewModel.initQuestionnaire(questionnaire)
+    }
 
     val spacing = LocalSpacing.current
 
@@ -598,12 +625,12 @@ fun RecordButton(buttonClicked: () -> Unit, isRecording: Boolean) {
         Text(
             text = if (isRecording) "녹화중" else "녹화시작",
             style = LocalTextStyle.current.copy(
-                color = White,
+                color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Normal,
                 shadow = Shadow(
                     offset = Offset(1f, 1f),
-                    color = DarkGray,
+                    color = Color.DarkGray,
                     blurRadius = 4f
                 )
             )
@@ -658,7 +685,7 @@ private fun MoreInfoScreen(
                 Icon(
                     painter = painterResource(id = R.drawable.ic_live),
                     contentDescription = null,
-                    tint = White,
+                    tint = Color.White,
                     modifier = Modifier.size(30.dp)
                 )
 
@@ -667,11 +694,11 @@ private fun MoreInfoScreen(
                 Text(
                     text = if (showFeedback.value) "피드백 끄기" else "피드백 켜기",
                     style = LocalTextStyle.current.copy(
-                        color = White,
+                        color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         shadow = Shadow(
-                            color = DarkGray,
+                            color = Color.DarkGray,
                             offset = Offset(1f, 1f),
                             blurRadius = 4f
                         )
@@ -692,17 +719,17 @@ private fun MoreInfoScreen(
                 Icon(
                     painter = painterResource(id = if (showPreview.value) R.drawable.ic_camera_alt_24 else R.drawable.ic_camera_off),
                     contentDescription = null,
-                    tint = White,
+                    tint = Color.White,
                     modifier = Modifier.size(30.dp)
                 )
                 Text(
                     text = if (showPreview.value) "카메라 끄기" else "카메라 켜기",
                     style = LocalTextStyle.current.copy(
-                        color = White,
+                        color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         shadow = Shadow(
-                            color = DarkGray,
+                            color = Color.DarkGray,
                             offset = Offset(1f, 1f),
                             blurRadius = 4f
                         )
@@ -721,17 +748,17 @@ private fun MoreInfoScreen(
                 Icon(
                     painter = painterResource(id = R.drawable.ic_exit),
                     contentDescription = null,
-                    tint = White,
+                    tint = Color.White,
                     modifier = Modifier.size(30.dp)
                 )
                 Text(
                     text = "나가기",
                     style = LocalTextStyle.current.copy(
-                        color = White,
+                        color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         shadow = Shadow(
-                            color = DarkGray,
+                            color = Color.DarkGray,
                             offset = Offset(1f, 1f),
                             blurRadius = 4f
                         )
@@ -819,14 +846,13 @@ private fun InterviewCameraPreview(
                                     Bitmap.Config.ARGB_8888
                                 )
                             yuvToRgbConverter.yuvToRgb(image, bitmapImage)
-                            val result = expressionAnalyzer.classifyExpression(bitmapImage)
+                            val classifiedExpressions = expressionAnalyzer.classifyExpression(bitmapImage)
                             processExpressionClassificationResult(
-                                result,
+                                classifiedExpressions,
                                 viewModel = interviewViewModel
                             )
                         } catch (e: Exception) {
                             e.printStackTrace()
-                            Log.e("TAG", "InterviewCameraPreview:${e.message} ")
                         } finally {
                             readyToDetectFace = false
                             completeDetection()
@@ -922,11 +948,47 @@ private fun InterviewCameraPreview(
 }
 
 private fun processExpressionClassificationResult(
-    result: String,
+    expressions: List<Float>,
     viewModel: InterviewViewModel
 ) {
-    Log.e("TAG", "processExpressionClassificationResult: ${result.toList()}")
-    val logLine = LogLine(type = LogLine.Type.Face, message = result)
+
+    var maxProbability = -1f
+
+    var idx = -1
+
+    expressions.forEachIndexed { index, value ->
+        if(value > maxProbability) {
+            idx = index
+            maxProbability = value
+        }
+    }
+
+    var result = "부정적인 표정 감지 "
+
+    val resultIdx: Int
+
+    result += when(idx) {
+        0-> {
+            resultIdx = 0
+            "[Angry]"
+        }
+        1-> {
+            resultIdx = 1
+            "[Disgust]"
+        }
+        2-> {
+            resultIdx = 2
+            "[Fear]"
+        }
+        4-> {
+            resultIdx = 3
+            "[Sad]"
+        }
+        else-> return
+    }
+
+    val logLine = LogLine(type = LogLine.Type.Camera, message = result, index = resultIdx)
+
     viewModel.loadInterviewLogLine(
         logLine
     )
@@ -939,19 +1001,175 @@ private fun processPoseDetectionResult(pose: Pose?, viewModel: InterviewViewMode
     }
 
 }
+fun Face.toLogLine(): LogLine? {
 
+    val type: LogLine.Type = LogLine.Type.Camera
+
+    val message: String
+
+    when {
+        headEulerAngleX in -10.0f..10.0f -> Unit
+
+        headEulerAngleX > 10.0f -> {
+            message = "고개를 살짝 내려주세요"
+
+            return LogLine(
+                type = type,
+                message = message
+            )
+        }
+        headEulerAngleX < -10.0f -> {
+            message = "고개를 살짝 들어주세요"
+
+            return LogLine(
+                type = type,
+                message = message
+            )
+        }
+    }
+
+    when {
+        headEulerAngleY in -15.0f..15.0f -> Unit
+
+        headEulerAngleY > 15.0f -> {
+            message = "얼굴을 오른쪽으로 살짝 돌려주세요"
+
+            return LogLine(
+                type = type,
+                message = message
+            )
+        }
+        headEulerAngleY < -15.0f -> {
+            message = "얼굴을 왼쪽으로 살짝 돌려주세요"
+
+            return LogLine(
+                type = type,
+                message = message
+            )
+        }
+    }
+
+    when {
+        headEulerAngleZ in -10.0f..10.0f -> Unit
+
+        headEulerAngleZ > 15.0f -> {
+            message = "얼굴을 반시계 방향으로 살짝 돌려주세요"
+
+            return LogLine(
+                type = type,
+                message = message
+            )
+        }
+        headEulerAngleZ < -15.0f -> {
+            message = "얼굴을 시계 방향으로 살짝 돌려주세요"
+
+            return LogLine(
+                type = type,
+                message = message
+            )
+        }
+    }
+
+
+//    smilingProbability?.let {
+//        when {
+//            it < 0.001f -> {
+//                message = "살짝 미소를 띄워볼까요?"
+//
+//                return LogLine(
+//                    type = type,
+//                    message = message
+//                )
+//            }
+//
+//            it > 0.8f -> {
+//                message = "크게 웃는 모습 좋아요"
+//
+//                return LogLine(
+//                    type = type,
+//                    message = message
+//                )
+//            }
+//            else -> Unit
+//        }
+//    }
+
+    return null
+}
+
+fun Pose.toLogLine(): LogLine? {
+
+    val type = LogLine.Type.Pose
+
+    val leftShoulderPosition = getPoseLandmark(PoseLandmark.LEFT_SHOULDER)?.position
+
+    val rightShoulderPosition = getPoseLandmark(PoseLandmark.RIGHT_SHOULDER)?.position
+
+    if (leftShoulderPosition != null && rightShoulderPosition != null) {
+        val diff = abs(leftShoulderPosition.y - rightShoulderPosition.y)
+
+        if(diff > 30.0f) {
+            return LogLine(
+                type = type,
+                message = "자세를 교정해주세요",
+                index = 0
+            )
+        }
+
+    }
+
+    val nosePosition3D = getPoseLandmark(PoseLandmark.NOSE)?.position3D
+
+    val leftHandPosition3D = getPoseLandmark(PoseLandmark.LEFT_INDEX)?.position3D
+
+    val rightHandPosition3D = getPoseLandmark(PoseLandmark.RIGHT_INDEX)?.position3D
+
+    if(nosePosition3D != null && leftHandPosition3D != null) {
+        val xSquare = (nosePosition3D.x - leftHandPosition3D.x).pow(2)
+        val ySquare = (nosePosition3D.y - leftHandPosition3D.y).pow(2)
+
+        val diff = sqrt(xSquare+ySquare)
+
+        if(diff < 200.0f) {
+            return LogLine(
+                type = type,
+                message = "긴장을 풀어주세요",
+                index = 1
+            )
+        }
+
+    }
+
+    if(nosePosition3D != null && rightHandPosition3D != null) {
+        val xSquare = (nosePosition3D.x - rightHandPosition3D.x).pow(2)
+        val ySquare = (nosePosition3D.y - rightHandPosition3D.y).pow(2)
+
+        val diff = sqrt(xSquare+ySquare)
+
+        if(diff < 200.0f) {
+            return LogLine(
+                type = type,
+                message = "긴장을 풀어주세요",
+                index = 1
+            )
+        }
+    }
+
+
+    return null
+}
 
 private fun processFaceDetectionResult(
     faces: List<Face>,
     viewModel: InterviewViewModel
 ) {
     if (faces.isEmpty()) {
-//        val logLine = LogLine(
-//            type = LogLine.Type.Error,
-//            "얼굴을 발견하지 못했습니다"
-//        )
-//
-//        viewModel.loadInterviewLogLine(logLine)
+        val logLine = LogLine(
+            type = LogLine.Type.Error,
+            "얼굴을 발견하지 못했습니다"
+        )
+
+        viewModel.loadInterviewLogLine(logLine)
         return
     }
 
@@ -1041,7 +1259,7 @@ private fun BottomButtons(
 
     val state = interviewViewModel.state.collectAsStateWithLifecycle()
 
-    val decibelFlow = interviewViewModel.decibelFlow.collectAsStateWithLifecycle()
+//    val decibelFlow = interviewViewModel.decibelFlow.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
 
@@ -1258,7 +1476,7 @@ private fun BottomButtons(
             )
 
             Text(
-                "${(decibelFlow.value ?: 0f).toInt()}dB",
+                "${(state.value.decibel ?: 0f).toInt()}dB",
                 style = LocalTextStyle.current.copy(
                     shadow = Shadow(
                         color = Color.DarkGray,
@@ -1368,8 +1586,8 @@ private fun QuestionAnswerContents(
     val question = remember(state.value.currentPage) {
         derivedStateOf {
             with(state.value) {
-                if (customQuestionnaire?.questions != null && currentPage != null) {
-                    customQuestionnaire.questions[currentPage!!].question
+                if (questionnaire?.questions != null && questionnaire.questions.isNotEmpty() && currentPage != null) {
+                    questionnaire.questions[currentPage!!].question
                 } else {
                     ""
                 }
@@ -1382,7 +1600,7 @@ private fun QuestionAnswerContents(
         if (interviewState == InterviewViewModel.InterviewState.InProgress) {
 
 
-            if (customQuestionnaire?.questions != null && currentPage != null && answers != null) {
+            if (questionnaire?.questions != null && currentPage != null && answers != null) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1499,7 +1717,8 @@ private fun String.splitToCodePoints(): List<String> {
 private fun BeforeSendingAnswerDialog(
     dismissClick: (String) -> Unit,
     question: String,
-    answer: String
+    answer: String,
+    closeDialog: ()->Unit
 ) {
     val composition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/circle_rocket.json"))
     val progress by animateLottieCompositionAsState(
@@ -1565,7 +1784,7 @@ private fun BeforeSendingAnswerDialog(
                             shape = RoundedCornerShape(10.dp)
                         )
                         .background(
-                            color = White,
+                            color = Color.White,
                             shape = RoundedCornerShape(10.dp)
                         )
                 ) {
@@ -1686,7 +1905,9 @@ private fun BeforeSendingAnswerDialog(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         Row(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).clickable {
+                                closeDialog()
+                            },
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(
                                 10.dp,
@@ -1743,308 +1964,12 @@ private fun BeforeSendingAnswerDialog(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
-@Composable
-fun InterviewMemoDialog(
-    dismissClick: () -> Unit,
-    interviewUUID: String
-) {
 
-    //인터뷰가 종료된 후 메모를 남기는 다이얼로그
-
-    val composition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/circle_rocket.json"))
-    val progress by animateLottieCompositionAsState(
-        composition,
-        iterations = LottieConstants.IterateForever
-    )
-
-    val spacing = LocalSpacing.current
-
-    //재시작인지도 파악하기
-
-    val context = LocalContext.current
-
-    val interviewResultViewModel: InterviewResultViewModel = hiltViewModel()
-
-    val memoFlow = interviewResultViewModel.writingMemoResultFlow.collectAsStateWithLifecycle()
-
-    DisposableEffect(Unit) {
-        onDispose {
-            interviewResultViewModel.initMemoState()
-        }
-    }
-
-    val memo = remember(memoFlow.value) {
-        mutableStateOf((memoFlow.value as? Resource.Success)?.data ?: "")
-    }
-
-    //TODO (나중에 바꿔야함 메모 남기기 클릭시 이전에 썼던 메모 올라가있게해야함)
-    memoFlow.value?.let {
-        when (it) {
-            is Resource.Error -> {
-                dismissClick()
-                AlertUtils.showToast(context, "다음에 다시 시도해주세요")
-            }
-            Resource.Loading -> {
-                LoadingScreen()
-            }
-            is Resource.Success -> {
-                dismissClick()
-                memo.value = it.data
-                AlertUtils.showToast(context, "메모를 저장했어요")
-            }
-        }
-    }
-
-    val bringIntoViewRequester = remember {
-        BringIntoViewRequester()
-    }
-
-    val coroutineScope = rememberCoroutineScope()
-
-    val focusRequester = remember { FocusRequester() }
-
-    val focusManager = LocalFocusManager.current
-
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    val textFieldFocused = remember {
-        mutableStateOf(false)
-    }
-
-
-    val simpleDateFormat = remember {
-        SimpleDateFormat("yyyy.MM.dd (E) hh:mm", Locale.getDefault())
-    }
-    CompositionLocalProvider(
-        LocalTextStyle provides TextStyle(
-            fontFamily = nexonFont
-        )
-    ) {
-
-
-        Dialog(
-            onDismissRequest = {},
-            properties = DialogProperties(
-                dismissOnBackPress = false,
-                dismissOnClickOutside = false,
-                usePlatformDefaultWidth = false
-            )
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickableWithoutRipple {
-                        focusManager.clearFocus()
-                        keyboardController?.hide()
-                    }
-                    .padding(spacing.medium)
-                    .padding(bottom = 60.dp)
-            ) {
-
-                Column(
-                    modifier = Modifier
-                        .offset(y = 60.dp)
-                        .shadow(
-                            5.dp,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        .background(
-                            color = White,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                ) {
-                    Spacer(modifier = Modifier.height(60.dp))
-
-                    Text(
-                        text = "면접 일기",
-                        style = LocalTextStyle.current.copy(
-                            color = Black,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            textAlign = TextAlign.Start
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.medium)
-                    )
-
-                    Spacer(modifier = Modifier.height(spacing.small))
-
-                    Text(
-                        text = "이번 면접에 대한 생각을 남겨 기록해보세요 !",
-                        style = LocalTextStyle.current.copy(
-                            color = Gray,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Normal,
-                            textAlign = TextAlign.Start
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.medium)
-                    )
-
-                    Spacer(modifier = Modifier.height(spacing.medium))
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(
-                                1.dp,
-                                color = LightGray
-                            )
-                            .background(
-                                color = bg_grey
-                            )
-                            .verticalScroll(rememberScrollState())
-                            .padding(spacing.medium)
-
-                    ) {
-
-
-                        Text(
-                            simpleDateFormat.format(Date(System.currentTimeMillis())),
-                            style = LocalTextStyle.current.copy(
-                                color = Black,
-                                fontSize = 12.sp,
-                                fontFamily = nexonFont,
-                                textAlign = TextAlign.End
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(modifier = Modifier.height(spacing.small))
-
-                        TextField(
-                            value = memo.value,
-                            onValueChange = {
-                                memo.value = it
-                            },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Text,
-                                imeAction = ImeAction.Done
-                            ),
-                            placeholder = {
-                                Text(
-                                    "이곳에 입력하세요",
-                                    style = LocalTextStyle.current.copy(
-                                        color = text_blue,
-                                        fontSize = 14.sp,
-                                        fontFamily = nexonFont
-                                    )
-                                )
-                            },
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    focusManager.clearFocus()
-                                    keyboardController?.hide()
-                                }
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(100.dp, 250.dp)
-                                .focusRequester(focusRequester)
-                                .bringIntoViewRequester(bringIntoViewRequester)
-                                .onFocusEvent { focusState ->
-                                    if (focusState.isFocused) {
-                                        coroutineScope.launch {
-                                            bringIntoViewRequester.bringIntoView()
-                                        }
-                                    }
-                                }
-                                .onFocusChanged { focusState ->
-                                    textFieldFocused.value = focusState.isFocused
-                                }
-                                .drawBehind {
-                                    drawRoundRect(
-                                        color = Color.Gray,
-                                        style = Stroke(
-                                            width = 1f,
-                                            pathEffect = PathEffect.dashPathEffect(
-                                                floatArrayOf(10f, 10f), 0f
-                                            )
-                                        )
-                                    )
-                                },
-                            colors = TextFieldDefaults.textFieldColors(
-                                textColor = Black,
-                                disabledTextColor = Black,
-                                backgroundColor = Transparent,
-                                cursorColor = LightGray,
-                                errorCursorColor = text_red,
-                                focusedIndicatorColor = Transparent,
-                                unfocusedIndicatorColor = Transparent
-                            ),
-                            textStyle = LocalTextStyle.current.copy(
-                                color = Black,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Normal,
-                                textAlign = TextAlign.Start
-                            )
-                        )
-
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(spacing.medium),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.End
-                    ) {
-
-                        Text(
-                            text = "작성완료",
-                            modifier = Modifier
-                                .clickable {
-                                    memo.value.let {
-                                        interviewResultViewModel.writeMemo(interviewUUID, it)
-
-                                    }
-                                },
-                            style = LocalTextStyle.current.copy(
-                                color = text_blue,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                textAlign = TextAlign.End
-                            )
-                        )
-                    }
-
-                }
-
-                LottieAnimation(
-                    composition = composition,
-                    progress = { progress },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .size(180.dp)
-                        .padding(spacing.medium)
-                )
-
-            }
-        }
-    }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-private fun DialogPreview() {
-    BeforeSendingAnswerDialog(
-        dismissClick = {
-
-        },
-        question = "프로세스와 스레드의 차이는 무엇인가요?",
-        answer = ""
-    )
-}
 
 @Composable
 fun InterviewPreparedDialog(
     dismissClick: () -> Unit,
     backButtonClick: () -> Unit
-
 ) {
     val composition by rememberLottieComposition(LottieCompositionSpec.Asset("lottie/circle_rocket.json"))
     val progress by animateLottieCompositionAsState(
@@ -2086,7 +2011,7 @@ fun InterviewPreparedDialog(
                             shape = RoundedCornerShape(10.dp)
                         )
                         .background(
-                            color = White,
+                            color = Color.White,
                             shape = RoundedCornerShape(10.dp)
                         )
                 ) {
@@ -2321,4 +2246,205 @@ fun InterviewPreparedDialog(
 
         }
     }
+}
+
+@Composable
+private fun ItemContent(
+    modifier: Modifier = Modifier,
+    interviewLogLine: InterviewLogLine,
+    fontSize: TextUnit,
+    maxLines: Int = Int.MAX_VALUE,
+    isNew: Boolean
+) {
+
+    val progressText = remember {
+        interviewLogLine.progressToString()
+    }
+
+    val message = remember {
+        interviewLogLine.logLine.message
+    }
+
+    val spacing = LocalSpacing.current
+
+
+    CompositionLocalProvider(
+        LocalTextStyle provides TextStyle(
+            fontFamily = CustomFont.nexonFont,
+            color = Color.White,
+            shadow = Shadow(
+                Color.Black,
+                offset = Offset(1f, 1f),
+                blurRadius = 4f
+            ),
+            fontSize = fontSize
+        )
+    ) {
+
+        ConstraintLayout(
+            modifier = modifier.padding(horizontal = spacing.small)
+        ) {
+
+            val (progressRef, messageRef, newRef) = createRefs()
+
+
+            Text(
+                progressText,
+                modifier = Modifier
+                    .constrainAs(progressRef) {
+                        end.linkTo(messageRef.start, margin = spacing.extraSmall)
+                        bottom.linkTo(messageRef.bottom)
+                    },
+                style = LocalTextStyle.current.copy(
+                    fontSize = fontSize.div(3).times(2),
+                    color = Color.White,
+                    fontWeight = FontWeight(550),
+                    shadow = Shadow(
+                        color = Color.DarkGray,
+                        offset = Offset(1f, 1f),
+                        blurRadius = 4f
+                    )
+                )
+            )
+
+
+
+            Text(
+                message,
+                maxLines = maxLines,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .constrainAs(messageRef) {
+                        end.linkTo(parent.end)
+                        bottom.linkTo(parent.bottom)
+
+                        width = Dimension.percent(if (isNew) 0.9f else 0.8f)
+                    }
+                    .background(
+                        color = Color(0x66000000),
+                        shape = RoundedCornerShape(5.dp)
+                    )
+                    .padding(horizontal = spacing.medium, vertical = spacing.small),
+                style = LocalTextStyle.current.copy(
+                    color = Color.White,
+                    fontSize = fontSize,
+                    fontWeight = FontWeight.Medium,
+                    shadow = Shadow(
+                        color = Color.DarkGray,
+                        offset = Offset(1f, 1f),
+                        blurRadius = 4f
+                    )
+                )
+            )
+
+            if (isNew) {
+                Text(
+                    "New",
+                    style = TextStyle(
+                        fontFamily = nexonFont,
+                        fontSize = 10.sp,
+                        color = Color.White,
+                        shadow = Shadow(
+                            color = Color.DarkGray,
+                            offset = Offset(1f, 1f),
+                            blurRadius = 4f
+                        )
+                    ),
+                    modifier = Modifier
+                        .constrainAs(newRef) {
+                            end.linkTo(messageRef.start)
+                            top.linkTo(messageRef.top)
+                            width = Dimension.wrapContent
+                        }
+                        .offset(x = spacing.small, y = spacing.extraSmall)
+                        .background(
+                            color = Red,
+                            shape = RoundedCornerShape(5.dp)
+                        )
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+
+                )
+            }
+
+
+        }
+
+
+    }
+
+
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun NewLogContent(
+    modifier: Modifier = Modifier,
+    interviewLogLine: InterviewLogLine
+) {
+
+    val oldInterviewLog by rememberUpdatedState(newValue = interviewLogLine)
+
+    AnimatedContent(
+        targetState = oldInterviewLog,
+        transitionSpec = {
+            slideInVertically {
+                it
+            } + fadeIn(
+                initialAlpha = 0f
+            ) with fadeOut(
+                targetAlpha = 0f
+            ) + slideOutVertically {
+                -it
+            }
+        },
+        modifier = modifier
+    ) { il ->
+        ItemContent(
+            interviewLogLine = il,
+            fontSize = 16.sp,
+            isNew = true,
+            maxLines = 2
+        )
+    }
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun OldLogContent(
+    modifier: Modifier = Modifier,
+    interviewLogLine: InterviewLogLine
+) {
+
+    val oldInterviewLog by rememberUpdatedState(newValue = interviewLogLine)
+
+    AnimatedContent(
+        targetState = oldInterviewLog,
+        transitionSpec = {
+            slideInVertically {
+                it
+            } + fadeIn(
+                initialAlpha = 0f
+            ) with fadeOut(
+                targetAlpha = 0f
+            ) + slideOutVertically {
+                -it
+            }
+        },
+        modifier = modifier.alpha(0.5f)
+    ) { il ->
+        ItemContent(
+            interviewLogLine = il,
+            fontSize = 14.sp,
+            maxLines = 1,
+            isNew = false
+        )
+    }
+}
+
+
+private fun generateRandomText(): String {
+    val charset = "ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz0123456789"
+    return (1..100)
+        .map { charset.random() }
+        .joinToString("")
 }

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MotionScene 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:motion="http://schemas.android.com/apk/res-auto">
+
+    <Transition
+        android:id="@+id/transition_auto"
+        motion:constraintSetEnd="@+id/end_auto"
+        motion:constraintSetStart="@id/start_auto"
+        motion:autoTransition="animateToEnd"
+        motion:duration="2000">
+        <KeyFrameSet>
+        </KeyFrameSet>
+
+    </Transition>
+
+
+    <ConstraintSet android:id="@+id/start_auto">
+        <Constraint
+            android:id="@+id/iv_star1"
+            motion:layout_constraintEnd_toEndOf="parent"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            motion:layout_constraintTop_toTopOf="parent"
+            android:layout_marginTop="30dp"
+            android:translationX="250dp"
+            android:alpha="1"
+            />
+        <Constraint
+            android:id="@+id/iv_star2"
+            motion:layout_constraintEnd_toEndOf="parent"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:layout_marginTop="30dp"
+            motion:layout_constraintTop_toBottomOf="@id/iv_star1"
+            android:translationX="200dp"
+            android:alpha="1"
+            />
+        <Constraint
+            android:id="@+id/iv_star3"
+            motion:layout_constraintEnd_toEndOf="parent"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:layout_marginTop="20dp"
+            motion:layout_constraintTop_toBottomOf="@id/iv_star2"
+            android:translationX="250dp"
+            android:alpha="1"
+            />
+
+    </ConstraintSet>
+
+    <ConstraintSet android:id="@+id/end_auto">
+
+        <Constraint
+            android:id="@+id/iv_star1"
+            motion:layout_constraintEnd_toEndOf="parent"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            motion:layout_constraintTop_toTopOf="parent"
+            android:layout_marginTop="30dp"
+            android:translationX="-400dp"
+            android:alpha="0"
+            />
+        <Constraint
+            android:id="@+id/iv_star2"
+            motion:layout_constraintEnd_toEndOf="parent"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:layout_marginTop="30dp"
+            motion:layout_constraintTop_toBottomOf="@id/iv_star1"
+            android:translationX="-400dp"
+            android:alpha="0"
+            />
+        <Constraint
+            android:id="@+id/iv_star3"
+            motion:layout_constraintEnd_toEndOf="parent"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:layout_marginTop="20dp"
+            motion:layout_constraintTop_toBottomOf="@id/iv_star2"
+            android:translationX="-400dp"
+            android:alpha="0"
+            />
+    </ConstraintSet>
+</MotionScene>
