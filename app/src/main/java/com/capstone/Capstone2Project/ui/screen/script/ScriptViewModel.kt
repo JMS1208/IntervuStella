@@ -211,17 +211,6 @@ class ScriptViewModel @Inject constructor(
 
 
     fun setScriptAndFetchBaseData(script: Script?) = viewModelScope.launch(Dispatchers.IO) {
-        if(script == null) {
-            _state.update {
-                it.copy(
-                    dataState = DataState.Error(Exception("없는 자기소개서 입니다"))
-                )
-            }
-            _effect.emit(
-                Effect.ShowMessage("잠시 후 다시 시도해주세요")
-            )
-            return@launch
-        }
 
         if(state.value.scriptItemList.count{it.second} > 0) {
             return@launch
@@ -242,32 +231,35 @@ class ScriptViewModel @Inject constructor(
         fetchJobRoleList()
         fetchScriptItems()
 
-        val newScriptItemList = script.scriptItems.map {
-            Pair(it, true)
-        }.toMutableList()
+        if (script != null) {
+            val newScriptItemList = script.scriptItems.map {
+                Pair(it, true)
+            }.toMutableList()
 
-        for (scriptItem in state.value.scriptItemList) {
-            if (scriptItem.first !in script.scriptItems) {
-                newScriptItemList.add(Pair(scriptItem.first, false))
+            for (scriptItem in state.value.scriptItemList) {
+                if (scriptItem.first !in script.scriptItems) {
+                    newScriptItemList.add(Pair(scriptItem.first, false))
+                }
             }
-        }
 
-        val newJobRoleList = state.value.jobRoleList.map {
-            if (it.first == script.jobRole) {
-                Pair(it.first, true)
-            } else {
-                it
+            val newJobRoleList = state.value.jobRoleList.map {
+                if (it.first == script.jobRole) {
+                    Pair(it.first, true)
+                } else {
+                    it
+                }
             }
-        }
 
-        _state.update {
-            it.copy(
-                scriptItemList = newScriptItemList,
-                jobRoleList = newJobRoleList,
-                title = script.title
-            )
-        }
+            _state.update {
+                it.copy(
+                    scriptItemList = newScriptItemList,
+                    jobRoleList = newJobRoleList,
+                    title = script.title
+                )
+            }
 
+
+        }
 
         _state.update {
             it.copy(
