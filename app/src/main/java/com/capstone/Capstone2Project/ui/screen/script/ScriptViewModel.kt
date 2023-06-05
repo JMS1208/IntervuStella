@@ -212,7 +212,6 @@ class ScriptViewModel @Inject constructor(
 
     fun setScriptAndFetchBaseData(script: Script?) = viewModelScope.launch(Dispatchers.IO) {
 
-
         if(script == null) {
             /*
             script == null 인 경우는 자기소개서 새로 작성하는 경우임
@@ -235,9 +234,9 @@ class ScriptViewModel @Inject constructor(
             뷰모델에 세팅된 uuid (자기소개서 uuid) 와 script의 uuid 가 같다면, 리턴 시켜서 처리하지 않음
             다르다면 뷰모델에 세팅된 uuid (자기소개서 uuid)를 갱신함
              */
-            if(state.value.uuid == script.uuid) {
+            if(state.value.uuid == script.uuid) { //함수가 두번 이상 호출된경우
                 return@launch
-            } else {
+            } else { //맨처음에만 호출 된 경우
                 _state.update {
                     it.copy(
                         uuid = script.uuid
@@ -248,7 +247,7 @@ class ScriptViewModel @Inject constructor(
 
 
         /*
-        여기서부터는 뷰모델에 초기 세팅하는 작업임 
+        여기서부터는 뷰모델에 초기 세팅하는 작업임 - 여기부터는 맨처음 호출되는 경우만 아래 코드가 실행됨
          */
 
         _state.update {

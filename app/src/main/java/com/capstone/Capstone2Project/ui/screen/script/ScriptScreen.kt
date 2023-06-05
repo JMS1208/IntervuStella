@@ -164,7 +164,7 @@ fun ScriptScreen(
 
     LaunchedEffect(oriScript) {
         viewModel.setScriptAndFetchBaseData(
-            oriScript //?: Script.makeTestScript()
+            oriScript
         )
     }
 
@@ -246,6 +246,7 @@ fun ScriptScreen(
                                 ScriptViewModel.DialogState.Nothing -> Unit
                             }
                         }
+
                         state.curPage < state.scriptItemList.count{ it.second }+1 -> {
 
                             val scriptIdx = state.curPage - 1
@@ -266,7 +267,7 @@ fun ScriptScreen(
 
                         }
 
-                        state.curPage == state.scriptItemList.count { it.second }+1 -> {
+                        else -> {
 
                             ScriptLastContent(
                                 moveToInterviewClicked = {
