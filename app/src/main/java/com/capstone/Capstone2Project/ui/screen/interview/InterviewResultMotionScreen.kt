@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.White
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -24,6 +26,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
@@ -160,6 +163,13 @@ fun InterviewResultMotionScreenContent(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
 
+                                            val color = remember {
+                                                Color(
+                                                    (0..255).random(),
+                                                    (0..255).random(),
+                                                    (0..255).random()
+                                                )
+                                            }
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
@@ -180,17 +190,30 @@ fun InterviewResultMotionScreenContent(
                                                     modifier = Modifier
                                                         .background(
                                                             shape = RoundedCornerShape(50),
-                                                            color = Color(
-                                                                (0..255).random(),
-                                                                (0..255).random(),
-                                                                (0..255).random()
-                                                            )
+                                                            color = color
                                                         )
                                                         .height(10.dp)
                                                         .width(
                                                             min(100.dp, count * (15.dp))
                                                         )
                                                 ) {}
+
+                                                if(count > 6) {
+                                                    Spacer(modifier = Modifier.width(spacing.small))
+                                                    Text("···", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = White)
+                                                    Spacer(modifier = Modifier.width(spacing.small))
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .background(
+                                                                shape = RoundedCornerShape(50),
+                                                                color = color
+                                                            )
+                                                            .height(10.dp)
+                                                            .width(
+                                                                15.dp
+                                                            )
+                                                    ) {}
+                                                }
                                             }
 
                                             Text(
@@ -201,6 +224,7 @@ fun InterviewResultMotionScreenContent(
                                                     fontSize = 15.sp
                                                 )
                                             )
+
                                         }
 
                                     }
@@ -235,6 +259,15 @@ fun InterviewResultMotionScreenContent(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
 
+
+                                            val color = remember {
+                                                Color(
+                                                    (0..255).random(),
+                                                    (0..255).random(),
+                                                    (0..255).random()
+                                                )
+                                            }
+
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
@@ -255,17 +288,30 @@ fun InterviewResultMotionScreenContent(
                                                     modifier = Modifier
                                                         .background(
                                                             shape = RoundedCornerShape(50),
-                                                            color = Color(
-                                                                (0..255).random(),
-                                                                (0..255).random(),
-                                                                (0..255).random()
-                                                            )
+                                                            color = color
                                                         )
                                                         .height(10.dp)
                                                         .width(
                                                             min(100.dp, count * (15.dp))
                                                         )
                                                 ) {}
+
+                                                if(count > 6) {
+                                                    Spacer(modifier = Modifier.width(spacing.small))
+                                                    Text("···", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = White)
+                                                    Spacer(modifier = Modifier.width(spacing.small))
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .background(
+                                                                shape = RoundedCornerShape(50),
+                                                                color = color
+                                                            )
+                                                            .height(10.dp)
+                                                            .width(
+                                                                15.dp
+                                                            )
+                                                    ) {}
+                                                }
                                             }
 
                                             Text(
