@@ -40,6 +40,7 @@ import com.capstone.Capstone2Project.data.model.FeedbackItem
 import com.capstone.Capstone2Project.data.model.InterviewResult
 import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.utils.etc.CustomFont
+import com.capstone.Capstone2Project.utils.extensions.sumElements
 import com.capstone.Capstone2Project.utils.theme.*
 import com.google.accompanist.pager.*
 
@@ -426,6 +427,9 @@ fun InterviewResultMotionScreenContent(
                 }
             }
 
+
+
+
             val tvRank = it.findViewById<TextView>(R.id.tv_rank)
 
             val tvDeduction = it.findViewById<TextView>(R.id.tv_deduction)
@@ -433,8 +437,9 @@ fun InterviewResultMotionScreenContent(
             val tvTotalDuration = it.findViewById<TextView>(R.id.tv_total_duration)
 
             tvRank.text = interviewResult.rank
+
             tvDeduction.text =
-                "감점사항 ${interviewResult.badPoses.size + interviewResult.badExpressions.size}개"
+                "감점사항 ${interviewResult.badPoses.sumElements() + interviewResult.badExpressions.sumElements()}개"
             tvTotalDuration.text = "소요시간 ${interviewResult.totalDurationToString()}"
 
 

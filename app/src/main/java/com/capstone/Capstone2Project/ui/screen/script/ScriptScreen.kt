@@ -168,6 +168,23 @@ fun ScriptScreen(
         )
     }
 
+    LaunchedEffect(viewModel) {
+        viewModel.effect.collect {
+            when (it) {
+                is ScriptViewModel.Effect.ShowMessage -> {
+                    val message = it.message
+                    AlertUtils.showToast(context, message)
+                }
+
+                is ScriptViewModel.Effect.NavigateTo -> {
+                    navController.navigate(it.route, it.builder)
+
+                }
+            }
+        }
+
+    }
+
     when (state.dataState) {
 
         is DataState.Error -> {
@@ -289,22 +306,7 @@ fun ScriptScreen(
 
                 }
 
-                LaunchedEffect(viewModel) {
-                    viewModel.effect.collect {
-                        when (it) {
-                            is ScriptViewModel.Effect.ShowMessage -> {
-                                val message = it.message
-                                AlertUtils.showToast(context, message)
-                            }
 
-                            is ScriptViewModel.Effect.NavigateTo -> {
-                                navController.navigate(it.route, it.builder)
-
-                            }
-                        }
-                    }
-
-                }
             }
 
 

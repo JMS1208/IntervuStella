@@ -101,7 +101,6 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.airbnb.lottie.compose.LottieAnimation
@@ -112,9 +111,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.capstone.Capstone2Project.R
 import com.capstone.Capstone2Project.data.model.LiveFeedback
 import com.capstone.Capstone2Project.data.model.Questionnaire
-import com.capstone.Capstone2Project.databinding.InterviewResultScreenBinding
 import com.capstone.Capstone2Project.navigation.ROUTE_HOME
-import com.capstone.Capstone2Project.repository.NetworkRepository
 import com.capstone.Capstone2Project.ui.screen.error.ErrorScreen
 import com.capstone.Capstone2Project.ui.screen.loading.LoadingScreen
 import com.capstone.Capstone2Project.utils.ExpressionAnalyzer
@@ -141,12 +138,10 @@ import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.accurate.AccuratePoseDetectorOptions
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.util.Locale
-import javax.inject.Inject
 import kotlin.math.roundToInt
 import kotlin.streams.toList
 
@@ -158,7 +153,7 @@ fun InterviewScreen2(
     questionnaire: Questionnaire?
 ) {
 
-    val viewModel: InterviewViewModel2 = hiltViewModel()
+    val viewModel: InterviewViewModel = hiltViewModel()
 
     val context = LocalContext.current
 
@@ -262,16 +257,16 @@ fun InterviewScreen2(
     val dialogState = viewModel.dialogState.collectAsStateWithLifecycle()
 
     when (dialogState.value) {
-        InterviewViewModel2.DialogState.Nothing -> Unit
-        InterviewViewModel2.DialogState.ShowCountdownDialog -> {
+        InterviewViewModel.DialogState.Nothing -> Unit
+        InterviewViewModel.DialogState.ShowCountdownDialog -> {
             InterviewCountDownDialog(viewModel::startInterview)
         }
 
-        is InterviewViewModel2.DialogState.ShowEditAnswerDialog -> {
+        is InterviewViewModel.DialogState.ShowEditAnswerDialog -> {
             val answer =
-                (dialogState.value as InterviewViewModel2.DialogState.ShowEditAnswerDialog).answer.answer
+                (dialogState.value as InterviewViewModel.DialogState.ShowEditAnswerDialog).answer.answer
             val question =
-                (dialogState.value as InterviewViewModel2.DialogState.ShowEditAnswerDialog).question.question
+                (dialogState.value as InterviewViewModel.DialogState.ShowEditAnswerDialog).question.question
 
             EditAnswerDialog(
                 answer = answer,
@@ -292,11 +287,11 @@ fun InterviewScreen2(
     LaunchedEffect(viewModel) {
         viewModel.effect.collectLatest {
             when (it) {
-                is InterviewViewModel2.Effect.NavigateTo -> {
+                is InterviewViewModel.Effect.NavigateTo -> {
                     navController.navigate(it.route, it.builder)
                 }
 
-                is InterviewViewModel2.Effect.ShowMessage -> {
+                is InterviewViewModel.Effect.ShowMessage -> {
                     AlertUtils.showToast(context, it.message)
                 }
             }
@@ -649,7 +644,7 @@ private fun InterviewCountDownDialog(
 @Composable
 private fun UIContent(
     navController: NavController,
-    viewModel: InterviewViewModel2 = hiltViewModel()
+    viewModel: InterviewViewModel = hiltViewModel()
 ) {
     val spacing = LocalSpacing.current
 
@@ -846,7 +841,7 @@ private fun UIContent(
     }
 
     LaunchedEffect(speechRecognizerState.value) {
-        if (state.value.recognizerState == InterviewViewModel2.RecognizerState.Started) {
+        if (state.value.recognizerState == InterviewViewModel.RecognizerState.Started) {
             startSpeechRecognize()
         } else {
             stopSpeechRecognize()
@@ -855,7 +850,7 @@ private fun UIContent(
 
 
     LaunchedEffect(state.value.recognizerState) {
-        if (state.value.recognizerState == InterviewViewModel2.RecognizerState.Started) { //유저한테 요청 들어오면
+        if (state.value.recognizerState == InterviewViewModel.RecognizerState.Started) { //유저한테 요청 들어오면
             startSpeechRecognize()
         } else {
             stopSpeechRecognize()
@@ -866,7 +861,7 @@ private fun UIContent(
     /*
     카메라 프리뷰 가리는 용
      */
-    if (state.value.cameraPreviewState == InterviewViewModel2.CameraPreviewState.Off) {
+    if (state.value.cameraPreviewState == InterviewViewModel.CameraPreviewState.Off) {
         Box(
             modifier = Modifier
                 .fillMaxSize(),
@@ -901,24 +896,24 @@ private fun UIContent(
 
 
     when (state.value.networkState) {
-        is InterviewViewModel2.NetworkState.Error -> {
+        is InterviewViewModel.NetworkState.Error -> {
             val message =
-                (state.value.networkState as InterviewViewModel2.NetworkState.Error).message
+                (state.value.networkState as InterviewViewModel.NetworkState.Error).message
             ErrorScreen(message)
         }
 
-        is InterviewViewModel2.NetworkState.Loading -> {
+        is InterviewViewModel.NetworkState.Loading -> {
             val message =
-                (state.value.networkState as InterviewViewModel2.NetworkState.Loading).message
+                (state.value.networkState as InterviewViewModel.NetworkState.Loading).message
             LoadingScreen(message)
         }
 
-        InterviewViewModel2.NetworkState.Normal -> {
+        InterviewViewModel.NetworkState.Normal -> {
 
             /*
             UI 들 보여주는 용
              */
-            if (state.value.uiState == InterviewViewModel2.UIState.ShowUI) {
+            if (state.value.uiState == InterviewViewModel.UIState.ShowUI) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -969,16 +964,16 @@ private fun UIContent(
                         BottomButtons(
                             speechRecognizerState = state.value.recognizerState,
                             sttButtonClicked = {
-                                if (state.value.recognizerState == InterviewViewModel2.RecognizerState.Started) {
+                                if (state.value.recognizerState == InterviewViewModel.RecognizerState.Started) {
                                     //음성인식 중
                                     //음성인식 중단
-                                    viewModel.handleRecognizerState(InterviewViewModel2.RecognizerState.Stopped)
+                                    viewModel.handleRecognizerState(InterviewViewModel.RecognizerState.Stopped)
 
                                 } else { //음성인식 중 X
                                     //음성인식 시작
                                     when (state.value.interviewState) {
-                                        InterviewViewModel2.InterviewState.InProgress -> {
-                                            viewModel.handleRecognizerState(InterviewViewModel2.RecognizerState.Started)
+                                        InterviewViewModel.InterviewState.InProgress -> {
+                                            viewModel.handleRecognizerState(InterviewViewModel.RecognizerState.Started)
                                         }
 
                                         else -> Unit
@@ -1033,7 +1028,7 @@ private fun UIContent(
                         showLiveFeedback = it
                     },
                     cameraOnOffButtonClicked = viewModel::handleCameraPreviewState,
-                    showPreview = state.value.cameraPreviewState == InterviewViewModel2.CameraPreviewState.On
+                    showPreview = state.value.cameraPreviewState == InterviewViewModel.CameraPreviewState.On
                 )
             }
         }
@@ -1045,7 +1040,7 @@ private fun UIContent(
 @Composable
 private fun InterviewScreenContent(
     navController: NavController,
-    viewModel: InterviewViewModel2 = hiltViewModel()
+    viewModel: InterviewViewModel = hiltViewModel()
 ) {
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -1206,15 +1201,15 @@ private fun MoreInfoScreen(
 
 @Composable
 private fun BottomButtons(
-    speechRecognizerState: InterviewViewModel2.RecognizerState,
+    speechRecognizerState: InterviewViewModel.RecognizerState,
 //    updateDecibel: (Int) -> Unit,
 //    handleRecognizerState: (Boolean) -> Unit,
     sttButtonClicked: () -> Unit,
-    handleRecognizerState: (InterviewViewModel2.RecognizerState) -> Unit,
+    handleRecognizerState: (InterviewViewModel.RecognizerState) -> Unit,
     appendAnswer: (String) -> Unit,
     deleteAnswer: () -> Unit,
     checkAnswer: () -> Unit,
-    cameraPreviewState: InterviewViewModel2.CameraPreviewState,
+    cameraPreviewState: InterviewViewModel.CameraPreviewState,
     curPage: Int?,
     questionSize: Int?,
     progress: Long,
@@ -1293,7 +1288,7 @@ private fun BottomButtons(
                     shape = RoundedCornerShape(50)
                 )
                 .background(
-                    color = if (cameraPreviewState == InterviewViewModel2.CameraPreviewState.On) Color(
+                    color = if (cameraPreviewState == InterviewViewModel.CameraPreviewState.On) Color(
                         0x80000000
                     ) else Color(0x887A7A7A),
                     shape = RoundedCornerShape(50)
@@ -1314,20 +1309,20 @@ private fun BottomButtons(
 
             Icon(
                 painter = painterResource(
-                    if (speechRecognizerState == InterviewViewModel2.RecognizerState.Started) R.drawable.ic_pause_circle
+                    if (speechRecognizerState == InterviewViewModel.RecognizerState.Started) R.drawable.ic_pause_circle
                     else R.drawable.ic_interview_mic
                 ),
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.clickable {
                     sttButtonClicked()
-                    if (speechRecognizerState == InterviewViewModel2.RecognizerState.Started) {
+                    if (speechRecognizerState == InterviewViewModel.RecognizerState.Started) {
                         //음성인식 중
                         //음성인식 중단
-                        handleRecognizerState(InterviewViewModel2.RecognizerState.Stopped)
+                        handleRecognizerState(InterviewViewModel.RecognizerState.Stopped)
 
                     } else {
-                        handleRecognizerState(InterviewViewModel2.RecognizerState.Started)
+                        handleRecognizerState(InterviewViewModel.RecognizerState.Started)
                     }
 
                 }
@@ -1338,7 +1333,7 @@ private fun BottomButtons(
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.clickable {
-                    handleRecognizerState(InterviewViewModel2.RecognizerState.Stopped)
+                    handleRecognizerState(InterviewViewModel.RecognizerState.Stopped)
                     checkAnswer()
                 }
             )
@@ -1349,7 +1344,7 @@ private fun BottomButtons(
 @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
 @Composable
 private fun InterviewCameraPreview(
-    viewModel: InterviewViewModel2,
+    viewModel: InterviewViewModel,
     updateLiveFeedback: (LiveFeedback.Type, String, Int) -> Unit
 ) {
 

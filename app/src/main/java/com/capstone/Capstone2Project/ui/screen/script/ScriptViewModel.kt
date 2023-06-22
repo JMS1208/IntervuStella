@@ -252,12 +252,14 @@ class ScriptViewModel @Inject constructor(
 
         _state.update {
             it.copy(
-                dataState = DataState.Loading()
+                dataState = DataState.Loading(),
             )
         }
 
         fetchJobRoleList()
         fetchScriptItems()
+
+        val scriptUUID = script?.uuid ?:UUID.randomUUID().toString()
 
         if (script != null) {
             val newScriptItemList = script.scriptItems.map {
@@ -282,17 +284,20 @@ class ScriptViewModel @Inject constructor(
                 it.copy(
                     scriptItemList = newScriptItemList,
                     jobRoleList = newJobRoleList,
-                    title = script.title
+                    title = script.title,
+                    uuid = scriptUUID,
+                    dataState = DataState.Normal
                 )
             }
 
 
-        }
-
-        _state.update {
-            it.copy(
-                dataState = DataState.Normal
-            )
+        } else {
+            _state.update {
+                it.copy(
+                    uuid = scriptUUID,
+                    dataState = DataState.Normal
+                )
+            }
         }
 
 
@@ -340,49 +345,61 @@ class ScriptViewModel @Inject constructor(
     }
 
     private fun sendScriptToServer(hostUUID: String) = viewModelScope.launch(Dispatchers.IO) {
-        _state.update {
-            it.copy(
-                dataState = DataState.Loading()
-            )
-        }
-        val script = Script(
-            date = System.currentTimeMillis(),
-            title = state.value.title,
-            scriptItems = state.value.scriptItemList.filter { it.second }.map { it.first },
-            jobRole = state.value.jobRoleList.first { it.second }.first,
-            hostUUID = hostUUID,
-            uuid = state.value.uuid
-        )
-
-        val result = repository.createScript(hostUUID, script)
-
-        if (result.isFailure || result.getOrNull() == false) {
-            _effect.emit(
-                Effect.ShowMessage(result.exceptionOrNull()?.message ?: "자기소개서 생성 실패")
-            )
+        try {
             _state.update {
                 it.copy(
-                    dataState = DataState.Error(Exception("자기소개서 생성 실패"))
+                    dataState = DataState.Loading()
                 )
             }
-        } else {
-            _effect.emit(
-                Effect.ShowMessage("자기소개서 생성 완료")
+
+            val scriptUUID = state.value.uuid ?: throw Exception("UUID Null2")
+
+            val script = Script(
+                date = System.currentTimeMillis(),
+                title = state.value.title,
+                scriptItems = state.value.scriptItemList.filter { it.second }.map { it.first },
+                jobRole = state.value.jobRoleList.first { it.second }.first,
+                hostUUID = hostUUID,
+                uuid = scriptUUID
             )
 
-            val curPage = state.value.curPage
+            val result = repository.createScript(hostUUID, script)
 
-            /*
-            뷰모델의 생명주기가 더 길기 때문에 자기소개서 생성이 완료되면 데이터들을 초기화해주어야 함
-             */
-
-            _state.update {
-                State().copy(
-                    dataState = DataState.Normal,
-                    curPage = curPage + 1
+            if (result.isFailure || result.getOrNull() == false) {
+                _effect.emit(
+                    Effect.ShowMessage(result.exceptionOrNull()?.message ?: "자기소개서 생성 실패")
                 )
+                _state.update {
+                    it.copy(
+                        dataState = DataState.Error(Exception("자기소개서 생성 실패"))
+                    )
+                }
+            } else {
+                _effect.emit(
+                    Effect.ShowMessage("자기소개서 생성 완료")
+                )
+
+                val curPage = state.value.curPage
+
+                /*
+                뷰모델의 생명주기가 더 길기 때문에 자기소개서 생성이 완료되면 데이터들을 초기화해주어야 함
+                -> 그렇지 않으면 ?
+                -> 확인해보니 뒤로 가기시 문제 딱히 없었음
+                 */
+
+                _state.update {
+                    it.copy(
+                        dataState = DataState.Normal,
+                        curPage = curPage + 1
+                    )
+                }
             }
+        } catch (e: Exception) {
+            _effect.emit(
+                Effect.ShowMessage(e.message ?: "자기소개서 서버 전송 오류")
+            )
         }
+
     }
 
     fun updateScriptItemAnswer(scriptItem: ScriptItem, answer: String) = viewModelScope.launch {
@@ -465,8 +482,7 @@ class ScriptViewModel @Inject constructor(
 
 
             //TODO 주석 풀어야함
-            val scriptUUID = state.value.uuid
-
+            val scriptUUID = state.value.uuid ?: throw Exception("UUID Null")
 
             /*
             여기서는 재사용 X
@@ -510,6 +526,11 @@ class ScriptViewModel @Inject constructor(
             _effect.emit(
                 Effect.ShowMessage(e.message ?: "질문지 생성 오류")
             )
+            _state.update {
+                it.copy(
+                    dataState = DataState.Error(e)
+                )
+            }
         }
 
     }
@@ -519,7 +540,7 @@ class ScriptViewModel @Inject constructor(
         var scriptItemList: List<Pair<ScriptItem, Boolean>> = emptyList(), //Boolean 값은 선택된 경우 True
         var jobRoleList: List<Pair<String, Boolean>> = emptyList(),
         var dataState: DataState = DataState.Loading(),
-        var uuid: String = UUID.randomUUID().toString(),
+        var uuid: String? = null,
         var interviewed: Boolean = false,
         var title: String = "",
         var dialogState: DialogState = DialogState.Nothing,

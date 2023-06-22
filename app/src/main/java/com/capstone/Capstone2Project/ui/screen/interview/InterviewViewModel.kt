@@ -13,7 +13,6 @@ import com.capstone.Capstone2Project.navigation.ROUTE_HOME
 import com.capstone.Capstone2Project.navigation.ROUTE_INTERVIEW_FINISHED
 import com.capstone.Capstone2Project.repository.NetworkRepository
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.MultiplePermissionsState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -28,7 +27,7 @@ import javax.inject.Inject
 
 @OptIn(ExperimentalPermissionsApi::class)
 @HiltViewModel
-class InterviewViewModel2 @Inject constructor(
+class InterviewViewModel @Inject constructor(
     private val repository: NetworkRepository,
 ) : ViewModel() {
 
@@ -250,7 +249,7 @@ class InterviewViewModel2 @Inject constructor(
 
             block()
 
-            delay(3000)
+            delay(10000)
 
             _state.update {
                 it.copy(
